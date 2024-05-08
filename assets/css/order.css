@@ -1,0 +1,16 @@
+#woocommerce-order-items .woocommerce_order_items_wrapper table.woocommerce_order_items table.display_meta tr th, 
+#woocommerce-order-items .woocommerce_order_items_wrapper table.woocommerce_order_items table.meta tr th {
+    white-space: nowrap;
+    padding-right: 15px !important;
+}
+
+#woocommerce-order-items .woocommerce_order_items_wrapper table.woocommerce_order_items table.display_meta tr td p {
+    margin: 0 !important;
+}
+#woocommerce-order-items .woocommerce_order_items_wrapper table.woocommerce_order_items table.display_meta tr td p:nth-child(even) {
+    margin-bottom: 10px !important;
+}
+img.alarnd__artwork_img {
+    max-width: 200px;
+    max-height: 200px;
+}

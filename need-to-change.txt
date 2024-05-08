@@ -1,0 +1,1 @@
+# add custom field to product plural keyword for example 'shirts' in total group products
