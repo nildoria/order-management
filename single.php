@@ -15,9 +15,23 @@ get_header();
             ?>
             <div class="revision--product-title">
                 <h3>
-                    הדמיות להזמנה מספר
                     <?php the_title(); ?>
                 </h3>
+                <?php
+                // Get the order_status from post meta and show here
+                $order_status = get_post_meta(get_the_ID(), 'order_status', true);
+
+                if ($order_status) {
+                    ?>
+                    <div class="order-status">
+                        <span><?php esc_html_e('Status:', 'hello-elementor'); ?></span>
+                        <span class="order-status-<?php echo esc_attr($order_status); ?>">
+                            <?php echo esc_html($order_status); ?>
+                        </span>
+                    </div>
+                    <?php
+                }
+                ?>
             </div>
 
             <div class="revision--product-artwork-container">

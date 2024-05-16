@@ -1,0 +1,12 @@
+div#order_details_metabox label {
+  display: inline-block;
+  width: 130px;
+  max-width: 100%;
+  margin-right: 5px;
+  margin-bottom: 10px;
+}
+div#order_details_metabox input[type="text"] {
+  margin-bottom: 10px;
+  width: 200px;
+  max-width: 100%;
+}
