@@ -498,3 +498,35 @@ function create_order(WP_REST_Request $request)
     // Return the ID of the new post
     return new WP_REST_Response($post_id, 200);
 }
+
+
+function update_order_status()
+{
+    // Get the order number from the current post
+    $order_number = get_post_meta(get_the_ID(), 'order_number', true);
+
+    // Fetch the posts from the REST API
+    $response = wp_remote_get('http://artwork.test/wp-json/wp/v2/posts/');
+
+    if (is_wp_error($response)) {
+        // Handle the error
+    } else {
+        // Decode the JSON response
+        $posts = json_decode(wp_remote_retrieve_body($response));
+
+        // Loop through the posts
+        foreach ($posts as $post) {
+            // Check if the order number matches
+            if ($post->artwork_meta->order_number === $order_number) {
+                // Set the approved_proof variable
+                $approved_proof = $post->artwork_meta->approval_status;
+                if ($approved_proof) {
+                    update_post_meta(get_the_ID(), 'order_status', 'Approved');
+                } else {
+                    update_post_meta(get_the_ID(), 'order_status', 'Revision Required');
+                }
+                break;
+            }
+        }
+    }
+}
