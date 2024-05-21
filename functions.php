@@ -350,12 +350,17 @@ function order_details_metabox_content($post)
     wp_nonce_field('save_order_details_meta', 'order_details_nonce');
 
     $order_status = get_post_meta($post->ID, 'order_status', true);
+    $order_number = get_post_meta($post->ID, 'order_number', true);
     $shipping_method = get_post_meta($post->ID, 'shipping_method', true);
     $items = get_post_meta($post->ID, 'items', true);
     $billing = get_post_meta($post->ID, 'billing', true);
     $shipping = get_post_meta($post->ID, 'shipping', true);
     $payment_method = get_post_meta($post->ID, 'payment_method', true);
     $payment_method_title = get_post_meta($post->ID, 'payment_method_title', true);
+
+
+    echo '<label for="order_number">Order Number:</label>';
+    echo '<input type="text" id="order_number" name="order_number" value="' . esc_attr($order_number) . '" /><br>';
 
     echo '<label for="order_status">Order Status:</label>';
     echo '<input type="text" readonly id="order_status" name="order_status" value="' . esc_attr($order_status) . '" /><br>';
@@ -413,6 +418,10 @@ function save_order_details_meta($post_id)
 
     if (!current_user_can('edit_post', $post_id)) {
         return $post_id;
+    }
+
+    if (isset($_POST['order_number'])) {
+        update_post_meta($post_id, 'order_number', sanitize_text_field($_POST['order_number']));
     }
 
     if (isset($_POST['order_status'])) {
@@ -487,7 +496,7 @@ function create_order(WP_REST_Request $request)
 
     // Save the order status to post meta
     update_post_meta($post_id, 'order_status', 'New Order');
-    update_post_meta($post_id, 'order_number', $order_data['order_number']);
+    update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $order_data['shipping_method']);
     update_post_meta($post_id, 'items', $order_data['items']);
     update_post_meta($post_id, 'billing', $order_data['billing']);
@@ -500,33 +509,262 @@ function create_order(WP_REST_Request $request)
 }
 
 
-function update_order_status()
+/**
+ * Order Management Order List.
+ *
+ */
+function fetch_display_order_details($order_number)
 {
-    // Get the order number from the current post
-    $order_number = get_post_meta(get_the_ID(), 'order_number', true);
+    // Define the consumer key and secret from your WooCommerce settings
+    $consumer_key = 'ck_f4e8bea3b5e3bc5506e9a427d6e2de0270e42f94';
+    $consumer_secret = 'cs_a7d711a6f86cb413fe6afd4f1229f7c94da93d29';
 
-    // Fetch the posts from the REST API
-    $response = wp_remote_get('http://artwork.test/wp-json/wp/v2/posts/');
+    // WooCommerce API endpoint
+    $url = 'https://allaround.co.il/wp-json/wc/v3/orders/' . $order_number;
 
+    // Setup the request with authentication
+    $response = wp_remote_get(
+        $url,
+        array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+            )
+        )
+    );
+
+    ob_start();
+    // Check for errors
     if (is_wp_error($response)) {
-        // Handle the error
+        $error_message = $response->get_error_message();
+        echo "Something went wrong: $error_message";
     } else {
         // Decode the JSON response
-        $posts = json_decode(wp_remote_retrieve_body($response));
+        $order = json_decode(wp_remote_retrieve_body($response));
+
+        // Check if line_items is set and is an array
+        if (isset($order->line_items) && is_array($order->line_items)) {
+
+            echo '<pre>';
+            // var_dump($order->line_items[0]);
+            echo '</pre>';
+
+            // Display the ordered items
+            echo '<table id="tableMain">';
+            echo '<th class="head"><strong>Product</strong></th>';
+            echo '<th class="head"><strong>Quantity</strong></th>';
+            echo '<th class="head"><strong>Graphics</strong></th>';
+            echo '<th class="head"><strong>Mockups V1</strong></th>';
+            foreach ($order->line_items as $item) {
+                echo '<tr class="alt" id="row">';
+                // Product Column Start
+                echo '<td class="item_product_column">';
+                echo '<strong>' . $item->name . '</strong>';
+                // Loop through the meta data
+                echo '<ul>';
+                foreach ($item->meta_data as $meta) {
+                    if ($meta->key == "קובץ מצורף" || $meta->key == "_allaround_artwork_id" || $meta->key == "_allaround_art_pos_key") {
+                        continue;
+                    }
+                    echo '<li>' . $meta->key . ': ' . $meta->value . '</li>';
+                }
+                echo '</ul>';
+                echo '</td>';
+                // Product Column End
+                echo '<td class="item_quantity_column"><input type="text" value=' . $item->quantity . '></td>';
+                echo '<td class="item_graphics_column">';
+                $artworkFound = false;
+                foreach ($item->meta_data as $meta) {
+                    $value = $meta->value;
+                    if ($meta->key == "קובץ מצורף") {
+                        $value = preg_replace('/<p>.*?<\/p>/', '', $value);
+                        $value = '<div class="uploaded_graphics">' . $value;
+                        echo $value;
+                        $artworkFound = true;
+                        break;
+                    }
+                }
+                if (!$artworkFound) {
+                    echo 'No Artwork Attached';
+                }
+                echo '</td>';
+                echo '<td class="item_mockup_column"><input type="text" placeholder="Enter Value"></td>';
+
+                echo '</tr>';
+            }
+            echo '</table>';
+        } else {
+            echo "No items found for this order.";
+        }
+    }
+    echo '<input type="button" value="Add New Row" id="rowButton" />';
+    echo '<input type="button" value="Add New Column" id="columnButton" />';
+
+    return ob_get_clean();
+}
+
+
+
+/**
+ * Order Artwork Proof Comments.
+ *
+ */
+function fetch_display_artwork_comments($order_number)
+{
+    // Initialize variables
+    $approved_proof = false;
+    $proof_approved_time = '';
+    $fetched_artwork_comments = [];
+    $per_page = 20;
+    $page = 1;
+    $max_pages = 10;
+
+    // Function to fetch posts from a specific page
+    function fetch_posts_page($page, $per_page)
+    {
+        $response = wp_remote_get("https://artwork.allaround.co.il/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
+        if (is_wp_error($response)) {
+            $error_message = $response->get_error_message();
+            echo "Something went wrong: $error_message";
+            return [];
+        } else {
+            return json_decode(wp_remote_retrieve_body($response));
+        }
+    }
+
+    // Loop through pages to fetch all posts
+    while ($page <= $max_pages) {
+        $posts = fetch_posts_page($page, $per_page);
+
+        if (empty($posts)) {
+            break;
+        }
 
         // Loop through the posts
         foreach ($posts as $post) {
             // Check if the order number matches
-            if ($post->artwork_meta->order_number === $order_number) {
-                // Set the approved_proof variable
+            if (isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_number) {
                 $approved_proof = $post->artwork_meta->approval_status;
-                if ($approved_proof) {
-                    update_post_meta(get_the_ID(), 'order_status', 'Approved');
-                } else {
-                    update_post_meta(get_the_ID(), 'order_status', 'Revision Required');
-                }
-                break;
+                $proof_approved_time = $post->artwork_meta->proof_approved_time;
+                $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
+                break 2; // Exit both loops if matching order is found
             }
         }
+
+        $page++; // Move to the next page
     }
+
+    // Start building the output
+    ob_start();
+
+    if ($approved_proof) {
+        ?>
+        <div class="revision-activity customer-message mockup-approved-comment">
+            <div class="revision-activity-avatar">
+                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+            </div>
+            <div class="revision-activity-content">
+                <div class="revision-activity-title">
+                    <h5>AllAround</h5>
+                    <span>
+                        <?php
+                        if (!empty($proof_approved_time)) {
+                            echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                        }
+                        ?>
+                    </span>
+                </div>
+                <div class="revision-activity-description">
+                    <span class="revision-comment-title">ההדמיות אושרו על ידי הלקוח <img
+                            src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt=""></span>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+    if (empty($fetched_artwork_comments)) {
+        echo '<p>No revision history available.</p>';
+    } else {
+        $fetched_artwork_comments = array_reverse($fetched_artwork_comments);
+
+        foreach ($fetched_artwork_comments as $comment) {
+            $comment_name = $comment->artwork_comment_name;
+            $comment_text = nl2br($comment->artwork_comments_texts);
+            $comment_date = '';
+
+            if (!empty($comment->artwork_comment_date)) {
+                $comment_date = date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($comment->artwork_comment_date));
+            }
+
+            $image_html = '';
+            if (!empty($comment->artwork_new_file)) {
+                $image_html .= '<div class="artwork-new-file">';
+                if (pathinfo($comment->artwork_new_file, PATHINFO_EXTENSION) == 'pdf') {
+                    $image_html .= '<img src="' . get_template_directory_uri() . '/assets/images/pdf-icon.svg" alt="Placeholder">';
+                } else {
+                    $image_html .= '<img src="' . esc_url($comment->artwork_new_file) . '" alt="Artwork Image">';
+                }
+                $image_html .= '</div>';
+            }
+
+            ?>
+            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                <div class="revision-activity-avatar">
+                    <?php if ($comment_name === 'AllAround'): ?>
+                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                    <?php else: ?>
+                        <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5><?php echo esc_html($comment_name); ?></h5>
+                        <span><?php echo esc_html($comment_date); ?></span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                        </span>
+                        <?php echo $image_html; ?>
+                        <div><?php echo $comment_text; ?></div>
+                    </div>
+                </div>
+            </div>
+            <?php
+        }
+    }
+
+    return ob_get_clean();
 }
+
+
+// function update_order_status()
+// {
+//     // Get the order number from the current post
+//     $order_number = get_post_meta(get_the_ID(), 'order_number', true);
+
+//     // Fetch the posts from the REST API
+//     $response = wp_remote_get('https://artwork.allaround.co.il/wp-json/wp/v2/posts/');
+
+//     if (is_wp_error($response)) {
+//         // Handle the error
+//     } else {
+//         // Decode the JSON response
+//         $posts = json_decode(wp_remote_retrieve_body($response));
+
+//         // Loop through the posts
+//         foreach ($posts as $post) {
+//             // Check if the order number matches
+//             if ($post->artwork_meta->order_number === $order_number) {
+//                 // Set the approved_proof variable
+//                 $approved_proof = $post->artwork_meta->approval_status;
+//                 if ($approved_proof) {
+//                     update_post_meta(get_the_ID(), 'order_status', 'Approved');
+//                 } else {
+//                     update_post_meta(get_the_ID(), 'order_status', 'Revision Required');
+//                 }
+//                 break;
+//             }
+//         }
+//     }
+// }
