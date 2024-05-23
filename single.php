@@ -31,9 +31,11 @@ get_header();
         </div>
 
         <div id="order_management_table_container" class="order_management_table_container">
-            <?php
-            echo fetch_display_order_details($order_number);
-            ?>
+            <form id="orderManagementForm" method="post" enctype="multipart/form-data">
+                <?php echo fetch_display_order_details($order_number); ?>
+                <input type="submit" value="Upload Files" />
+            </form>
+
         </div>
 
         <div class="mockup-revision-activity-container">

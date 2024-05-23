@@ -510,101 +510,6 @@ function create_order(WP_REST_Request $request)
 
 
 /**
- * Order Management Order List.
- *
- */
-function fetch_display_order_details($order_number)
-{
-    // Define the consumer key and secret from your WooCommerce settings
-    $consumer_key = 'ck_f4e8bea3b5e3bc5506e9a427d6e2de0270e42f94';
-    $consumer_secret = 'cs_a7d711a6f86cb413fe6afd4f1229f7c94da93d29';
-
-    // WooCommerce API endpoint
-    $url = 'https://allaround.co.il/wp-json/wc/v3/orders/' . $order_number;
-
-    // Setup the request with authentication
-    $response = wp_remote_get(
-        $url,
-        array(
-            'headers' => array(
-                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
-            )
-        )
-    );
-
-    ob_start();
-    // Check for errors
-    if (is_wp_error($response)) {
-        $error_message = $response->get_error_message();
-        echo "Something went wrong: $error_message";
-    } else {
-        // Decode the JSON response
-        $order = json_decode(wp_remote_retrieve_body($response));
-
-        // Check if line_items is set and is an array
-        if (isset($order->line_items) && is_array($order->line_items)) {
-
-            echo '<pre>';
-            // var_dump($order->line_items[0]);
-            echo '</pre>';
-
-            // Display the ordered items
-            echo '<table id="tableMain">';
-            echo '<th class="head"><strong>Product</strong></th>';
-            echo '<th class="head"><strong>Quantity</strong></th>';
-            echo '<th class="head"><strong>Graphics</strong></th>';
-            echo '<th class="head"><strong>Mockups V1</strong></th>';
-            foreach ($order->line_items as $item) {
-                echo '<tr class="alt" id="row">';
-                // Product Column Start
-                echo '<td class="item_product_column">';
-                echo '<strong>' . $item->name . '</strong>';
-                // Loop through the meta data
-                echo '<ul>';
-                foreach ($item->meta_data as $meta) {
-                    if ($meta->key == "קובץ מצורף" || $meta->key == "_allaround_artwork_id" || $meta->key == "_allaround_art_pos_key") {
-                        continue;
-                    }
-                    echo '<li>' . $meta->key . ': ' . $meta->value . '</li>';
-                }
-                echo '</ul>';
-                echo '</td>';
-                // Product Column End
-                echo '<td class="item_quantity_column"><input type="text" value=' . $item->quantity . '></td>';
-                echo '<td class="item_graphics_column">';
-                $artworkFound = false;
-                foreach ($item->meta_data as $meta) {
-                    $value = $meta->value;
-                    if ($meta->key == "קובץ מצורף") {
-                        $value = preg_replace('/<p>.*?<\/p>/', '', $value);
-                        $value = '<div class="uploaded_graphics">' . $value;
-                        echo $value;
-                        $artworkFound = true;
-                        break;
-                    }
-                }
-                if (!$artworkFound) {
-                    echo 'No Artwork Attached';
-                }
-                echo '</td>';
-                echo '<td class="item_mockup_column"><input type="text" placeholder="Enter Value"></td>';
-
-                echo '</tr>';
-            }
-            echo '</table>';
-        } else {
-            echo "No items found for this order.";
-        }
-    }
-    echo '<input type="button" value="Add New Row" id="rowButton" />';
-    echo '<input type="button" value="Add New Column" id="columnButton" />';
-
-    return ob_get_clean();
-}
-
-
-
-/**
  * Order Artwork Proof Comments.
  *
  */
@@ -621,7 +526,7 @@ function fetch_display_artwork_comments($order_number)
     // Function to fetch posts from a specific page
     function fetch_posts_page($page, $per_page)
     {
-        $response = wp_remote_get("https://artwork.allaround.co.il/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
+        $response = wp_remote_get("http://artwork.test/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
         if (is_wp_error($response)) {
             $error_message = $response->get_error_message();
             echo "Something went wrong: $error_message";
@@ -765,6 +670,178 @@ function fetch_display_artwork_comments($order_number)
 //                 }
 //                 break;
 //             }
+//         }
+//     }
+// }
+
+
+/**
+ * Order Management Order List.
+ *
+ */
+function fetch_display_order_details($order_number)
+{
+    $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
+    $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
+
+    $url = 'https://allaround.test/wp-json/wc/v3/orders/' . $order_number;
+
+    $response = wp_remote_get(
+        $url,
+        array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+            ),
+            'sslverify' => false
+        )
+    );
+
+    ob_start();
+    if (is_wp_error($response)) {
+        $error_message = $response->get_error_message();
+        echo "Something went wrong: $error_message";
+    } else {
+        $order = json_decode(wp_remote_retrieve_body($response));
+
+        if (isset($order->line_items) && is_array($order->line_items)) {
+            // echo '<pre>';
+            // var_dump($order->line_items[0]);
+            // echo '</pre>';
+
+            echo '<table id="tableMain">';
+            echo '<thead><tr>';
+            echo '<th class="head"><strong>Product</strong></th>';
+            echo '<th class="head"><strong>Quantity</strong></th>';
+            echo '<th class="head"><strong>Graphics</strong></th>';
+            echo '<th class="head"><strong>Mockups V1</strong></th>';
+            echo '</tr></thead><tbody>';
+            foreach ($order->line_items as $item) {
+                echo '<tr class="alt" id="row">';
+                echo '<td class="item_product_column">';
+                echo '<strong>' . htmlspecialchars($item->name) . '</strong>';
+                echo '<ul>';
+                foreach ($item->meta_data as $meta) {
+                    if (in_array($meta->key, ["קובץ מצורף", "Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
+                        continue;
+                    }
+                    echo '<li>' . htmlspecialchars($meta->key) . ': ' . htmlspecialchars($meta->value) . '</li>';
+                }
+                echo '</ul>';
+                echo '</td>';
+                echo '<td class="item_quantity_column"><input type="text" value="' . htmlspecialchars($item->quantity) . '"></td>';
+                echo '<td class="item_graphics_column">';
+                $artworkFound = false;
+                foreach ($item->meta_data as $meta) {
+                    if (in_array($meta->key, ["קובץ מצורף", "Attachment"])) {
+                        $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
+                        $value = '<div class="uploaded_graphics">' . $value;
+                        echo $value;
+                        $artworkFound = true;
+                        break;
+                    }
+                }
+                if (!$artworkFound) {
+                    echo 'No Artwork Attached';
+                }
+                echo '</td>';
+                echo '<td class="item_mockup_column">';
+                echo '<div class="mockup-image">';
+                echo '<img src="https://lukpaluk.xyz/artworks/' . $order_number . '/' . $item->id . '/V1/' . $item->id . '-V1.jpeg" alt="Mockup Image">';
+                echo '</div>';
+                echo '<input class="file-input__input" name="file-input[' . htmlspecialchars($item->id) . ']" id="file-input-' . htmlspecialchars($item->id) . '" data-version="V1" type="file" placeholder="Upload Mockup">';
+                echo '<label class="file-input__label" for="file-input-' . htmlspecialchars($item->id) . '">';
+                echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
+                echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
+                echo '</svg>';
+                echo '<span>Upload file</span></label>';
+                echo '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        } else {
+            echo "No items found for this order.";
+        }
+    }
+    echo '<input type="hidden" name="order_number" value="' . htmlspecialchars($order_number) . '">';
+    echo '<input type="button" value="Add New Row" id="rowButton" />';
+    echo '<input type="button" value="Add New Column" id="columnButton" />';
+
+    return ob_get_clean();
+}
+
+
+// function handle_file_upload($file, $order_number, $product_id, $version)
+// {
+//     // FTP server details
+//     $ftp_server = '107.181.244.114';
+//     $ftp_user_name = 'lukpaluk'; // replace with your FTP username
+//     $ftp_user_pass = 'SK@8Ek9mZam45;'; // replace with your FTP password
+
+//     // Connect to FTP server
+//     $ftp_conn = ftp_connect($ftp_server) or die("Could not connect to $ftp_server");
+
+//     // Login to FTP server
+//     $login = ftp_login($ftp_conn, $ftp_user_name, $ftp_user_pass);
+//     if (!$login) {
+//         ftp_close($ftp_conn);
+//         die("Could not log in to FTP server");
+//     }
+
+//     // Enable passive mode
+//     ftp_pasv($ftp_conn, true);
+
+//     // Define the directory structure
+//     $remote_directory = "/public_html/artworks/$order_number/$product_id/$version/";
+
+//     // Check if directory exists, if not, create it
+//     if (!@ftp_chdir($ftp_conn, $remote_directory)) {
+//         $parts = explode('/', $remote_directory);
+//         $current_dir = '';
+//         foreach ($parts as $part) {
+//             if (empty($part))
+//                 continue;
+//             $current_dir .= '/' . $part;
+//             if (!@ftp_chdir($ftp_conn, $current_dir)) {
+//                 ftp_mkdir($ftp_conn, $current_dir);
+//             }
+//         }
+//         ftp_chdir($ftp_conn, $remote_directory);
+//     }
+
+//     // Define the remote file path with the new filename
+//     $new_filename = $product_id . '-' . $version . '.jpeg';
+//     $remote_file = $remote_directory . $new_filename;
+
+//     // Upload the file
+//     if (ftp_put($ftp_conn, $remote_file, $file['tmp_name'], FTP_BINARY)) {
+//         echo "Successfully uploaded " . htmlspecialchars($file['name']) . " to $remote_file<br>";
+//     } else {
+//         echo "Error uploading " . htmlspecialchars($file['name']) . " to $remote_file<br>";
+//     }
+
+//     // Close the FTP connection
+//     ftp_close($ftp_conn);
+// }
+
+
+// Handle file uploads
+// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file-input'])) {
+//     $order_number = filter_input(INPUT_POST, 'order_number', FILTER_SANITIZE_STRING);
+//     $product_ids = $_POST['product_id'];
+//     $versions = $_POST['version'];
+
+//     foreach ($_FILES['file-input']['tmp_name'] as $key => $tmp_name) {
+//         $file = [
+//             'name' => $_FILES['file-input']['name'][$key],
+//             'tmp_name' => $tmp_name,
+//             'error' => $_FILES['file-input']['error'][$key],
+//             'size' => $_FILES['file-input']['size'][$key]
+//         ];
+
+//         if ($file['error'] === UPLOAD_ERR_OK) {
+//             handle_file_upload($file, $order_number, $product_ids[$key], $versions[$key]);
+//         } else {
+//             echo "Error uploading file: " . htmlspecialchars($file['name']) . "<br>";
 //         }
 //     }
 // }
