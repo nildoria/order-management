@@ -1,5 +1,5 @@
 <?php
-function handle_file_upload($file, $order_number, $product_id, $version)
+function handle_file_upload($file, $order_id, $product_id, $version)
 {
     // FTP server details
     $ftp_server = '107.181.244.114';
@@ -20,7 +20,7 @@ function handle_file_upload($file, $order_number, $product_id, $version)
     ftp_pasv($ftp_conn, true);
 
     // Define the directory structure
-    $remote_directory = "/public_html/artworks/$order_number/$product_id/$version/";
+    $remote_directory = "/public_html/artworks/$order_id/$product_id/$version/";
 
     // Check if directory exists, if not, create it
     if (!@ftp_chdir($ftp_conn, $remote_directory)) {
@@ -43,7 +43,7 @@ function handle_file_upload($file, $order_number, $product_id, $version)
 
     // Upload the file
     if (ftp_put($ftp_conn, $remote_file, $file['tmp_name'], FTP_BINARY)) {
-        $file_path = "https://lukpaluk.xyz/artworks/$order_number/$product_id/$version/$new_filename";
+        $file_path = "https://lukpaluk.xyz/artworks/$order_id/$product_id/$version/$new_filename";
         echo "Successfully uploaded " . htmlspecialchars($file['name']) . " to $file_path<br>";
     } else {
         echo "Error uploading " . htmlspecialchars($file['name']) . " to $remote_file<br>";
@@ -54,14 +54,14 @@ function handle_file_upload($file, $order_number, $product_id, $version)
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
-    $order_number = filter_input(INPUT_POST, 'order_number', FILTER_SANITIZE_STRING);
+    $order_id = filter_input(INPUT_POST, 'order_id', FILTER_SANITIZE_STRING);
     $product_id = filter_input(INPUT_POST, 'product_id', FILTER_SANITIZE_STRING);
     $version = filter_input(INPUT_POST, 'version', FILTER_SANITIZE_STRING);
 
     $file = $_FILES['file'];
 
     if ($file['error'] === UPLOAD_ERR_OK) {
-        handle_file_upload($file, $order_number, $product_id, $version);
+        handle_file_upload($file, $order_id, $product_id, $version);
     } else {
         echo "Error uploading file: " . htmlspecialchars($file['name']) . "<br>";
     }

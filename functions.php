@@ -148,6 +148,8 @@ if (!function_exists('hello_elementor_scripts_styles')) {
      */
     function hello_elementor_scripts_styles()
     {
+        global $post;
+
         $enqueue_basic_style = apply_filters_deprecated('elementor_hello_theme_enqueue_style', [true], '2.0', 'hello_elementor_enqueue_style');
         $min_suffix = '';
 
@@ -201,15 +203,38 @@ if (!function_exists('hello_elementor_scripts_styles')) {
         wp_enqueue_script('slick-js', get_template_directory_uri() . '/assets/js/slick.js', array('jquery'), HELLO_ELEMENTOR_VERSION, true);
         wp_enqueue_script('allaround-main', get_template_directory_uri() . '/assets/js/main.js', array('jquery'), filemtime(get_theme_file_path('/assets/js/main.js')), true);
 
+        $post_id = is_singular('post') && isset($post) ? $post->ID : null;
+
+        if ($post_id) {
+            $order_id = esc_attr(get_post_meta($post_id, 'order_id', true));
+            $order_number = esc_attr(get_post_meta($post_id, 'order_number', true));
+            $billing = get_post_meta($post_id, 'billing', true);
+            $customer_name = esc_attr($billing['first_name']) . ' ' . esc_attr($billing['last_name']);
+            $customer_email = esc_attr($billing['email']);
+        } else {
+            $order_id = '';
+            $order_number = '';
+            $customer_name = '';
+            $customer_email = '';
+        }
+
+        // print $billing in error_log without comment slash
+        // error_log(print_r($billing, true));
+
         wp_localize_script(
             'allaround-main',
             'allaround_vars',
             array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'admin_email' => get_bloginfo('admin_email'),
-                'nonce' => wp_create_nonce("allaround_validation_nonce"),
+                'nonce' => wp_create_nonce("order_management_nonce"),
                 'assets' => get_template_directory_uri() . '/assets/',
-                'redirecturl' => home_url()
+                'redirecturl' => home_url(),
+                'post_id' => $post_id,
+                'order_id' => $order_id,
+                'order_number' => $order_number,
+                'customer_name' => $customer_name,
+                'customer_email' => $customer_email
             )
         );
 
@@ -260,7 +285,7 @@ if (is_admin()) {
 require get_template_directory() . '/includes/elementor-functions.php';
 require get_template_directory() . '/includes/classes/class-rules.php';
 require get_template_directory() . '/includes/classes/class-utility.php';
-require get_template_directory() . '/includes/classes/class-ajax.php';
+// require get_template_directory() . '/includes/classes/class-ajax.php';
 
 /**
  * Include customizer registration functions
@@ -351,6 +376,7 @@ function order_details_metabox_content($post)
 
     $order_status = get_post_meta($post->ID, 'order_status', true);
     $order_number = get_post_meta($post->ID, 'order_number', true);
+    $order_id = get_post_meta($post->ID, 'order_id', true);
     $shipping_method = get_post_meta($post->ID, 'shipping_method', true);
     $items = get_post_meta($post->ID, 'items', true);
     $billing = get_post_meta($post->ID, 'billing', true);
@@ -358,6 +384,9 @@ function order_details_metabox_content($post)
     $payment_method = get_post_meta($post->ID, 'payment_method', true);
     $payment_method_title = get_post_meta($post->ID, 'payment_method_title', true);
 
+
+    echo '<label for="order_number">Order ID:</label>';
+    echo '<input type="text" id="order_number" name="order_number" value="' . esc_attr($order_id) . '" /><br>';
 
     echo '<label for="order_number">Order Number:</label>';
     echo '<input type="text" id="order_number" name="order_number" value="' . esc_attr($order_number) . '" /><br>';
@@ -420,6 +449,10 @@ function save_order_details_meta($post_id)
         return $post_id;
     }
 
+    if (isset($_POST['order_id'])) {
+        update_post_meta($post_id, 'order_id', sanitize_text_field($_POST['order_id']));
+    }
+
     if (isset($_POST['order_number'])) {
         update_post_meta($post_id, 'order_number', sanitize_text_field($_POST['order_number']));
     }
@@ -476,6 +509,7 @@ function create_order(WP_REST_Request $request)
     $order_data = $request->get_json_params();
 
     $order_number = str_replace(' ', '', sanitize_text_field($order_data['order_number']));
+    $order_id = str_replace(' ', '', sanitize_text_field($order_data['order_id']));
 
     $post_title = '#' . $order_number;
 
@@ -496,6 +530,7 @@ function create_order(WP_REST_Request $request)
 
     // Save the order status to post meta
     update_post_meta($post_id, 'order_status', 'New Order');
+    update_post_meta($post_id, 'order_id', $order_id);
     update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $order_data['shipping_method']);
     update_post_meta($post_id, 'items', $order_data['items']);
@@ -510,10 +545,147 @@ function create_order(WP_REST_Request $request)
 
 
 /**
+ * Order Management Order List.
+ *
+ */
+function fetch_display_order_details($order_id)
+{
+    $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
+    $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
+
+    $url = 'https://allaround.test/wp-json/wc/v3/orders/' . $order_id;
+
+    $response = wp_remote_get(
+        $url,
+        array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+            ),
+            'sslverify' => false
+        )
+    );
+
+    ob_start();
+    if (is_wp_error($response)) {
+        $error_message = $response->get_error_message();
+        echo "Something went wrong: $error_message";
+    } else {
+        $order = json_decode(wp_remote_retrieve_body($response));
+
+        if (isset($order->line_items) && is_array($order->line_items)) {
+            // echo '<pre>';
+            // var_dump($order->line_items[0]);
+            // echo '</pre>';
+
+            echo '<table id="tableMain">';
+            echo '<thead><tr>';
+            echo '<th class="head"><strong>Product</strong></th>';
+            echo '<th class="head"><strong>Quantity</strong></th>';
+            echo '<th class="head"><strong>Graphics</strong></th>';
+            echo '<th class="head"><strong>Mockups V1</strong></th>';
+            echo '</tr></thead><tbody>';
+            foreach ($order->line_items as $item) {
+                echo '<tr class="alt" id="row">';
+                echo '<td class="item_product_column">';
+                echo '<strong>' . htmlspecialchars($item->name) . '</strong>';
+                echo '<ul>';
+                foreach ($item->meta_data as $meta) {
+                    if (in_array($meta->key, ["קובץ מצורף", "Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
+                        continue;
+                    }
+                    echo '<li>' . htmlspecialchars($meta->key) . ': ' . $meta->value . '</li>';
+                }
+                echo '</ul>';
+                echo '</td>';
+                echo '<td class="item_quantity_column"><input type="text" value="' . htmlspecialchars($item->quantity) . '"></td>';
+                echo '<td class="item_graphics_column">';
+                $artworkFound = false;
+                foreach ($item->meta_data as $meta) {
+                    if (in_array($meta->key, ["קובץ מצורף", "Attachment"])) {
+                        $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
+                        $value = '<div class="uploaded_graphics">' . $value;
+                        echo $value;
+                        $artworkFound = true;
+                        break;
+                    }
+                }
+                if (!$artworkFound) {
+                    echo 'No Artwork Attached';
+                }
+                echo '</td>';
+                echo '<td class="item_mockup_column">';
+                $image_url = 'https://lukpaluk.xyz/artworks/' . $order_id . '/' . $item->id . '/V1/' . $item->id . '-V1.jpeg';
+                $image_headers = @get_headers($image_url);
+
+                if ($image_headers && strpos($image_headers[0], '200')) {
+                    echo '<input type="hidden" name="mockup-image-v1" value="' . $image_url . '">';
+                    echo '<div class="mockup-image">';
+                    echo '<img src="' . $image_url . '" alt="Mockup Image">';
+                    echo '</div>';
+                } else {
+                    echo '<div class="mockup-image">';
+                    echo 'Select Mockup Image';
+                    echo '</div>';
+                }
+                echo '<input class="file-input__input" name="file-input[' . htmlspecialchars($item->id) . ']" id="file-input-' . htmlspecialchars($item->id) . '" data-version="V1" type="file" placeholder="Upload Mockup">';
+                echo '<label class="file-input__label" for="file-input-' . htmlspecialchars($item->id) . '">';
+                echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
+                echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
+                echo '</svg>';
+                echo '<span>Upload file</span></label>';
+                echo '</td>';
+                echo '</tr>';
+            }
+            echo '</tbody></table>';
+        } else {
+            echo "No items found for this order.";
+        }
+    }
+    echo '<input type="hidden" name="order_id" value="' . htmlspecialchars($order_id) . '">';
+
+    return ob_get_clean();
+}
+
+
+
+/**
  * Order Artwork Proof Comments.
  *
  */
-function fetch_display_artwork_comments($order_number)
+
+// function update_order_status()
+// {
+//     // Get the order number from the current post
+//     $order_id = get_post_meta(get_the_ID(), 'order_id', true);
+
+//     // Fetch the posts from the REST API
+//     $response = wp_remote_get('https://artwork.allaround.co.il/wp-json/wp/v2/posts/');
+
+//     if (is_wp_error($response)) {
+//         // Handle the error
+//     } else {
+//         // Decode the JSON response
+//         $posts = json_decode(wp_remote_retrieve_body($response));
+
+//         // Loop through the posts
+//         foreach ($posts as $post) {
+//             // Check if the order number matches
+//             if ($post->artwork_meta->order_id === $order_id) {
+//                 // Set the approved_proof variable
+//                 $approved_proof = $post->artwork_meta->approval_status;
+//                 if ($approved_proof) {
+//                     update_post_meta(get_the_ID(), 'order_status', 'Approved');
+//                 } else {
+//                     update_post_meta(get_the_ID(), 'order_status', 'Revision Required');
+//                 }
+//                 break;
+//             }
+//         }
+//     }
+// }
+
+
+function fetch_display_artwork_comments($order_id)
 {
     // Initialize variables
     $approved_proof = false;
@@ -547,7 +719,7 @@ function fetch_display_artwork_comments($order_number)
         // Loop through the posts
         foreach ($posts as $post) {
             // Check if the order number matches
-            if (isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_number) {
+            if (isset($post->artwork_meta->order_id) && $post->artwork_meta->order_id === $order_id) {
                 $approved_proof = $post->artwork_meta->approval_status;
                 $proof_approved_time = $post->artwork_meta->proof_approved_time;
                 $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
@@ -641,207 +813,3 @@ function fetch_display_artwork_comments($order_number)
 
     return ob_get_clean();
 }
-
-
-// function update_order_status()
-// {
-//     // Get the order number from the current post
-//     $order_number = get_post_meta(get_the_ID(), 'order_number', true);
-
-//     // Fetch the posts from the REST API
-//     $response = wp_remote_get('https://artwork.allaround.co.il/wp-json/wp/v2/posts/');
-
-//     if (is_wp_error($response)) {
-//         // Handle the error
-//     } else {
-//         // Decode the JSON response
-//         $posts = json_decode(wp_remote_retrieve_body($response));
-
-//         // Loop through the posts
-//         foreach ($posts as $post) {
-//             // Check if the order number matches
-//             if ($post->artwork_meta->order_number === $order_number) {
-//                 // Set the approved_proof variable
-//                 $approved_proof = $post->artwork_meta->approval_status;
-//                 if ($approved_proof) {
-//                     update_post_meta(get_the_ID(), 'order_status', 'Approved');
-//                 } else {
-//                     update_post_meta(get_the_ID(), 'order_status', 'Revision Required');
-//                 }
-//                 break;
-//             }
-//         }
-//     }
-// }
-
-
-/**
- * Order Management Order List.
- *
- */
-function fetch_display_order_details($order_number)
-{
-    $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
-    $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
-
-    $url = 'https://allaround.test/wp-json/wc/v3/orders/' . $order_number;
-
-    $response = wp_remote_get(
-        $url,
-        array(
-            'headers' => array(
-                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
-            ),
-            'sslverify' => false
-        )
-    );
-
-    ob_start();
-    if (is_wp_error($response)) {
-        $error_message = $response->get_error_message();
-        echo "Something went wrong: $error_message";
-    } else {
-        $order = json_decode(wp_remote_retrieve_body($response));
-
-        if (isset($order->line_items) && is_array($order->line_items)) {
-            // echo '<pre>';
-            // var_dump($order->line_items[0]);
-            // echo '</pre>';
-
-            echo '<table id="tableMain">';
-            echo '<thead><tr>';
-            echo '<th class="head"><strong>Product</strong></th>';
-            echo '<th class="head"><strong>Quantity</strong></th>';
-            echo '<th class="head"><strong>Graphics</strong></th>';
-            echo '<th class="head"><strong>Mockups V1</strong></th>';
-            echo '</tr></thead><tbody>';
-            foreach ($order->line_items as $item) {
-                echo '<tr class="alt" id="row">';
-                echo '<td class="item_product_column">';
-                echo '<strong>' . htmlspecialchars($item->name) . '</strong>';
-                echo '<ul>';
-                foreach ($item->meta_data as $meta) {
-                    if (in_array($meta->key, ["קובץ מצורף", "Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
-                        continue;
-                    }
-                    echo '<li>' . htmlspecialchars($meta->key) . ': ' . htmlspecialchars($meta->value) . '</li>';
-                }
-                echo '</ul>';
-                echo '</td>';
-                echo '<td class="item_quantity_column"><input type="text" value="' . htmlspecialchars($item->quantity) . '"></td>';
-                echo '<td class="item_graphics_column">';
-                $artworkFound = false;
-                foreach ($item->meta_data as $meta) {
-                    if (in_array($meta->key, ["קובץ מצורף", "Attachment"])) {
-                        $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                        $value = '<div class="uploaded_graphics">' . $value;
-                        echo $value;
-                        $artworkFound = true;
-                        break;
-                    }
-                }
-                if (!$artworkFound) {
-                    echo 'No Artwork Attached';
-                }
-                echo '</td>';
-                echo '<td class="item_mockup_column">';
-                echo '<div class="mockup-image">';
-                echo '<img src="https://lukpaluk.xyz/artworks/' . $order_number . '/' . $item->id . '/V1/' . $item->id . '-V1.jpeg" alt="Mockup Image">';
-                echo '</div>';
-                echo '<input class="file-input__input" name="file-input[' . htmlspecialchars($item->id) . ']" id="file-input-' . htmlspecialchars($item->id) . '" data-version="V1" type="file" placeholder="Upload Mockup">';
-                echo '<label class="file-input__label" for="file-input-' . htmlspecialchars($item->id) . '">';
-                echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
-                echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
-                echo '</svg>';
-                echo '<span>Upload file</span></label>';
-                echo '</td>';
-                echo '</tr>';
-            }
-            echo '</tbody></table>';
-        } else {
-            echo "No items found for this order.";
-        }
-    }
-    echo '<input type="hidden" name="order_number" value="' . htmlspecialchars($order_number) . '">';
-    echo '<input type="button" value="Add New Row" id="rowButton" />';
-    echo '<input type="button" value="Add New Column" id="columnButton" />';
-
-    return ob_get_clean();
-}
-
-
-// function handle_file_upload($file, $order_number, $product_id, $version)
-// {
-//     // FTP server details
-//     $ftp_server = '107.181.244.114';
-//     $ftp_user_name = 'lukpaluk'; // replace with your FTP username
-//     $ftp_user_pass = 'SK@8Ek9mZam45;'; // replace with your FTP password
-
-//     // Connect to FTP server
-//     $ftp_conn = ftp_connect($ftp_server) or die("Could not connect to $ftp_server");
-
-//     // Login to FTP server
-//     $login = ftp_login($ftp_conn, $ftp_user_name, $ftp_user_pass);
-//     if (!$login) {
-//         ftp_close($ftp_conn);
-//         die("Could not log in to FTP server");
-//     }
-
-//     // Enable passive mode
-//     ftp_pasv($ftp_conn, true);
-
-//     // Define the directory structure
-//     $remote_directory = "/public_html/artworks/$order_number/$product_id/$version/";
-
-//     // Check if directory exists, if not, create it
-//     if (!@ftp_chdir($ftp_conn, $remote_directory)) {
-//         $parts = explode('/', $remote_directory);
-//         $current_dir = '';
-//         foreach ($parts as $part) {
-//             if (empty($part))
-//                 continue;
-//             $current_dir .= '/' . $part;
-//             if (!@ftp_chdir($ftp_conn, $current_dir)) {
-//                 ftp_mkdir($ftp_conn, $current_dir);
-//             }
-//         }
-//         ftp_chdir($ftp_conn, $remote_directory);
-//     }
-
-//     // Define the remote file path with the new filename
-//     $new_filename = $product_id . '-' . $version . '.jpeg';
-//     $remote_file = $remote_directory . $new_filename;
-
-//     // Upload the file
-//     if (ftp_put($ftp_conn, $remote_file, $file['tmp_name'], FTP_BINARY)) {
-//         echo "Successfully uploaded " . htmlspecialchars($file['name']) . " to $remote_file<br>";
-//     } else {
-//         echo "Error uploading " . htmlspecialchars($file['name']) . " to $remote_file<br>";
-//     }
-
-//     // Close the FTP connection
-//     ftp_close($ftp_conn);
-// }
-
-
-// Handle file uploads
-// if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file-input'])) {
-//     $order_number = filter_input(INPUT_POST, 'order_number', FILTER_SANITIZE_STRING);
-//     $product_ids = $_POST['product_id'];
-//     $versions = $_POST['version'];
-
-//     foreach ($_FILES['file-input']['tmp_name'] as $key => $tmp_name) {
-//         $file = [
-//             'name' => $_FILES['file-input']['name'][$key],
-//             'tmp_name' => $tmp_name,
-//             'error' => $_FILES['file-input']['error'][$key],
-//             'size' => $_FILES['file-input']['size'][$key]
-//         ];
-
-//         if ($file['error'] === UPLOAD_ERR_OK) {
-//             handle_file_upload($file, $order_number, $product_ids[$key], $versions[$key]);
-//         } else {
-//             echo "Error uploading file: " . htmlspecialchars($file['name']) . "<br>";
-//         }
-//     }
-// }
