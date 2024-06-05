@@ -54,9 +54,9 @@ function handle_file_upload($file, $order_id, $product_id, $version)
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
-    $order_id = filter_input(INPUT_POST, 'order_id', FILTER_SANITIZE_STRING);
-    $product_id = filter_input(INPUT_POST, 'product_id', FILTER_SANITIZE_STRING);
-    $version = filter_input(INPUT_POST, 'version', FILTER_SANITIZE_STRING);
+    $order_id = filter_input(INPUT_POST, 'order_id');
+    $product_id = filter_input(INPUT_POST, 'product_id');
+    $version = filter_input(INPUT_POST, 'version');
 
     $file = $_FILES['file'];
 

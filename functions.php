@@ -107,7 +107,6 @@ function alarnd_enqueue_admin_script()
     );
 }
 
-
 function hello_maybe_update_theme_version_in_db()
 {
     $theme_version_option_name = 'hello_theme_version';
@@ -209,8 +208,11 @@ if (!function_exists('hello_elementor_scripts_styles')) {
             $order_id = esc_attr(get_post_meta($post_id, 'order_id', true));
             $order_number = esc_attr(get_post_meta($post_id, 'order_number', true));
             $billing = get_post_meta($post_id, 'billing', true);
-            $customer_name = esc_attr($billing['first_name']) . ' ' . esc_attr($billing['last_name']);
-            $customer_email = esc_attr($billing['email']);
+            $firstName = isset($billing['first_name']) ? esc_attr($billing['first_name']) : '';
+            $lastName = isset($billing['last_name']) ? esc_attr($billing['last_name']) : '';
+            $email = isset($billing['email']) ? esc_attr($billing['email']) : '';
+            $customer_name = esc_html($firstName) . ' ' . esc_html($lastName);
+            $customer_email = esc_attr($email);
         } else {
             $order_id = '';
             $order_number = '';
@@ -543,6 +545,15 @@ function create_order(WP_REST_Request $request)
     return new WP_REST_Response($post_id, 200);
 }
 
+// function add_cors_http_header()
+// {
+//     header("Access-Control-Allow-Origin: *");
+//     header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+//     header("Access-Control-Allow-Credentials: true");
+//     header("Access-Control-Allow-Headers: Content-Type, Authorization");
+// }
+// add_action('init', 'add_cors_http_header');
+
 
 /**
  * Order Management Order List.
@@ -550,10 +561,10 @@ function create_order(WP_REST_Request $request)
  */
 function fetch_display_order_details($order_id)
 {
-    $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-    $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+    $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
+    $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
 
-    $url = 'https://main.lukpaluk.xyz/wp-json/wc/v3/orders/' . $order_id;
+    $url = 'https://allaround.test/wp-json/wc/v3/orders/' . $order_id;
 
     $response = wp_remote_get(
         $url,
