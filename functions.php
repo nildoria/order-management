@@ -561,10 +561,10 @@ function create_order(WP_REST_Request $request)
  */
 function fetch_display_order_details($order_id)
 {
-    $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
-    $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
+    $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+    $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
 
-    $url = 'https://allaround.test/wp-json/wc/v3/orders/' . $order_id;
+    $url = 'https://main.lukpaluk.xyz/wp-json/wc/v3/orders/' . $order_id;
 
     $response = wp_remote_get(
         $url,
@@ -681,7 +681,7 @@ function fetch_display_order_details($order_id)
 //         // Loop through the posts
 //         foreach ($posts as $post) {
 //             // Check if the order number matches
-//             if ($post->artwork_meta->order_id === $order_id) {
+//             if ($post->artwork_meta->order_number === $order_id) {
 //                 // Set the approved_proof variable
 //                 $approved_proof = $post->artwork_meta->approval_status;
 //                 if ($approved_proof) {
@@ -730,7 +730,7 @@ function fetch_display_artwork_comments($order_id)
         // Loop through the posts
         foreach ($posts as $post) {
             // Check if the order number matches
-            if (isset($post->artwork_meta->order_id) && $post->artwork_meta->order_id === $order_id) {
+            if (isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_id) {
                 $approved_proof = $post->artwork_meta->approval_status;
                 $proof_approved_time = $post->artwork_meta->proof_approved_time;
                 $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
