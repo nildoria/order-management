@@ -98,13 +98,16 @@
         customer_email: customerEmail,
       };
 
-      fetch("http://artwork.test/wp-json/artwork-review/v1/add-proof", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
+      fetch(
+        "https://artwork.lukpaluk.xyz/wp-json/artwork-review/v1/add-proof",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      )
         .then((response) => response.json())
         .then((data) => {
           if (data.error) {
@@ -140,7 +143,7 @@
     };
 
     $.ajax({
-      url: "https://allaround.test/wp-json/update-order/v1/add-item-to-order",
+      url: "https://main.lukpaluk.xyz/wp-json/update-order/v1/add-item-to-order",
       type: "POST",
       contentType: "application/json",
       data: JSON.stringify(newItem),
@@ -166,7 +169,7 @@
   function fetchProducts() {
     console.log("Fetching products...");
     $.ajax({
-      url: "https://allaround.test/wp-json/alarnd-main/v1/products",
+      url: "https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products",
       method: "GET",
       success: function (response) {
         displayProductList(response);
