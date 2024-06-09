@@ -231,6 +231,7 @@ if (!function_exists('hello_elementor_scripts_styles')) {
                 'admin_email' => get_bloginfo('admin_email'),
                 'nonce' => wp_create_nonce("order_management_nonce"),
                 'assets' => get_template_directory_uri() . '/assets/',
+                'fileupload_url' => get_template_directory_uri() . '/upload.php',
                 'redirecturl' => home_url(),
                 'post_id' => $post_id,
                 'order_id' => $order_id,
@@ -239,6 +240,30 @@ if (!function_exists('hello_elementor_scripts_styles')) {
                 'customer_email' => $customer_email
             )
         );
+
+        // if (is_single() && get_post_type() === 'post') {
+        //     // Enqueue the JavaScript file
+        //     wp_enqueue_script('mockup-handler', get_template_directory_uri() . '/js/mockup-handler.js', array('jquery'), null, true);
+
+        //     $localize_data = array(
+        //         'ajax_url' => admin_url('admin-ajax.php')
+        //     );
+
+        //     // Get the global post object
+        //     global $post;
+
+        //     // Check if the global post object is set and has an ID
+        //     if (isset($post->ID)) {
+        //         // Get the post ID from the global post object
+        //         $post_id = $post->ID;
+
+        //         // Pass the post ID to the script
+        //         $localize_data['post_id'] = $post_id;
+        //     }
+
+        //     wp_localize_script('mockup-handler', 'mockupData', $localize_data);
+        // }
+        
 
     }
 }
@@ -559,12 +584,12 @@ function create_order(WP_REST_Request $request)
  * Order Management Order List.
  *
  */
-function fetch_display_order_details($order_id)
+function fetch_display_order_details($order_id, $post_id = null)
 {
-    $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
-    $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
+    $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+    $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
 
-    $url = 'https://allaround.test/wp-json/wc/v3/orders/' . $order_id;
+    $url = 'https://main.lukpaluk.xyz/wp-json/wc/v3/orders/' . $order_id;
 
     $response = wp_remote_get(
         $url,
@@ -582,21 +607,22 @@ function fetch_display_order_details($order_id)
         echo "Something went wrong: $error_message";
     } else {
         $order = json_decode(wp_remote_retrieve_body($response));
+        $mockup_count = get_post_meta($post_id, '_mockup_count', true) ?: 1;
 
         if (isset($order->line_items) && is_array($order->line_items)) {
-            // echo '<pre>';
-            // var_dump($order->line_items[0]);
-            // echo '</pre>';
-
             echo '<table id="tableMain">';
             echo '<thead><tr>';
             echo '<th class="head"><strong>Product</strong></th>';
             echo '<th class="head"><strong>Quantity</strong></th>';
             echo '<th class="head"><strong>Graphics</strong></th>';
-            echo '<th class="head"><strong>Mockups V1</strong></th>';
+
+            for ($i = 1; $i <= $mockup_count; $i++) {
+                echo '<th class="head"><strong>Mockups V' . $i . '</strong></th>';
+            }
+
             echo '</tr></thead><tbody>';
             foreach ($order->line_items as $item) {
-                echo '<tr class="alt" id="row">';
+                echo '<tr class="alt" id="' . $item->id . '" data-product_id="' . $item->id . '">';
                 echo '<td class="item_product_column">';
                 echo '<strong>' . htmlspecialchars($item->name) . '</strong>';
                 echo '<ul>';
@@ -624,27 +650,32 @@ function fetch_display_order_details($order_id)
                     echo 'No Artwork Attached';
                 }
                 echo '</td>';
-                echo '<td class="item_mockup_column">';
-                $image_url = 'https://lukpaluk.xyz/artworks/' . $order_id . '/' . $item->id . '/V1/' . $item->id . '-V1.jpeg';
-                $image_headers = @get_headers($image_url);
 
-                if ($image_headers && strpos($image_headers[0], '200')) {
-                    echo '<input type="hidden" name="mockup-image-v1" value="' . $image_url . '">';
-                    echo '<div class="mockup-image">';
-                    echo '<img src="' . $image_url . '" alt="Mockup Image">';
-                    echo '</div>';
-                } else {
-                    echo '<div class="mockup-image">';
-                    echo 'Select Mockup Image';
-                    echo '</div>';
+                for ($i = 1; $i <= $mockup_count; $i++) {
+                    echo '<td class="item_mockup_column" data-version_number="' . $i . '">';
+                    echo '<div class="lds-spinner-wrap"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>';
+                    $image_url = 'https://lukpaluk.xyz/artworks/' . $order_id . '/' . $item->id . '/V' . $i . '/' . $item->id . '-V' . $i . '.jpeg';
+
+                    if ( mlCheckImgUrl( $image_url ) ) {
+                        echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $i . '" value="' . $image_url . '">';
+                        echo '<div class="mockup-image">';
+                        echo '<img src="' . $image_url . '" alt="Mockup Image">';
+                        echo '</div>';
+                    } else {
+                        echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $i . '" value="">';
+                        echo '<div class="mockup-image">';
+                        echo 'Select Mockup Image';
+                        echo '</div>';
+                    }
+                    echo '<input class="file-input__input" name="file-input[' . esc_attr($item->id) . ']" id="file-input-' . esc_attr($item->id) . '-v' . $i . '" data-version="V' . $i . '" type="file" placeholder="Upload Mockup">';
+                    echo '<label class="file-input__label" for="file-input-' . esc_attr($item->id) . '-v' . $i . '">';
+                    echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
+                    echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
+                    echo '</svg>';
+                    echo '<span>Upload file</span></label>';
+                    echo '</td>';
                 }
-                echo '<input class="file-input__input" name="file-input[' . htmlspecialchars($item->id) . ']" id="file-input-' . htmlspecialchars($item->id) . '" data-version="V1" type="file" placeholder="Upload Mockup">';
-                echo '<label class="file-input__label" for="file-input-' . htmlspecialchars($item->id) . '">';
-                echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
-                echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
-                echo '</svg>';
-                echo '<span>Upload file</span></label>';
-                echo '</td>';
+
                 echo '</tr>';
             }
             echo '</tbody></table>';
@@ -652,10 +683,27 @@ function fetch_display_order_details($order_id)
             echo "No items found for this order.";
         }
     }
-    echo '<input type="hidden" name="order_id" value="' . htmlspecialchars($order_id) . '">';
+    echo '<input type="hidden" name="order_id" value="' . esc_attr($order_id) . '">';
+    echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
 
     return ob_get_clean();
 }
+
+
+
+// Handle saving mockup count via AJAX
+function save_mockup_count() {
+    if (isset($_POST['post_id']) && isset($_POST['mockup_count'])) {
+        $post_id = intval($_POST['post_id']);
+        $mockup_count = intval($_POST['mockup_count']);
+        update_post_meta($post_id, '_mockup_count', $mockup_count);
+        echo 'Mockup count saved: ' . $mockup_count;
+    } else {
+        echo 'Failed to save mockup count.';
+    }
+    wp_die();
+}
+add_action('wp_ajax_save_mockup_count', 'save_mockup_count');
 
 
 
@@ -696,6 +744,18 @@ function fetch_display_order_details($order_id)
 // }
 
 
+function fetch_posts_page($page, $per_page)
+    {
+        $response = wp_remote_get("https://artwork.lukpaluk.xyz/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
+        if (is_wp_error($response)) {
+            $error_message = $response->get_error_message();
+            echo "Something went wrong: $error_message";
+            return [];
+        } else {
+            return json_decode(wp_remote_retrieve_body($response));
+        }
+    }
+
 function fetch_display_artwork_comments($order_id)
 {
     // Initialize variables
@@ -707,17 +767,7 @@ function fetch_display_artwork_comments($order_id)
     $max_pages = 10;
 
     // Function to fetch posts from a specific page
-    function fetch_posts_page($page, $per_page)
-    {
-        $response = wp_remote_get("https://artwork.lukpaluk.xyz/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
-        if (is_wp_error($response)) {
-            $error_message = $response->get_error_message();
-            echo "Something went wrong: $error_message";
-            return [];
-        } else {
-            return json_decode(wp_remote_retrieve_body($response));
-        }
-    }
+    
 
     // Loop through pages to fetch all posts
     while ($page <= $max_pages) {
@@ -823,4 +873,19 @@ function fetch_display_artwork_comments($order_id)
     }
 
     return ob_get_clean();
+}
+
+
+function mlCheckImgUrl($url) {
+    // Suppress warnings in case the URL is invalid
+    $headers = @get_headers($url, 1);
+
+    // Check if headers were fetched successfully
+    if ($headers && isset($headers[0])) {
+        // Check if the HTTP status code is 200 (OK)
+        if (strpos($headers[0], '200') !== false) {
+            return true;
+        }
+    }
+    return false;
 }
