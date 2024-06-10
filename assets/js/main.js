@@ -36,7 +36,6 @@
         version = 1;
       }
 
-
       var proofStatus = "Mockup V"+version+" Sent"; // Customize as needed
       console.log('proofStatus', proofStatus);
 
@@ -63,8 +62,19 @@
         customer_email: customerEmail,
       };
 
-      console.log(data);
-      return;
+      var requestData = {
+        action: 'send_proof_version',
+        post_id: allaround_vars.post_id,
+        version: version
+      };
+      
+      function handleResponse(data) {
+        if (data.error) {
+          alert("There was an error sending the proof: " + data.message);
+        } else {
+          alert("Proof sent successfully!");
+        }
+      }
 
       fetch(
         "http://mlimon.io/artwork/wp-json/artwork-review/v1/add-proof",
@@ -78,11 +88,7 @@
       )
         .then((response) => response.json())
         .then((data) => {
-          if (data.error) {
-            alert("There was an error sending the proof: " + data.message);
-          } else {
-            alert("Proof sent successfully!");
-          }
+          ml_send_ajax(requestData, handleResponse);
         })
         .catch((error) => {
           console.error("Error:", error);
@@ -110,20 +116,51 @@
       order_id: allaround_vars.order_id,
     };
 
+    var requestData = {
+      action: 'update_order_transient',
+      order_id: allaround_vars.order_id
+    };
+    
+    function handleResponse(response) {
+      alert("Item added successfully");
+      location.reload(); // Refresh the page to see the new item
+    }
+
     $.ajax({
       url: "https://main.lukpaluk.xyz/wp-json/update-order/v1/add-item-to-order",
       type: "POST",
       contentType: "application/json",
       data: JSON.stringify(newItem),
       success: function (response) {
-        alert("Item added successfully");
-        location.reload(); // Refresh the page to see the new item
+        ml_send_ajax(requestData, handleResponse);
       },
       error: function (xhr, status, error) {
         alert("Error: " + xhr.responseJSON.message);
       },
     });
   });
+
+  function ml_send_ajax(data, callback) {
+    $.ajax({
+      type: "POST",
+      url: allaround_vars.ajax_url,
+      data: data,
+      dataType: "json",
+      success: function(response) {
+        if (typeof callback === 'function') {
+          callback(response);
+        } else {
+          console.log("No callback function provided. Response:", response);
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error("AJAX request failed:", status, error);
+        if (typeof callback === 'function') {
+          callback({ success: false, data: error });
+        }
+      }
+    });
+  }
 
   // ********** Fetch Products from Main Site **********//
   $("#fetchProductList").on("focus", function () {
@@ -337,11 +374,9 @@
 
 
 
-
-
-
-
-
+$(window).on('load', function() {
+  
+})
 
 
 })(jQuery); /*End document ready*/

@@ -81,8 +81,10 @@ get_header();
                 </div>
             </div>
 
+            <?php if( ! ml_current_user_editor() ) : ?>
+                <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal">Add Product</button>
+            <?php endif; ?>
             <button type="button" class="allarnd--regular-button ml_add_loading" id="addMockupButton">Add Mockup</button>
-            <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal">Add Product</button>
             <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button">Send Proof</button>
         </div>
 

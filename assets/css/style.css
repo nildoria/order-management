@@ -773,6 +773,9 @@ form#custom-comment-form .artwork-comment-fields-container {
   opacity: 0.7;
 }
 
+td.item_mockup_column.last_send_version {
+  background-color: #d0d0d0;
+}
 
 
 

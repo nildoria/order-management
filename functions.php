@@ -586,124 +586,186 @@ function create_order(WP_REST_Request $request)
  */
 function fetch_display_order_details($order_id, $post_id = null)
 {
-    $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-    $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+    $transient_key = 'order_details_' . $order_id;
+    $order = get_transient($transient_key);
+    // delete_transient($transient_key);
 
-    $url = 'https://main.lukpaluk.xyz/wp-json/wc/v3/orders/' . $order_id;
+    if (false === $order) {
+        $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+        $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+        $url = 'https://main.lukpaluk.xyz/wp-json/wc/v3/orders/' . $order_id;
 
-    $response = wp_remote_get(
-        $url,
-        array(
-            'headers' => array(
-                'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
-            ),
-            'sslverify' => false
-        )
-    );
+        $response = wp_remote_get(
+            $url,
+            array(
+                'headers' => array(
+                    'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+                ),
+                'sslverify' => false
+            )
+        );
+
+        if (is_wp_error($response)) {
+            return 'Something went wrong: ' . $response->get_error_message();
+        }
+
+        $order = json_decode(wp_remote_retrieve_body($response));
+
+        if (!$order || !isset($order->line_items) || !is_array($order->line_items)) {
+            return 'No items found for this order.';
+        }
+        error_log( "set_transient order_details_$order_id" );
+        set_transient($transient_key, $order, HOUR_IN_SECONDS);
+    }
+
+    $mockup_count = get_post_meta($post_id, '_mockup_count', true) ?: 1;
+    $version_send = get_post_meta($post_id, 'send_proof_last_version', true);
+    $version_send = !empty($version_send) ? (int) $version_send : '';
+
+    
 
     ob_start();
-    if (is_wp_error($response)) {
-        $error_message = $response->get_error_message();
-        echo "Something went wrong: $error_message";
-    } else {
-        $order = json_decode(wp_remote_retrieve_body($response));
-        $mockup_count = get_post_meta($post_id, '_mockup_count', true) ?: 1;
 
-        if (isset($order->line_items) && is_array($order->line_items)) {
-            echo '<table id="tableMain">';
-            echo '<thead><tr>';
-            echo '<th class="head"><strong>Product</strong></th>';
-            echo '<th class="head"><strong>Quantity</strong></th>';
-            echo '<th class="head"><strong>Graphics</strong></th>';
+    echo '<table id="tableMain">';
+    echo '<thead><tr>';
+    echo '<th class="head"><strong>Product</strong></th>';
+    echo '<th class="head"><strong>Quantity</strong></th>';
+    echo '<th class="head"><strong>Graphics</strong></th>';
 
-            for ($i = 1; $i <= $mockup_count; $i++) {
-                echo '<th class="head"><strong>Mockups V' . $i . '</strong></th>';
-            }
-
-            echo '</tr></thead><tbody>';
-            foreach ($order->line_items as $item) {
-                echo '<tr class="alt" id="' . $item->id . '" data-product_id="' . $item->id . '">';
-                echo '<td class="item_product_column">';
-                echo '<strong>' . htmlspecialchars($item->name) . '</strong>';
-                echo '<ul>';
-                foreach ($item->meta_data as $meta) {
-                    if (in_array($meta->key, ["קובץ מצורף", "Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
-                        continue;
-                    }
-                    echo '<li>' . htmlspecialchars($meta->key) . ': ' . $meta->value . '</li>';
-                }
-                echo '</ul>';
-                echo '</td>';
-                echo '<td class="item_quantity_column"><input type="text" value="' . htmlspecialchars($item->quantity) . '"></td>';
-                echo '<td class="item_graphics_column">';
-                $artworkFound = false;
-                foreach ($item->meta_data as $meta) {
-                    if (in_array($meta->key, ["קובץ מצורף", "Attachment"])) {
-                        $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                        $value = '<div class="uploaded_graphics">' . $value;
-                        echo $value;
-                        $artworkFound = true;
-                        break;
-                    }
-                }
-                if (!$artworkFound) {
-                    echo 'No Artwork Attached';
-                }
-                echo '</td>';
-
-                for ($i = 1; $i <= $mockup_count; $i++) {
-                    echo '<td class="item_mockup_column" data-version_number="' . $i . '">';
-                    echo '<div class="lds-spinner-wrap"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>';
-                    $image_url = 'https://lukpaluk.xyz/artworks/' . $order_id . '/' . $item->id . '/V' . $i . '/' . $item->id . '-V' . $i . '.jpeg';
-
-                    if ( mlCheckImgUrl( $image_url ) ) {
-                        echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $i . '" value="' . $image_url . '">';
-                        echo '<div class="mockup-image">';
-                        echo '<img src="' . $image_url . '" alt="Mockup Image">';
-                        echo '</div>';
-                    } else {
-                        echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $i . '" value="">';
-                        echo '<div class="mockup-image">';
-                        echo 'Select Mockup Image';
-                        echo '</div>';
-                    }
-                    echo '<input class="file-input__input" name="file-input[' . esc_attr($item->id) . ']" id="file-input-' . esc_attr($item->id) . '-v' . $i . '" data-version="V' . $i . '" type="file" placeholder="Upload Mockup">';
-                    echo '<label class="file-input__label" for="file-input-' . esc_attr($item->id) . '-v' . $i . '">';
-                    echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
-                    echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
-                    echo '</svg>';
-                    echo '<span>Upload file</span></label>';
-                    echo '</td>';
-                }
-
-                echo '</tr>';
-            }
-            echo '</tbody></table>';
-        } else {
-            echo "No items found for this order.";
-        }
+    for ($i = 1; $i <= $mockup_count; $i++) {
+        echo '<th class="head"><strong>Mockups V' . $i . '</strong></th>';
     }
+
+    echo '</tr></thead><tbody>';
+    foreach ($order->line_items as $item) {
+        echo '<tr class="alt" id="' . esc_attr($item->id) . '" data-product_id="' . esc_attr($item->id) . '">';
+        echo '<td class="item_product_column">';
+        echo '<strong>' . htmlspecialchars($item->name) . '</strong>';
+        echo '<ul>';
+        foreach ($item->meta_data as $meta) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
+                continue;
+            }
+            echo '<li>' . htmlspecialchars($meta->key) . ': ' . htmlspecialchars($meta->value) . '</li>';
+        }
+        echo '</ul>';
+        echo '</td>';
+        echo '<td class="item_quantity_column"><input type="text" value="' . esc_attr($item->quantity) . '"></td>';
+        echo '<td class="item_graphics_column">';
+        $artworkFound = false;
+        foreach ($item->meta_data as $meta) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment"])) {
+                $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
+                echo '<div class="uploaded_graphics">' . $value . '</div>';
+                $artworkFound = true;
+                break;
+            }
+        }
+        if (!$artworkFound) {
+            echo 'No Artwork Attached';
+        }
+        echo '</td>';
+
+        $last_send_version = '';
+        for ($i = 1; $i <= $mockup_count; $i++) {
+
+            $last_send_version = $i === $version_send ? ' last_send_version' : '';
+
+            echo '<td class="item_mockup_column'.$last_send_version.'" data-version_number="' . $i . '">';
+            echo '<div class="lds-spinner-wrap"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>';
+            $image_url = 'https://lukpaluk.xyz/artworks/' . $order_id . '/' . $item->id . '/V' . $i . '/' . $item->id . '-V' . $i . '.jpeg';
+
+            if (mlCheckImgUrl($image_url)) {
+                echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $i . '" value="' . esc_attr($image_url) . '">';
+                echo '<div class="mockup-image">';
+                echo '<img src="' . esc_attr($image_url) . '" alt="Mockup Image">';
+                echo '</div>';
+            } else {
+                echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $i . '" value="">';
+                echo '<div class="mockup-image">';
+                echo 'Select Mockup Image';
+                echo '</div>';
+            }
+            echo '<input class="file-input__input" name="file-input[' . esc_attr($item->id) . ']" id="file-input-' . esc_attr($item->id) . '-v' . $i . '" data-version="V' . $i . '" type="file" placeholder="Upload Mockup">';
+            echo '<label class="file-input__label" for="file-input-' . esc_attr($item->id) . '-v' . $i . '">';
+            echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
+            echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
+            echo '</svg>';
+            echo '<span>Upload file</span></label>';
+            echo '</td>';
+        }
+
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
     echo '<input type="hidden" name="order_id" value="' . esc_attr($order_id) . '">';
     echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
 
     return ob_get_clean();
 }
 
+add_action( 'wp_ajax_update_order_transient', 'update_order_transient_cb' );
+function update_order_transient_cb() {
 
-
-// Handle saving mockup count via AJAX
-function save_mockup_count() {
-    if (isset($_POST['post_id']) && isset($_POST['mockup_count'])) {
-        $post_id = intval($_POST['post_id']);
-        $mockup_count = intval($_POST['mockup_count']);
-        update_post_meta($post_id, '_mockup_count', $mockup_count);
-        echo 'Mockup count saved: ' . $mockup_count;
-    } else {
-        echo 'Failed to save mockup count.';
+    $order_id = isset( $_POST['order_id'] ) ? intval( $_POST['order_id'] ) : 0;
+    if( empty( $order_id ) ) {
+        wp_send_json_error( array(
+            "message" => "OrderId is empty on request from update_order_transient."
+        ) );
+        wp_die();
     }
+
+    $transient_key = 'order_details_' . $order_id;
+    delete_transient($transient_key);
+
+    wp_send_json_success(array(
+        "message" => 'order_details_' . $order_id . ' deleted. Request from update_order_transient.'
+    ));
+
     wp_die();
 }
-add_action('wp_ajax_save_mockup_count', 'save_mockup_count');
+
+
+add_action( 'wp_ajax_send_proof_version', 'send_proof_version_cb' );
+function send_proof_version_cb() {
+
+    $post_id = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+    $version = isset( $_POST['version'] ) ? intval( $_POST['version'] ) : 0;
+
+    if( empty( $version ) || empty( $post_id ) ) {
+        wp_send_json_error( array(
+            "message" => "post_id Or version is empty on request from send_proof_version."
+        ) );
+        wp_die();
+    }
+
+    update_post_meta( $post_id, 'send_proof_last_version', $version );
+
+    wp_send_json_success(array(
+        "message" => "send_proof_last_version updated with $version for post:$post_id"
+    ));
+
+    wp_die();
+}
+
+
+function ml_current_user_editor() {
+    // Check if the user is logged in
+    if ( ! is_user_logged_in() ) {
+        return false;
+    }
+
+    // Get the current user
+    $user = wp_get_current_user();
+
+    // Check if the user has the editor role
+    if ( in_array( 'editor', (array) $user->roles ) ) {
+        return true;
+    }
+
+    // If not, return false
+    return false;
+}
 
 
 
