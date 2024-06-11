@@ -3,8 +3,8 @@ function handle_file_upload($file, $order_id, $product_id, $version)
 {
     // FTP server details
     $ftp_server = '107.181.244.114';
-    $ftp_user_name = 'lukpaluk'; // replace with your FTP username
-    $ftp_user_pass = 'SK@8Ek9mZam45;'; // replace with your FTP password
+    $ftp_user_name = 'lukpaluk';
+    $ftp_user_pass = 'SK@8Ek9mZam45;';
 
     // Connect to FTP server
     $ftp_conn = ftp_connect($ftp_server) or die("Could not connect to $ftp_server");
