@@ -52,7 +52,7 @@ get_header();
                 </div>
 
                 <div id="order_management_table_container" class="order_management_table_container">
-                    <?php echo fetch_display_order_details($order_id, $current_id, $order_domain); ?>
+                    <?php echo fetch_display_order_details($order_id, $order_domain, $current_id); ?>
 
                     <div id="add-item-modal" class="mfp-hide add-item-to-order-modal">
                         <div class="form-container">

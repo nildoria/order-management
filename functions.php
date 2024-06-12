@@ -723,7 +723,7 @@ function create_order(WP_REST_Request $request)
  * Order Management Order List.
  *
  */
-function fetch_display_order_details($order_id, $post_id = null, $domain)
+function fetch_display_order_details($order_id, $domain, $post_id = null)
 {
     $transient_key = 'order_details_' . $order_id;
     $order = get_transient($transient_key);
