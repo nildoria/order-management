@@ -1132,9 +1132,9 @@ function create_order_from_form()
     check_ajax_referer('order_management_nonce', 'security');
 
     // Get form data
-    $domain = 'https://allaround.test';
-    $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
-    $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
+    $domain = 'https://main.lukpaluk.xyz';
+    $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+    $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
 
     $billing = array(
         'first_name' => sanitize_text_field($_POST['first_name']),
