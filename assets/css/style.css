@@ -15,6 +15,13 @@ a.custom-logo-link {
 }
 .order_mngmnt_headings {
   margin-bottom: 35px;
+  display: flex;
+  justify-content: space-between;
+}
+.add_order_heading_btn a {
+  color: #333;
+  line-height: 1.3;
+  display: block;
 }
 .order_mngmnt_headings h6 {
   margin-bottom: 6px;
@@ -108,6 +115,9 @@ td.item_product_column:hover .om_duplicate_item {
 }
 .item_product_column ul li .allarnd__order_item {
   display: inline-block;
+}
+td.item_mockup_column.last_send_version > label.file-input__label {
+  display: none;
 }
 .file-input__input {
   width: 0.1px;
@@ -696,6 +706,232 @@ form#custom-comment-form .artwork-comment-fields-container {
 }
 
 /* END Revision Proof Page */
+
+/* MLimon CSS */
+.order_manage_tab_wrapper {
+  overflow-x: auto; /* Enable horizontal scrolling */
+  width: 100%; /* Adjust the width as needed */
+  margin-bottom: 25px;
+}
+
+#tableMain td {
+  min-width: 160px; /* Adjust the min-width value as needed */
+}
+
+.mockup-revision-page::before,
+.mockup-revision-page::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.item_mockup_column {
+  position: relative;
+}
+
+.lds-spinner-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  display: none;
+}
+
+.lds-spinner,
+.lds-spinner div,
+.lds-spinner div:after {
+  box-sizing: border-box;
+}
+.lds-spinner {
+  color: currentColor;
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.lds-spinner div {
+  transform-origin: 40px 40px;
+  animation: lds-spinner 1.2s linear infinite;
+}
+.lds-spinner div:after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 3.2px;
+  left: 36.8px;
+  width: 6.4px;
+  height: 17.6px;
+  border-radius: 20%;
+  background: currentColor;
+}
+.lds-spinner div:nth-child(1) {
+  transform: rotate(0deg);
+  animation-delay: -1.1s;
+}
+.lds-spinner div:nth-child(2) {
+  transform: rotate(30deg);
+  animation-delay: -1s;
+}
+.lds-spinner div:nth-child(3) {
+  transform: rotate(60deg);
+  animation-delay: -0.9s;
+}
+.lds-spinner div:nth-child(4) {
+  transform: rotate(90deg);
+  animation-delay: -0.8s;
+}
+.lds-spinner div:nth-child(5) {
+  transform: rotate(120deg);
+  animation-delay: -0.7s;
+}
+.lds-spinner div:nth-child(6) {
+  transform: rotate(150deg);
+  animation-delay: -0.6s;
+}
+.lds-spinner div:nth-child(7) {
+  transform: rotate(180deg);
+  animation-delay: -0.5s;
+}
+.lds-spinner div:nth-child(8) {
+  transform: rotate(210deg);
+  animation-delay: -0.4s;
+}
+.lds-spinner div:nth-child(9) {
+  transform: rotate(240deg);
+  animation-delay: -0.3s;
+}
+.lds-spinner div:nth-child(10) {
+  transform: rotate(270deg);
+  animation-delay: -0.2s;
+}
+.lds-spinner div:nth-child(11) {
+  transform: rotate(300deg);
+  animation-delay: -0.1s;
+}
+.lds-spinner div:nth-child(12) {
+  transform: rotate(330deg);
+  animation-delay: 0s;
+}
+@keyframes lds-spinner {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.alarnd--submit-btn.loading,
+.ml_add_loading.ml_loading {
+  position: relative;
+  cursor: default;
+  text-shadow: none !important;
+  color: transparent !important;
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transition: all 0s linear, opacity 0.1s ease;
+  transition: all 0s linear, opacity 0.1s ease;
+  -moz-transition: all 0s linear, opacity 0.1s ease;
+  -ms-transition: all 0s linear, opacity 0.1s ease;
+  -o-transition: all 0s linear, opacity 0.1s ease;
+}
+
+.alarnd--submit-btn.loading:before,
+.ml_add_loading.ml_loading:before {
+  position: absolute;
+  content: "";
+  top: 50%;
+  left: 50%;
+  margin: -0.64285714em 0 0 -0.64285714em;
+  width: 1.28571429em;
+  height: 1.28571429em;
+  border-radius: 500rem;
+  border: 0.2em solid rgba(0, 0, 0, 0.15);
+}
+
+.alarnd--submit-btn.loading:after,
+.ml_add_loading.ml_loading:after {
+  position: absolute;
+  content: "";
+  top: 50%;
+  left: 50%;
+  margin: -0.64285714em 0 0 -0.64285714em;
+  width: 1.28571429em;
+  height: 1.28571429em;
+  -webkit-animation: button-spin 0.6s linear;
+  animation: button-spin 0.6s linear;
+  -webkit-animation-iteration-count: infinite;
+  animation-iteration-count: infinite;
+  border-radius: 500rem;
+  border-color: #fff transparent transparent;
+  border-style: solid;
+  border-width: 0.2em;
+  -webkit-box-shadow: 0 0 0 1px transparent;
+  box-shadow: 0 0 0 1px transparent;
+}
+
+@-webkit-keyframes button-spin {
+  from {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+
+  to {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes button-spin {
+  from {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+
+  to {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+.allarnd--regular-button {
+  display: inline-block;
+  background-color: #66de93;
+  color: #1a1a1a;
+  font-size: 16px;
+  border-radius: 11px;
+  -webkit-border-radius: 11px;
+  -moz-border-radius: 11px;
+  -ms-border-radius: 11px;
+  -o-border-radius: 11px;
+  width: auto;
+  padding: 15px 25px;
+  text-decoration: none;
+  outline: none;
+  border: 0 solid;
+}
+
+.allarnd--regular-button:hover,
+.allarnd--regular-button:focus,
+.allarnd--regular-button:active {
+  background-color: #74e49f !important;
+  color: #1a1a1a;
+}
+
+.allarnd--regular-button[disabled],
+.allarnd--regular-button[disabled="disabled"] {
+  opacity: 0.7;
+}
+
+td.item_mockup_column.last_send_version {
+  background-color: #d0d0d0;
+}
+/* MLimon CSS END */
 
 /*Responsive CSS*/
 
