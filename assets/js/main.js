@@ -218,6 +218,16 @@
       nonce: allaround_vars.nonce,
     };
 
+    var requestData = {
+      action: "update_order_transient",
+      order_id: order_id,
+    };
+
+    function handleResponse(response) {
+      alert("Item duplicated successfully");
+      location.reload(); // Refresh the page to see the new item
+    }
+
     fetch(`${order_domain}/wp-json/update-order/v1/add-item-to-order`, {
       method: "POST",
       headers: {
@@ -227,8 +237,7 @@
     })
       .then((response) => {
         if (response.ok) {
-          alert("Item duplicated successfully.");
-          location.reload(); // Refresh the page to see the new item
+          ml_send_ajax(requestData, handleResponse);
         } else {
           return response.json();
         }
@@ -262,6 +271,16 @@
       nonce: allaround_vars.nonce,
     };
 
+    var requestData = {
+      action: "update_order_transient",
+      order_id: order_id,
+    };
+
+    function handleResponse(response) {
+      alert("Item deleted successfully");
+      location.reload(); // Refresh the page to see the new item
+    }
+
     fetch(`${order_domain}/wp-json/update-order/v1/add-item-to-order`, {
       method: "POST",
       headers: {
@@ -271,8 +290,7 @@
     })
       .then((response) => {
         if (response.ok) {
-          alert("Item deleted successfully.");
-          location.reload(); // Refresh the page to see the new item
+          ml_send_ajax(requestData, handleResponse);
         } else {
           return response.json();
         }
@@ -289,13 +307,6 @@
   });
 
   // ********** Fetch Products from Main Site **********//
-  // $("#fetchProductList").on("focus", function () {
-  //   if (!$(this).data("loaded")) {
-  //     fetchProducts();
-  //     $(this).data("loaded", true);
-  //   }
-  //   $("#productDropdown").slideDown();
-  // });
 
   function fetchProducts() {
     let order_domain = allaround_vars.order_domain;
@@ -687,6 +698,7 @@
       .then((data) => {
         if (data.success) {
           alert("Shipping method updated successfully.");
+          location.reload();
         } else {
           alert("Failed to update shipping method: " + data.data);
         }

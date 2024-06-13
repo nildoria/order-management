@@ -41,14 +41,18 @@ get_header();
                                         <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
                                         <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
                                     </select>
+                                    <?php if (!ml_current_user_contributor()): ?>
                                     <input class="om_shipping_submit" type="submit" value="Update">
+                                    <?php endif; ?>
                                 </form>
                             </div>
                         </div>
                     </div>
+                    <?php if (!ml_current_user_contributor()): ?>
                     <div class="om_headin_cta_buttons">
                         <button type="button" class="allarnd--regular-button ml_add_loading add_order_heading_btn"><a href="/add-order/">Add Order</a></button>
                     </div>
+                    <?php endif; ?>
                 </div>
 
                 <div id="order_management_table_container" class="order_management_table_container">
@@ -107,14 +111,11 @@ get_header();
                         </div>
                     </div>
 
-                    <?php if (!ml_current_user_editor()): ?>
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal">Add
-                                Product</button>
+                    <?php if (!ml_current_user_contributor()): ?>
+                        <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal">Add Product</button>
+                        <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button">Send Proof</button>
                     <?php endif; ?>
-                    <button type="button" class="allarnd--regular-button ml_add_loading" id="addMockupButton">Add
-                        Mockup</button>
-                    <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button">Send
-                        Proof</button>
+                    <button type="button" class="allarnd--regular-button ml_add_loading" id="addMockupButton">Add Mockup</button>
                 </div>
 
                 <div class="mockup-revision-activity-container">

@@ -343,6 +343,47 @@ if (!function_exists('hello_elementor_body_open')) {
     }
 }
 
+function redirect_to_login_if_not_logged_in()
+{
+    if (!is_user_logged_in() && is_single()) {
+        wp_redirect(wp_login_url());
+        exit;
+    }
+}
+add_action('template_redirect', 'redirect_to_login_if_not_logged_in');
+
+function change_post_type_labels()
+{
+    global $wp_post_types;
+
+    // Get the post type object
+    $post_type = 'post';
+    $post_type_object = $wp_post_types[$post_type];
+
+    // Define new labels
+    $labels = array(
+        'name' => _x('Orders', 'post type general name', 'your-textdomain'),
+        'singular_name' => _x('Order', 'post type singular name', 'your-textdomain'),
+        'menu_name' => _x('Orders', 'admin menu', 'your-textdomain'),
+        'name_admin_bar' => _x('Order', 'add new on admin bar', 'your-textdomain'),
+        'add_new' => _x('Add New', 'order', 'your-textdomain'),
+        'add_new_item' => __('Add New Order', 'your-textdomain'),
+        'new_item' => __('New Order', 'your-textdomain'),
+        'edit_item' => __('Edit Order', 'your-textdomain'),
+        'view_item' => __('View Order', 'your-textdomain'),
+        'all_items' => __('All Orders', 'your-textdomain'),
+        'search_items' => __('Search Orders', 'your-textdomain'),
+        'parent_item_colon' => __('Parent Orders:', 'your-textdomain'),
+        'not_found' => __('No orders found.', 'your-textdomain'),
+        'not_found_in_trash' => __('No orders found in Trash.', 'your-textdomain')
+    );
+
+    // Update the labels
+    $post_type_object->labels = (object) array_merge((array) $post_type_object->labels, $labels);
+}
+add_action('init', 'change_post_type_labels');
+
+
 /**
  * Order Management Functionality Begines.
  *
@@ -422,6 +463,11 @@ function update_order_shipping_method()
             } else {
                 $post_id = find_post_id_by_order_id($order_id);
                 update_post_meta($post_id, 'shipping_method', sanitize_text_field($shipping_method));
+
+                // Delete the transient to reset cached data
+                $transient_key = 'order_details_' . $order_id;
+                delete_transient($transient_key);
+
                 wp_send_json_success('Shipping method updated successfully.');
             }
         } else {
@@ -726,9 +772,10 @@ function create_order(WP_REST_Request $request)
 function fetch_display_order_details($order_id, $domain, $post_id = null)
 {
     $transient_key = 'order_details_' . $order_id;
-    $order = get_transient($transient_key);
+    $order_data = get_transient($transient_key);
 
-    if (false === $order) {
+
+    if (false === $order_data) {
         if ($domain === 'https://main.lukpaluk.xyz') {
             $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
             $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
@@ -762,37 +809,52 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         if (!$order || !isset($order->line_items) || !is_array($order->line_items)) {
             return 'No items found for this order.';
         }
-        error_log("set_transient order_details_$order_id");
-        set_transient($transient_key, $order, HOUR_IN_SECONDS);
+
+        // Calculate the subtotal of items
+        $items_subtotal = 0;
+        foreach ($order->line_items as $item) {
+            $items_subtotal += $item->total;
+        }
+
+        // Get the currency symbol from the order (or you might need to set this manually based on your store's settings)
+        $currency_symbol = get_currency_symbol($order->currency);
+
+        // Get shipping total and current shipping method title dynamically
+        $shipping_total = 0;
+        if (isset($order->shipping_lines) && is_array($order->shipping_lines)) {
+            foreach ($order->shipping_lines as $shipping_line) {
+                $shipping_total += $shipping_line->total;
+            }
+        }
+
+        // Store all data in the transient
+        $order_data = array(
+            'order' => $order,
+            'items_subtotal' => $items_subtotal,
+            'currency_symbol' => $currency_symbol,
+            'shipping_total' => $shipping_total
+        );
+
+        set_transient($transient_key, $order_data, HOUR_IN_SECONDS);
     }
+
+    $order = $order_data['order'];
+    $items_subtotal = $order_data['items_subtotal'];
+    $currency_symbol = $order_data['currency_symbol'];
+    $shipping_total = $order_data['shipping_total'];
 
     $mockup_count = get_post_meta($post_id, '_mockup_count', true) ?: 1;
     $version_send = get_post_meta($post_id, 'send_proof_last_version', true);
     $version_send = !empty($version_send) ? (int) $version_send : '';
 
-
-    // Calculate the subtotal of items
-    $items_subtotal = 0;
-    foreach ($order->line_items as $item) {
-        $items_subtotal += $item->total;
-    }
-
-    // Get the currency symbol from the order (or you might need to set this manually based on your store's settings)
-    $currency_symbol = get_currency_symbol($order->currency);
-
-    // Get shipping total and current shipping method title dynamically
-    $shipping_total = 0;
-    if (isset($order->shipping_lines) && is_array($order->shipping_lines)) {
-        foreach ($order->shipping_lines as $shipping_line) {
-            $shipping_total += $shipping_line->total;
-        }
-    }
     ob_start();
 
     echo '<table id="tableMain">';
     echo '<thead><tr>';
     echo '<th class="head"><strong>Product</strong></th>';
-    echo '<th class="head"><strong>Quantity</strong></th>';
+    if (!ml_current_user_contributor()):
+        echo '<th class="head"><strong>Quantity</strong></th>';
+    endif;
     echo '<th class="head"><strong>Graphics</strong></th>';
 
     for ($i = 1; $i <= $mockup_count; $i++) {
@@ -803,9 +865,10 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     foreach ($order->line_items as $item) {
         echo '<tr class="alt" id="' . esc_attr($item->id) . '" data-product_id="' . esc_attr($item->id) . '">';
         echo '<td class="item_product_column">';
-        echo '<span class="om_duplicate_item"><img src="' . get_template_directory_uri() . '/assets/images/copy.png" alt="Copy" /></span>';
-        echo '<span class="om_delete_item"><img src="' . get_template_directory_uri() . '/assets/images/delete.png" alt="Delete" /></span>';
-
+        if (!ml_current_user_contributor()):
+            echo '<span class="om_duplicate_item"><img src="' . get_template_directory_uri() . '/assets/images/copy.png" alt="Copy" /></span>';
+            echo '<span class="om_delete_item"><img src="' . get_template_directory_uri() . '/assets/images/delete.png" alt="Delete" /></span>';
+        endif;
         if (isset($item->id)) {
             echo '<input type="hidden" name="item_id" value="' . esc_attr($item->id) . '">';
         }
@@ -825,11 +888,13 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '</ul>';
         echo '</span>';
         echo '</td>';
-        echo '<td class="item_quantity_column">';
-        echo '<span>' . esc_attr($item->quantity) . '</span>x';
-        echo '<span>' . esc_attr(number_format($item->price, 2) . $currency_symbol) . '</span> = ';
-        echo '<span>' . esc_attr(number_format($item->total, 2) . $currency_symbol) . '</span>';
-        echo '</td>';
+        if (!ml_current_user_contributor()):
+            echo '<td class="item_quantity_column">';
+            echo '<span>' . esc_attr($item->quantity) . '</span>x';
+            echo '<span>' . esc_attr(number_format($item->price, 2) . $currency_symbol) . '</span> = ';
+            echo '<span>' . esc_attr(number_format($item->total, 2) . $currency_symbol) . '</span>';
+            echo '</td>';
+        endif;
         echo '<td class="item_graphics_column">';
         $artworkFound = false;
         foreach ($item->meta_data as $meta) {
@@ -878,14 +943,16 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '</tr>';
     }
     echo '</tbody><tfoot>';
-    echo '<tr>';
-    echo '<td colspan="1"><span>Items Subtotal:</span><br>';
-    echo '<span>Shipping:</span><br>';
-    echo '<span>Order Total:</span></td>';
-    echo '<td class="totals_column"><span>' . esc_attr(number_format($items_subtotal, 2) . ' ' . $currency_symbol) . '</span><br>';
-    echo esc_attr(number_format($shipping_total, 2) . ' ' . $currency_symbol) . '<br>';
-    echo esc_attr(number_format($order->total, 2) . ' ' . $currency_symbol) . '</span></td>';
-    echo '</tr>';
+    if (!ml_current_user_contributor()):
+        echo '<tr>';
+        echo '<td colspan="1"><span>Items Subtotal:</span><br>';
+        echo '<span>Shipping:</span><br>';
+        echo '<span>Order Total:</span></td>';
+        echo '<td class="totals_column"><span>' . esc_attr(number_format($items_subtotal, 2) . ' ' . $currency_symbol) . '</span><br>';
+        echo esc_attr(number_format($shipping_total, 2) . ' ' . $currency_symbol) . '<br>';
+        echo esc_attr(number_format($order->total, 2) . ' ' . $currency_symbol) . '</span></td>';
+        echo '</tr>';
+    endif;
     echo '</tfoot></table>';
     echo '<input type="hidden" name="order_id" value="' . esc_attr($order_id) . '">';
     echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
@@ -963,8 +1030,7 @@ function send_proof_version_cb()
     wp_die();
 }
 
-
-function ml_current_user_editor()
+function ml_current_user_contributor()
 {
     // Check if the user is logged in
     if (!is_user_logged_in()) {
@@ -974,14 +1040,31 @@ function ml_current_user_editor()
     // Get the current user
     $user = wp_get_current_user();
 
-    // Check if the user has the editor role
-    if (in_array('editor', (array) $user->roles)) {
-        return true;
+    // Define transient key
+    $transient_key = 'user_is_contributor_' . $user->ID;
+
+    // Check if the transient exists
+    $is_contributor = get_transient($transient_key);
+
+    // If the transient does not exist, calculate and set it
+    if ($is_contributor === false) {
+        $is_contributor = in_array('contributor', (array) $user->roles) ? '1' : '0';
+        set_transient($transient_key, $is_contributor, HOUR_IN_SECONDS);
     }
 
-    // If not, return false
-    return false;
+    // Return the result
+    return $is_contributor === '1';
 }
+function reset_user_contributor_transient($user_id)
+{
+    delete_transient('user_is_contributor_' . $user_id);
+}
+
+add_action('wp_login', 'reset_user_contributor_transient');
+add_action('wp_logout', 'reset_user_contributor_transient');
+add_action('set_user_role', 'reset_user_contributor_transient');
+add_action('profile_update', 'reset_user_contributor_transient');
+
 
 
 /**
