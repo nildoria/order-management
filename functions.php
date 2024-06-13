@@ -1081,7 +1081,13 @@ function fetch_posts_page($page, $per_page)
         echo "Something went wrong: $error_message";
         return [];
     } else {
-        return json_decode(wp_remote_retrieve_body($response));
+        // return json_decode(wp_remote_retrieve_body($response));
+        $posts = json_decode(wp_remote_retrieve_body($response));
+        // Include post URLs
+        foreach ($posts as &$post) {
+            $post->url = get_permalink($post->id);
+        }
+        return $posts;
     }
 }
 
@@ -1095,6 +1101,7 @@ function fetch_display_artwork_comments($order_id)
     $per_page = 20;
     $page = 1;
     $max_pages = 10;
+    $post_url = '#';
 
     // Loop through pages to fetch all posts
     while ($page <= $max_pages) {
@@ -1111,6 +1118,7 @@ function fetch_display_artwork_comments($order_id)
                 $approved_proof = $post->artwork_meta->approval_status;
                 $proof_approved_time = $post->artwork_meta->proof_approved_time;
                 $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
+                $post_url = $post->link;
                 break 2; // Exit both loops if matching order is found
             }
         }
@@ -1120,6 +1128,8 @@ function fetch_display_artwork_comments($order_id)
 
     // Start building the output
     ob_start();
+
+    echo '<span class="om_artwork_url"><a href="' . esc_url($post_url) . '" target="_blank"><img src="' . get_template_directory_uri() . '/assets/images/icons8-info.svg" alt="Info Artwork" /></a></span>';
 
     if ($approved_proof) {
         ?>
