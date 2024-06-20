@@ -1073,27 +1073,82 @@ add_action('profile_update', 'reset_user_contributor_transient');
  */
 
 // Function to fetch posts from a specific page
-function fetch_posts_page($page, $per_page)
+function fetch_artwork_posts_page($page, $per_page)
 {
     $response = wp_remote_get("https://artwork.lukpaluk.xyz/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
+
     if (is_wp_error($response)) {
         $error_message = $response->get_error_message();
-        echo "Something went wrong: $error_message";
+        error_log("Something went wrong: $error_message");
         return [];
-    } else {
-        // return json_decode(wp_remote_retrieve_body($response));
-        $posts = json_decode(wp_remote_retrieve_body($response));
-        // Include post URLs
-        foreach ($posts as &$post) {
-            $post->url = get_permalink($post->id);
-        }
-        return $posts;
     }
+
+    $posts = json_decode(wp_remote_retrieve_body($response));
+
+    if (empty($posts) || !is_array($posts)) {
+        return [];
+    }
+
+    // Include post URLs
+    foreach ($posts as &$post) {
+        if (is_object($post) && isset($post->id)) {
+            $post->url = get_permalink($post->id);
+        } else {
+            $post->url = '#'; // Default to '#' if no ID is found
+        }
+    }
+
+    return $posts;
 }
 
-
-function fetch_display_artwork_comments($order_id)
+function fetch_artwork_post_by_id($post_id)
 {
+    $response = wp_remote_get("https://artwork.lukpaluk.xyz/wp-json/wp/v2/posts/$post_id");
+
+    if (is_wp_error($response)) {
+        $error_message = $response->get_error_message();
+        error_log("Something went wrong: $error_message");
+        return null;
+    }
+
+    $post = json_decode(wp_remote_retrieve_body($response));
+    if (isset($post->id)) {
+        $post->url = get_permalink($post->id);
+        return $post;
+    }
+
+    return null;
+}
+
+function fetch_display_artwork_comments($order_id, $post_id = null)
+{
+    $send_proof_last_version = get_post_meta($post_id, 'send_proof_last_version', true);
+
+    // Skip fetching operations if $send_proof_last_version is empty
+    if (empty($send_proof_last_version)) {
+        return display_artwork_comments(false, '', [], '#');
+    }
+
+    $transient_key = 'artwork_post_' . $order_id;
+    $post_id = get_transient($transient_key);
+
+    if ($post_id) {
+        // Fetch the post by ID directly
+        $post = fetch_artwork_post_by_id($post_id);
+        if ($post && isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_id) {
+            $approved_proof = $post->artwork_meta->approval_status;
+            $proof_approved_time = $post->artwork_meta->proof_approved_time;
+            $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
+            $post_url = $post->link;
+
+            // Display the comments
+            return display_artwork_comments($approved_proof, $proof_approved_time, $fetched_artwork_comments, $post_url);
+        } else {
+            // If post data is outdated, remove the transient
+            delete_transient($transient_key);
+        }
+    }
+
     // Initialize variables
     $approved_proof = false;
     $proof_approved_time = '';
@@ -1105,7 +1160,7 @@ function fetch_display_artwork_comments($order_id)
 
     // Loop through pages to fetch all posts
     while ($page <= $max_pages) {
-        $posts = fetch_posts_page($page, $per_page);
+        $posts = fetch_artwork_posts_page($page, $per_page);
 
         if (empty($posts)) {
             break;
@@ -1119,6 +1174,7 @@ function fetch_display_artwork_comments($order_id)
                 $proof_approved_time = $post->artwork_meta->proof_approved_time;
                 $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
                 $post_url = $post->link;
+                set_transient($transient_key, $post->id, 12 * HOUR_IN_SECONDS); // Cache the post ID for 12 hours
                 break 2; // Exit both loops if matching order is found
             }
         }
@@ -1126,10 +1182,17 @@ function fetch_display_artwork_comments($order_id)
         $page++; // Move to the next page
     }
 
+    return display_artwork_comments($approved_proof, $proof_approved_time, $fetched_artwork_comments, $post_url);
+}
+
+function display_artwork_comments($approved_proof, $proof_approved_time, $fetched_artwork_comments, $post_url)
+{
     // Start building the output
     ob_start();
 
-    echo '<span class="om_artwork_url"><a href="' . esc_url($post_url) . '" target="_blank"><img src="' . get_template_directory_uri() . '/assets/images/icons8-info.svg" alt="Info Artwork" /></a></span>';
+    if ($post_url !== '#') {
+        echo '<span class="om_artwork_url"><a href="' . esc_url($post_url) . '" target="_blank"><img src="' . get_template_directory_uri() . '/assets/images/icons8-info.svg" alt="Info Artwork" /></a></span>';
+    }
 
     if ($approved_proof) {
         ?>
