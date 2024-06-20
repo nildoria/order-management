@@ -34,18 +34,29 @@
     console.log("proofStatus", proofStatus);
 
     var imageUrls = [];
-    document
-      .querySelectorAll('.item_mockup_column input[type="hidden"]')
-      .forEach(function (input) {
-        // Check if the parent element (td) of the input has the desired attribute
-        if (
-          input
-            .closest(".item_mockup_column")
-            .getAttribute("data-version_number") === version.toString()
-        ) {
-          imageUrls.push(input.value);
+
+    document.querySelectorAll("tbody > tr").forEach(function (row) {
+      let currentVersion = version;
+      let imageUrl = "";
+
+      while (currentVersion > 0) {
+        let column = row.querySelector(
+          '.item_mockup_column[data-version_number="' + currentVersion + '"]'
+        );
+        if (column) {
+          let input = column.querySelector('input[type="hidden"]');
+          if (input && input.value.trim() !== "") {
+            imageUrl = input.value.trim();
+            break;
+          }
         }
-      });
+        currentVersion--;
+      }
+
+      if (imageUrl !== "") {
+        imageUrls.push(imageUrl);
+      }
+    });
 
     var imageUrlString = imageUrls.join(",");
     console.log(imageUrlString); // Outputs: url1,url2,url3...

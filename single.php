@@ -33,6 +33,7 @@ get_header();
                                 <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
                             </div>
                             <div class="shipping_method_value">
+                                <?php if (!ml_current_user_contributor()): ?>
                                 <form id="shipping-method-form">
                                     <select id="shipping-method-list" name="shipping_method">
                                         <option value="">Select Shipping Option</option>
@@ -41,10 +42,17 @@ get_header();
                                         <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
                                         <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
                                     </select>
-                                    <?php if (!ml_current_user_contributor()): ?>
                                     <input class="om_shipping_submit" type="submit" value="Update">
-                                    <?php endif; ?>
                                 </form>
+                                <?php else: ?>
+                                    <select id="shipping-method-list" class="non-admin-shipping-list" name="shipping_method">
+                                        <option value="">Select Shipping Option</option>
+                                        <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
+                                            שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
+                                        <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
+                                        <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                                    </select>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -56,8 +64,10 @@ get_header();
                 </div>
 
                 <div id="order_management_table_container" class="order_management_table_container">
-                    <?php echo fetch_display_order_details($order_id, $order_domain, $current_id); ?>
-
+                    <div class="om_table_wraper">
+                        <?php echo fetch_display_order_details($order_id, $order_domain, $current_id); ?>
+                    </div>
+                    
                     <div id="add-item-modal" class="mfp-hide add-item-to-order-modal">
                         <div class="form-container">
                             <div class="form-group">

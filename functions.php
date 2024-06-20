@@ -927,8 +927,8 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '</div>';
             } else {
                 echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $i . '" value="">';
-                echo '<div class="mockup-image">';
-                echo 'Select Mockup Image';
+                echo '<div class="mockup-image no-proof-uploaded">';
+                // echo 'Select Mockup Image';
                 echo '</div>';
             }
             echo '<input class="file-input__input" name="file-input[' . esc_attr($item->id) . ']" id="file-input-' . esc_attr($item->id) . '-v' . $i . '" data-version="V' . $i . '" type="file" placeholder="Upload Mockup">';
