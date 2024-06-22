@@ -63,16 +63,16 @@ td.item_mockup_column {
 }
 .item_product_column {
   max-width: 100%;
-  display: flex;
-  gap: 15px;
   position: relative;
+  min-width: 350px !important;
+  vertical-align: middle;
 }
 .om_duplicate_item,
 .om_delete_item {
   max-width: 25px;
   height: 35px;
   position: absolute;
-  left: -14px;
+  left: 5px;
   opacity: 0;
   top: 50%;
   transform: translateY(-50%);
@@ -91,21 +91,27 @@ td.item_mockup_column {
 }
 td.item_product_column:hover .om_delete_item,
 td.item_product_column:hover .om_duplicate_item {
-  left: -25px;
+  left: -2px;
   opacity: 1;
 }
 .om_item_thumb_cont {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100px;
-  height: 100px;
+  width: 90px;
+  height: 90px;
+  float: left;
 }
 .om_item_thumb_cont img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+span.item_name_variations {
+  float: left;
+  margin-left: 12px;
+  max-width: calc(100% - 102px);
 }
 .item_product_column ul {
   padding: 0;
@@ -196,6 +202,12 @@ td.item_mockup_column.last_send_version > label.file-input__label {
 }
 button#addNewItemButton {
   margin-top: 30px;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button#addNewItemButton.om_add_item_selected {
+  opacity: 1;
+  cursor: pointer;
 }
 .mfp-close-btn-in .mfp-close {
   color: #fff;
@@ -302,7 +314,21 @@ select#shipping-method-list {
   text-indent: 1px;
   text-overflow: "";
 }
-
+.uploaded_graphics {
+  text-align: center;
+  margin: 10px 0;
+}
+.uploaded_graphics.file-format-pdf > a {
+  width: 80px;
+  height: 80px;
+  display: block;
+  background-image: url(../images/pdf-icon.svg);
+  background-repeat: no-repeat;
+  margin: auto;
+}
+.uploaded_graphics.file-format-pdf img.alarnd__artwork_img {
+  display: none;
+}
 .mockup-image {
   max-width: 200px;
   text-align: center;
@@ -888,10 +914,10 @@ form#custom-comment-form .artwork-comment-fields-container {
 .alarnd--submit-btn.loading,
 .ml_add_loading.ml_loading {
   position: relative;
-  cursor: default;
+  cursor: not-allowed !important;
   text-shadow: none !important;
   color: transparent !important;
-  opacity: 1;
+  opacity: 0.6 !important;
   pointer-events: auto;
   -webkit-transition: all 0s linear, opacity 0.1s ease;
   transition: all 0s linear, opacity 0.1s ease;

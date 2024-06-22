@@ -104,10 +104,15 @@
 
   // ********** Add New Item to the Order **********//
   $("#new_product_artwork").on("change", function (event) {
-    var file = event.target.files[0];
-    if (file) {
+    var files = event.target.files;
+    var uploadedFiles = [];
+
+    if (files.length > 0) {
+      $("#addNewItemButton").addClass("ml_loading").prop("disabled", true);
       var formData = new FormData();
-      formData.append("file", file);
+      for (var i = 0; i < files.length; i++) {
+        formData.append("files[]", files[i]);
+      }
 
       fetch("/wp-content/themes/manage-order/includes/php/artwork-upload.php", {
         method: "POST",
@@ -116,16 +121,23 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            // Store the file path in a hidden input field
-            $("#uploaded_file_path").val(data.file_path);
-            console.log("File uploaded successfully:", data.file_path);
+            // Store the file paths in an array
+            uploadedFiles = data.file_paths;
+            $("#uploaded_file_path").val(JSON.stringify(uploadedFiles));
+            console.log("Files uploaded successfully:", data.file_paths);
           } else {
-            alert("Failed to upload file: " + data.message);
+            alert("Failed to upload files: " + data.message);
           }
+          $("#addNewItemButton")
+            .removeClass("ml_loading")
+            .prop("disabled", false);
         })
         .catch((error) => {
           console.error("Error:", error);
           alert("Error: " + error.message);
+          $("#addNewItemButton")
+            .removeClass("ml_loading")
+            .prop("disabled", false);
         });
     }
   });
@@ -210,6 +222,15 @@
       },
     });
   }
+
+  // keep #addNewItemButton button disabled and opacity 0.5 if #new_product_id is empty
+  $("#new_product_id").on("change", function () {
+    if ($(this).val() === "") {
+      $("#addNewItemButton").prop("disabled", true).css("opacity", 0.5);
+    } else {
+      $("#addNewItemButton").prop("disabled", false).css("opacity", 1);
+    }
+  });
 
   // ********** Duplicate Order Item **********//
   $(document).on("click", ".om_duplicate_item", function () {
@@ -385,6 +406,10 @@
           `<img src="${productThumbnail}" alt="${productName}" class="product-thumb">${productName}`
         );
         $("#selectedProductDisplay").data("product-id", selectedProduct);
+
+        $("#addNewItemButton")
+          .addClass("om_add_item_selected")
+          .prop("disabled", false);
       }
       $("#new_product_id").val(selectedProduct);
 
@@ -517,7 +542,7 @@
   });
 
   function fetchAddProducts() {
-    let order_domain = "https://main.lukpaluk.xyz";
+    let order_domain = "https://allaround.test";
 
     fetch(`${order_domain}/wp-json/alarnd-main/v1/products`)
       .then((response) => {

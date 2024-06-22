@@ -404,8 +404,8 @@ function update_order_shipping_method()
         $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
         $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
     } elseif ($domain === 'https://allaround.test') {
-        $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
-        $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
+        $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
+        $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
     } else {
         $domain = 'https://main.lukpaluk.xyz';
         $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
@@ -774,14 +774,16 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     $transient_key = 'order_details_' . $order_id;
     $order_data = get_transient($transient_key);
 
+    // delete_transient($transient_key);
+
 
     if (false === $order_data) {
         if ($domain === 'https://main.lukpaluk.xyz') {
             $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
             $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
         } elseif ($domain === 'https://allaround.test') {
-            $consumer_key = 'ck_fc872db1d36e00888c258b741f9df6caa2b247e2';
-            $consumer_secret = 'cs_db32976e2f6c83fae3c32b55b26c24ad90462718';
+            $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
+            $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
         } else {
             $domain = 'https://main.lukpaluk.xyz';
             $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
@@ -790,21 +792,46 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
 
         $order_url = $domain . '/wp-json/wc/v3/orders/' . $order_id;
 
-        $order_response = wp_remote_get(
-            $order_url,
-            array(
-                'headers' => array(
-                    'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
-                ),
-                'sslverify' => false
-            )
-        );
+        error_log("Fetching order data from URL: $order_url");
+
+        $max_retries = 3;
+        $attempt = 0;
+        $timeout = 20; // Increase the timeout to 20 seconds
+        $order_response = null;
+
+        while ($attempt < $max_retries) {
+            $order_response = wp_remote_get(
+                $order_url,
+                array(
+                    'headers' => array(
+                        'Authorization' => 'Basic ' . base64_encode($consumer_key . ':' . $consumer_secret)
+                    ),
+                    'timeout' => $timeout,
+                    'sslverify' => false
+                )
+            );
+
+            if (!is_wp_error($order_response)) {
+                break;
+            }
+
+            error_log("Attempt $attempt failed: " . $order_response->get_error_message());
+            $attempt++;
+        }
 
         if (is_wp_error($order_response)) {
             return 'Something went wrong: ' . $order_response->get_error_message();
         }
 
-        $order = json_decode(wp_remote_retrieve_body($order_response));
+        $response_body = wp_remote_retrieve_body($order_response);
+        error_log("Response body: $response_body");
+
+        $order = json_decode($response_body);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('JSON decode error: ' . json_last_error_msg());
+            return 'Failed to parse order data.';
+        }
 
         if (!$order || !isset($order->line_items) || !is_array($order->line_items)) {
             return 'No items found for this order.';
@@ -880,7 +907,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<strong>' . esc_html($item->name) . '</strong>';
         echo '<ul>';
         foreach ($item->meta_data as $meta) {
-            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_artwork_id2", "_allaround_art_pos_key"])) {
                 continue;
             }
             echo '<li>' . esc_html($meta->key) . ': ' . esc_html(strip_tags($meta->value)) . '</li>';
@@ -898,12 +925,22 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<td class="item_graphics_column">';
         $artworkFound = false;
         foreach ($item->meta_data as $meta) {
-            if (in_array($meta->key, ["קובץ מצורף", "Attachment"])) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
+                // Extract the file extension using a regular expression
+                if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
+                    $filename = $matches[1];
+                    $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
+                    $class_name = 'file-format-' . strtolower($file_extension);
+                } else {
+                    $class_name = 'file-format-unknown';
+                }
+
+                // Replace <p> tags and add the class dynamically
                 $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                $value = '<div class="uploaded_graphics">' . $value;
+                $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $value . '</div>';
                 echo $value;
                 $artworkFound = true;
-                break;
+                // Removed the break statement to allow checking for additional attachments
             }
         }
         if (!$artworkFound) {
