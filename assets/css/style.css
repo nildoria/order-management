@@ -418,7 +418,7 @@ form#custom-comment-form {
 }
 .om_table_wraper table#tableMain {
   display: block;
-  overflow-x: scroll;
+  overflow-x: auto;
   padding-left: 25px;
   margin-left: -25px;
 }

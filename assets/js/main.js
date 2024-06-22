@@ -223,15 +223,6 @@
     });
   }
 
-  // keep #addNewItemButton button disabled and opacity 0.5 if #new_product_id is empty
-  $("#new_product_id").on("change", function () {
-    if ($(this).val() === "") {
-      $("#addNewItemButton").prop("disabled", true).css("opacity", 0.5);
-    } else {
-      $("#addNewItemButton").prop("disabled", false).css("opacity", 1);
-    }
-  });
-
   // ********** Duplicate Order Item **********//
   $(document).on("click", ".om_duplicate_item", function () {
     var order_id = allaround_vars.order_id;
@@ -568,44 +559,49 @@
     const size = $("#new_product_size").val();
     const artPos = $("#new_product_art_pos").val();
     const instructionNote = $("#new_product_instruction_note").val();
-    const alarnd_artwork = $("#uploaded_file_path").val();
+    const alarnd_artwork = JSON.parse($("#uploaded_file_path").val());
 
     if (!productId || !quantity) {
       alert("Please select a product and specify quantity.");
       return;
     }
 
+    const meta_data = [
+      { key: "Color", value: color },
+      { key: "Size", value: size },
+      { key: "Art Position", value: artPos },
+      { key: "Instruction Note", value: instructionNote },
+    ];
+
+    // Add each artwork URL as a separate meta field
+    // if (alarnd_artwork && Array.isArray(alarnd_artwork)) {
+    //   alarnd_artwork.forEach((url) => {
+    //     // Create a URL object and use the pathname property
+    //     const pathname = new URL(url).pathname;
+    //     // Extract the filename from the pathname
+    //     const filename = pathname.split("/").pop();
+    //     const formattedValue = `<p>${filename}</p><a href="${url}" target="_blank"><img class="alarnd__artwork_img" src="${url}" /></a>`;
+    //     meta_data.push({
+    //       key: "Attachment",
+    //       value: formattedValue,
+    //     });
+    //   });
+    // }
+    if (alarnd_artwork && Array.isArray(alarnd_artwork)) {
+      meta_data.push({
+        key: "Attachment",
+        value: JSON.stringify(alarnd_artwork),
+      });
+    }
+
     const lineItem = {
       product_id: productId,
       product_html: productHTML,
       quantity: quantity,
-      meta_data: [
-        {
-          key: "Color",
-          value: color,
-        },
-        {
-          key: "Size",
-          value: size,
-        },
-        {
-          key: "Size",
-          value: size,
-        },
-        {
-          key: "Art Position",
-          value: artPos,
-        },
-        {
-          key: "Instruction Note",
-          value: instructionNote,
-        },
-        {
-          key: "Attachment",
-          value: alarnd_artwork,
-        },
-      ],
+      meta_data: meta_data,
     };
+
+    console.log(lineItem);
 
     products.push(lineItem);
     alert("Product added to order.");

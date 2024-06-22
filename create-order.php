@@ -61,7 +61,7 @@ get_header();
 
                     <div class="form-group">
                         <label for="new_product_artwork">Artwork</label>
-                        <input type="file" id="new_product_artwork" name="artwork" />
+                        <input type="file" id="new_product_artwork" name="artwork" multiple />
                         <input type="hidden" id="uploaded_file_path" name="uploaded_file_path">
                     </div>
                     <br>

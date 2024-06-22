@@ -1325,9 +1325,13 @@ function create_order_from_form()
     check_ajax_referer('order_management_nonce', 'security');
 
     // Get form data
-    $domain = 'https://main.lukpaluk.xyz';
-    $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-    $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+    // $domain = 'https://main.lukpaluk.xyz';
+    // $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+    // $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+
+    $domain = 'https://allaround.test';
+    $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
+    $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
 
     $billing = array(
         'first_name' => sanitize_text_field($_POST['first_name']),
@@ -1350,9 +1354,20 @@ function create_order_from_form()
     foreach ($line_items as &$item) {
         foreach ($item['meta_data'] as &$meta) {
             if ($meta['key'] === 'Attachment') {
-                $artwork_url = $meta['value'];
-                if (!empty($artwork_url)) {
-                    $meta['value'] = "<p>" . basename($artwork_url) . "</p><a href=\"" . $artwork_url . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_url . "\" /></a>";
+                $artwork_urls = json_decode($meta['value'], true);
+                // Check if the value is an array and not empty
+                if (!empty($artwork_urls) && is_array($artwork_urls)) {
+                    $meta['value'] = ''; // Initialize as empty string to concatenate multiple artworks
+                    foreach ($artwork_urls as $artwork_url) {
+                        // Extract the file extension
+                        $extension = pathinfo($artwork_url, PATHINFO_EXTENSION);
+                        // Create the HTML content for each artwork with dynamic class based on file extension
+                        $meta['value'] .= "<p>" . basename($artwork_url) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_url . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_url . "\" /></a></div>";
+                    }
+                } elseif (!empty($artwork_urls)) { // Handle single artwork URL (not an array)
+                    // Extract the file extension for single URL
+                    $extension = pathinfo($artwork_urls, PATHINFO_EXTENSION);
+                    $meta['value'] = "<p>" . basename($artwork_urls) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_urls . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_urls . "\" /></a></div>";
                 }
             }
         }
