@@ -124,7 +124,7 @@ span.item_name_variations {
   display: inline-block;
 }
 td.item_mockup_column.last_send_version > label.file-input__label {
-  display: none;
+  /* display: none; */
 }
 .file-input__input {
   width: 0.1px;
@@ -205,7 +205,13 @@ button#addNewItemButton {
   opacity: 0.5;
   cursor: not-allowed;
 }
-button#addNewItemButton.om_add_item_selected {
+button#om--create-new-order {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+button#addNewItemButton.om_add_item_selected,
+button#addProductButton.om_add_item_selected,
+button#om--create-new-order.om_add_item_selected {
   opacity: 1;
   cursor: pointer;
 }

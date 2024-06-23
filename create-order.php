@@ -90,7 +90,8 @@ get_header();
                         </div>
                     </div>
 
-                    <button type="button" id="addProductButton">Add Product</button>
+                    <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductButton"
+                        disabled>Add Product</button>
                     <br>
 
                     <div id="line_items_added_om"></div>
@@ -147,7 +148,8 @@ get_header();
                 </div>
             </div>
 
-            <button type="submit">Create Order</button>
+            <button id="om--create-new-order" class="allarnd--regular-button ml_add_loading" type="submit">Create
+                Order</button>
         </form>
     </div>
 

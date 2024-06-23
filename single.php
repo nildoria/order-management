@@ -17,7 +17,7 @@ get_header();
         $shipping_method = get_post_meta(get_the_ID(), 'shipping_method', true);
         $order_status = get_post_meta(get_the_ID(), 'order_status', true);
         $order_domain = get_post_meta(get_the_ID(), 'site_url', true);
-        $mockup_count = get_post_meta(get_the_ID(), '_mockup_count', true);
+        $proof_version = get_post_meta(get_the_ID(), 'send_proof_last_version', true);
         ?>
 
             <div class="alarnd--single-content mockup-revision-page">
@@ -27,7 +27,7 @@ get_header();
                     <div class="om_headin_titles">
                         <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?>         <?php echo $order_number; ?></h6>
                         <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?>         <?php echo $order_status; ?></h6>
-                        <h6><?php echo esc_html__('Last Sent Mockup:', 'hello-elementor'); ?> V<?php echo $mockup_count; ?></h6>
+                        <h6><?php echo esc_html__('Last Sent Mockup:', 'hello-elementor'); ?> V<?php echo $proof_version; ?></h6>
                         <div class="shipping_method_update_box">
                             <div class="shipping_method_title">
                                 <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
@@ -125,7 +125,9 @@ get_header();
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal">Add Product</button>
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button">Send Proof</button>
                     <?php endif; ?>
+                    <?php if (!empty($proof_version)): ?>
                     <button type="button" class="allarnd--regular-button ml_add_loading" id="addMockupButton">Add Mockup</button>
+                    <?php endif; ?>
                 </div>
 
                 <div class="mockup-revision-activity-container">

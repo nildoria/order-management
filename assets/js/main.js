@@ -108,7 +108,9 @@
     var uploadedFiles = [];
 
     if (files.length > 0) {
-      $("#addNewItemButton").addClass("ml_loading").prop("disabled", true);
+      $("#addNewItemButton, #addProductButton")
+        .addClass("ml_loading")
+        .prop("disabled", true);
       var formData = new FormData();
       for (var i = 0; i < files.length; i++) {
         formData.append("files[]", files[i]);
@@ -128,14 +130,14 @@
           } else {
             alert("Failed to upload files: " + data.message);
           }
-          $("#addNewItemButton")
+          $("#addNewItemButton, #addProductButton")
             .removeClass("ml_loading")
             .prop("disabled", false);
         })
         .catch((error) => {
           console.error("Error:", error);
           alert("Error: " + error.message);
-          $("#addNewItemButton")
+          $("#addNewItemButton, #addProductButton")
             .removeClass("ml_loading")
             .prop("disabled", false);
         });
@@ -398,7 +400,7 @@
         );
         $("#selectedProductDisplay").data("product-id", selectedProduct);
 
-        $("#addNewItemButton")
+        $("#addNewItemButton, #addProductButton")
           .addClass("om_add_item_selected")
           .prop("disabled", false);
       }
@@ -559,7 +561,18 @@
     const size = $("#new_product_size").val();
     const artPos = $("#new_product_art_pos").val();
     const instructionNote = $("#new_product_instruction_note").val();
-    const alarnd_artwork = JSON.parse($("#uploaded_file_path").val());
+    let alarnd_artwork = [];
+
+    const uploadedFilePathValue = $("#uploaded_file_path").val();
+
+    if (uploadedFilePathValue) {
+      try {
+        alarnd_artwork = JSON.parse(uploadedFilePathValue);
+      } catch (error) {
+        console.error("Parsing error for uploaded_file_path:", error);
+        alarnd_artwork = []; // Default to an empty array if parsing fails
+      }
+    }
 
     if (!productId || !quantity) {
       alert("Please select a product and specify quantity.");
@@ -587,7 +600,7 @@
     //     });
     //   });
     // }
-    if (alarnd_artwork && Array.isArray(alarnd_artwork)) {
+    if (alarnd_artwork.length > 0) {
       meta_data.push({
         key: "Attachment",
         value: JSON.stringify(alarnd_artwork),
@@ -606,6 +619,9 @@
     products.push(lineItem);
     alert("Product added to order.");
     $("#line_items").val(JSON.stringify(products));
+    $("#om--create-new-order")
+      .prop("disabled", false)
+      .addClass("om_add_item_selected");
     displayAddedProducts();
   });
 
@@ -640,7 +656,18 @@
       const index = $(this).data("index");
       products.splice(index, 1);
       displayAddedProducts();
-      $("#line_items").val(JSON.stringify(products));
+      const lineItemsValue = JSON.stringify(products);
+      $("#line_items").val(lineItemsValue);
+
+      // Check if the line_items array is empty and disable the button if it is
+      if (lineItemsValue === "[]") {
+        $("#om--create-new-order")
+          .removeClass("om_add_item_selected")
+          .prop("disabled", true)
+          .css("opacity", 0.7);
+      } else {
+        $("#om--create-new-order").prop("disabled", false).css("opacity", 1);
+      }
     });
   }
 
@@ -754,6 +781,16 @@
     var sendProofButton = $("#send-proof-button");
     var post_id = $('input[name="post_id"]').val();
 
+    var hasLastSendVersion = table
+      .find('td[data-version_number="1"]')
+      .hasClass("last_send_version");
+
+    if (!hasLastSendVersion) {
+      // If there is no such element, disable the button and return
+      current.add("#send-proof-button").prop("disabled", true);
+      return;
+    }
+
     var headerRow = table.find("thead tr");
     var newMockupIndex = headerRow.find("th").length - 3 + 1; // Calculate the new mockup index
     var newMockupTh = $("<th>", { class: "head" }).html(
@@ -818,6 +855,56 @@
     // add loading snipper
     current.removeClass("ml_loading");
   });
+
+  function addMockupButtonCheck() {
+    var hasLastSendVersion = $("#tableMain")
+      .find('td[data-version_number="1"]')
+      .hasClass("last_send_version");
+
+    if (!hasLastSendVersion) {
+      $("#addMockupButton, #send-proof-button").prop("disabled", true);
+      return;
+    }
+
+    var allRowsHaveLastSendVersion = true;
+    var allHiddenMockupUrlsEmpty = true;
+    var proofUploadedNotSent = false;
+    $("#tableMain tbody tr").each(function () {
+      var lastTd = $(this).children("td:last");
+
+      if (!lastTd.hasClass("last_send_version")) {
+        allRowsHaveLastSendVersion = false;
+      }
+
+      if (lastTd.find(".hidden_mockup_url").val() !== "") {
+        allHiddenMockupUrlsEmpty = false;
+      }
+
+      if (
+        lastTd.find(".hidden_mockup_url").val() !== "" &&
+        !lastTd.hasClass("last_send_version")
+      ) {
+        proofUploadedNotSent = true;
+      }
+    });
+
+    if (proofUploadedNotSent) {
+      $("#addMockupButton").prop("disabled", true);
+    } else {
+      $("#addMockupButton").prop("disabled", false);
+    }
+
+    if (allRowsHaveLastSendVersion || allHiddenMockupUrlsEmpty) {
+      $("#send-proof-button").prop("disabled", true);
+    } else {
+      $("#send-proof-button").prop("disabled", false);
+    }
+
+    if (allHiddenMockupUrlsEmpty) {
+      $("#addMockupButton").prop("disabled", true);
+    }
+  }
+  addMockupButtonCheck();
 
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
@@ -906,7 +993,7 @@ document.addEventListener("DOMContentLoaded", function () {
           mockupInput.value = data.file_path;
 
           if (addMockupButton) {
-            addMockupButton.removeAttribute("disabled");
+            addMockupButton.setAttribute("disabled", "true");
           }
           if (sendProofButton) {
             sendProofButton.removeAttribute("disabled");
