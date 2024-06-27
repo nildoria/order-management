@@ -6,8 +6,8 @@ function handle_file_upload($file, $order_id, $product_id, $version, $post_id)
 {
     // FTP server details
     $ftp_server = '107.181.244.114';
-    $ftp_user_name = 'lukpaluk'; // replace with your FTP username
-    $ftp_user_pass = 'SK@8Ek9mZam45;'; // replace with your FTP password
+    $ftp_user_name = 'lukpaluk';
+    $ftp_user_pass = 'SK@8Ek9mZam45;';
 
     // Connect to FTP server
     $ftp_conn = ftp_connect($ftp_server) or die("Could not connect to $ftp_server");
@@ -40,8 +40,11 @@ function handle_file_upload($file, $order_id, $product_id, $version, $post_id)
         ftp_chdir($ftp_conn, $remote_directory);
     }
 
+    // Generate a unique ID for the file
+    $unique_id = uniqid();
+
     // Define the remote file path with the new filename
-    $new_filename = $product_id . '-' . $version . '.jpeg';
+    $new_filename = $product_id . '-' . $version . '-' . $unique_id . '.jpeg';
     $remote_file = $remote_directory . $new_filename;
 
     // Upload the file
@@ -55,18 +58,16 @@ function handle_file_upload($file, $order_id, $product_id, $version, $post_id)
             error_log('Mockup count saved: ' . $version_count);
         }
 
-        $response = array(
+        return array(
             'success' => true,
             'message' => "Successfully uploaded " . htmlspecialchars($file['name']) . " to $file_path",
             'file_path' => $file_path
         );
-        echo json_encode($response);
     } else {
-        $response = array(
+        return array(
             'success' => false,
             'message' => "Error uploading " . htmlspecialchars($file['name']) . " to $remote_file"
         );
-        echo json_encode($response);
     }
 
     // Close the FTP connection
@@ -81,17 +82,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 
     error_log("order_id: $order_id, product_id: $product_id, version: $version, post_id: $post_id");
 
-    $file = $_FILES['file'];
+    $files = $_FILES['file'];
 
-    if ($file['error'] === UPLOAD_ERR_OK) {
-        handle_file_upload($file, $order_id, $product_id, $version, $post_id);
-    } else {
-        $response = array(
-            'success' => false,
-            'message' => "Error uploading file: " . htmlspecialchars($file['name'])
-        );
-        echo json_encode($response);
+    $responses = array();
+
+    foreach ($files['name'] as $index => $name) {
+        if ($files['error'][$index] === UPLOAD_ERR_OK) {
+            $file = array(
+                'name' => $files['name'][$index],
+                'type' => $files['type'][$index],
+                'tmp_name' => $files['tmp_name'][$index],
+                'error' => $files['error'][$index],
+                'size' => $files['size'][$index]
+            );
+            $responses[] = handle_file_upload($file, $order_id, $product_id, $version, $post_id);
+        } else {
+            $responses[] = array(
+                'success' => false,
+                'message' => "Error uploading file: " . htmlspecialchars($name)
+            );
+        }
     }
+
+    echo json_encode($responses);
 }
 
 function ml_extract_number($string)

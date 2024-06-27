@@ -125,9 +125,6 @@ get_header();
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal">Add Product</button>
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button">Send Proof</button>
                     <?php endif; ?>
-                    <?php if (!empty($proof_version)): ?>
-                    <button type="button" class="allarnd--regular-button ml_add_loading" id="addMockupButton">Add Mockup</button>
-                    <?php endif; ?>
                 </div>
 
                 <div class="mockup-revision-activity-container">

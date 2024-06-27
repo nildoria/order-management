@@ -123,8 +123,8 @@ span.item_name_variations {
 .item_product_column ul li .allarnd__order_item {
   display: inline-block;
 }
-td.item_mockup_column.last_send_version > label.file-input__label {
-  /* display: none; */
+.item_mockup_column.om_expired_mockups .file-input__label {
+  display: none;
 }
 .file-input__input {
   width: 0.1px;
@@ -139,6 +139,7 @@ td.item_mockup_column.last_send_version > label.file-input__label {
 }
 .mockup-image img {
   max-height: 90px;
+  max-width: 45px;
 }
 .file-input__label {
   cursor: pointer;
@@ -338,6 +339,39 @@ select#shipping-method-list {
 .mockup-image {
   max-width: 200px;
   text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+.tooltip-span {
+  width: 400px;
+  position: fixed;
+  z-index: 1000;
+  display: none;
+}
+.tooltip-span img {
+  width: 100%;
+  height: auto !important;
+  border: 1px solid #d9d9d9;
+  border-radius: 7px;
+  background-color: #cccccc;
+}
+.mfp-close-btn-in .mfp-close {
+  color: #fff;
+  border-radius: 50%;
+  height: 26px;
+  width: 26px;
+  top: 28px;
+  line-height: 26px;
+  font-size: 18px;
+  left: -12px;
+  right: inherit;
+  background-color: #cc3366;
+  padding: 0;
+  text-align: center;
+  cursor: pointer !important;
 }
 .om_create_order_box {
   display: flex;

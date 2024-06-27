@@ -30,31 +30,26 @@
       version = 1;
     }
 
-    var proofStatus = "Mockup V" + version + " Sent"; // Customize as needed
+    // var proofStatus = "Mockups V" + version + " Sent";
+    var proofStatus = "Mockup V1 Sent";
     console.log("proofStatus", proofStatus);
 
     var imageUrls = [];
 
     document.querySelectorAll("tbody > tr").forEach(function (row) {
-      let currentVersion = version;
-      let imageUrl = "";
+      let itemMockupColumns = row.querySelectorAll(".item_mockup_column");
 
-      while (currentVersion > 0) {
-        let column = row.querySelector(
-          '.item_mockup_column[data-version_number="' + currentVersion + '"]'
+      // Get the second last element in the NodeList
+      let secondLastItemMockupColumn =
+        itemMockupColumns[itemMockupColumns.length - 2];
+
+      if (secondLastItemMockupColumn) {
+        let input = secondLastItemMockupColumn.querySelector(
+          'input[type="hidden"].hidden_mockup_url'
         );
-        if (column) {
-          let input = column.querySelector('input[type="hidden"]');
-          if (input && input.value.trim() !== "") {
-            imageUrl = input.value.trim();
-            break;
-          }
+        if (input && input.value.trim() !== "") {
+          imageUrls.push(input.value.trim());
         }
-        currentVersion--;
-      }
-
-      if (imageUrl !== "") {
-        imageUrls.push(imageUrl);
       }
     });
 
@@ -79,9 +74,30 @@
 
     function handleResponse(data) {
       if (data.error) {
-        alert("There was an error sending the proof: " + data.message);
+        Toastify({
+          text: `There was an error sending the proof: ${data.message}`,
+          className: "info",
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          style: {
+            background: "linear-gradient(to right, #cc3366, #a10036)",
+          },
+        }).showToast();
       } else {
-        alert("Proof sent successfully!");
+        Toastify({
+          text: `#${orderNumber} Proof sent successfully!`,
+          duration: 3000,
+          close: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
+        setTimeout(function () {
+          location.reload();
+        }, 1200);
       }
     }
 
@@ -535,7 +551,13 @@
   });
 
   function fetchAddProducts() {
-    let order_domain = "https://allaround.test";
+    const manageOrderUrl = allaround_vars.redirecturl;
+
+    let order_domain = "https://main.lukpaluk.xyz";
+    //TODO: This is for local testing only and for staging
+    if (manageOrderUrl.includes(".test")) {
+      order_domain = "https://allaround.test";
+    }
 
     fetch(`${order_domain}/wp-json/alarnd-main/v1/products`)
       .then((response) => {
@@ -773,138 +795,30 @@
     $(".om_shipping_submit").show();
   });
 
-  // ********** Add Mockup Column **********//
-  $(document).on("click", "#addMockupButton", function (e) {
-    e.preventDefault();
-    const current = $(this);
-    var table = $("#tableMain");
-    var sendProofButton = $("#send-proof-button");
-    var post_id = $('input[name="post_id"]').val();
-
-    var hasLastSendVersion = table
-      .find('td[data-version_number="1"]')
-      .hasClass("last_send_version");
-
-    if (!hasLastSendVersion) {
-      // If there is no such element, disable the button and return
-      current.add("#send-proof-button").prop("disabled", true);
-      return;
-    }
-
-    var headerRow = table.find("thead tr");
-    var newMockupIndex = headerRow.find("th").length - 3 + 1; // Calculate the new mockup index
-    var newMockupTh = $("<th>", { class: "head" }).html(
-      "<strong>Mockups V" + newMockupIndex + "</strong>"
-    );
-    headerRow.append(newMockupTh);
-
-    // add loading snipper
-    current.addClass("ml_loading");
-    current.prop("disabled", true);
-    sendProofButton.prop("disabled", true);
-
-    table.find("tbody tr").each(function () {
-      const current = $(this);
-      const product_id = current.data("product_id");
-
-      var newMockupTd = $("<td>", {
-        class: "item_mockup_column",
-        "data-version_number": newMockupIndex,
-      }).html(
-        '<div class="lds-spinner-wrap"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>' +
-          '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' +
-          newMockupIndex +
-          '" value="">' +
-          '<div class="mockup-image">Select Mockup Image</div>' +
-          '<input class="file-input__input" name="file-input[' +
-          product_id +
-          ']" id="file-input-' +
-          product_id +
-          "-v" +
-          newMockupIndex +
-          '" data-version="V' +
-          newMockupIndex +
-          '" type="file" placeholder="Upload Mockup">' +
-          '<label class="file-input__label" for="file-input-' +
-          product_id +
-          "-v" +
-          newMockupIndex +
-          '">' +
-          '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
-          '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>' +
-          "</svg>" +
-          "<span>Upload file</span></label>"
-      );
-      $(this).append(newMockupTd);
+  // ********** Artwork Graphics Magnific **********//
+  const fileFormats = [
+    "file-format-png",
+    "file-format-jpg",
+    "file-format-jpeg",
+  ];
+  fileFormats.forEach((format) => {
+    $(`.uploaded_graphics.${format} a`).magnificPopup({
+      type: "image",
+      closeOnContentClick: true,
+      closeBtnInside: true,
+      fixedContentPos: true,
+      mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
+      image: {
+        verticalFit: true,
+      },
+      zoom: {
+        enabled: true,
+        duration: 300, // don't forget to change the duration also in CSS
+      },
+      closeMarkup:
+        '<button title="%title%" type="button" class="mfp-close">×</button>',
     });
-
-    // After adding the new <td> elements, scroll to the rightmost position
-    var $container = $(".order_manage_tab_wrapper"); // Adjust the selector to your actual container
-    var $lastTd = $("td.item_mockup_column:last");
-
-    if ($lastTd.length) {
-      // Calculate the offset of the last <td> element from the left edge of the container
-      var targetOffset = $lastTd.position().left + $container.scrollLeft();
-
-      // Scroll the container to the last <td> element's position
-      $container.animate({ scrollLeft: targetOffset }, 500);
-    } else {
-      console.error("Target element not found");
-    }
-
-    // add loading snipper
-    current.removeClass("ml_loading");
   });
-
-  function addMockupButtonCheck() {
-    var hasLastSendVersion = $("#tableMain")
-      .find('td[data-version_number="1"]')
-      .hasClass("last_send_version");
-
-    if (!hasLastSendVersion) {
-      $("#addMockupButton, #send-proof-button").prop("disabled", true);
-      return;
-    }
-
-    var allRowsHaveLastSendVersion = true;
-    var allHiddenMockupUrlsEmpty = true;
-    var proofUploadedNotSent = false;
-    $("#tableMain tbody tr").each(function () {
-      var lastTd = $(this).children("td:last");
-
-      if (!lastTd.hasClass("last_send_version")) {
-        allRowsHaveLastSendVersion = false;
-      }
-
-      if (lastTd.find(".hidden_mockup_url").val() !== "") {
-        allHiddenMockupUrlsEmpty = false;
-      }
-
-      if (
-        lastTd.find(".hidden_mockup_url").val() !== "" &&
-        !lastTd.hasClass("last_send_version")
-      ) {
-        proofUploadedNotSent = true;
-      }
-    });
-
-    if (proofUploadedNotSent) {
-      $("#addMockupButton").prop("disabled", true);
-    } else {
-      $("#addMockupButton").prop("disabled", false);
-    }
-
-    if (allRowsHaveLastSendVersion || allHiddenMockupUrlsEmpty) {
-      $("#send-proof-button").prop("disabled", true);
-    } else {
-      $("#send-proof-button").prop("disabled", false);
-    }
-
-    if (allHiddenMockupUrlsEmpty) {
-      $("#addMockupButton").prop("disabled", true);
-    }
-  }
-  addMockupButtonCheck();
 
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
@@ -915,7 +829,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.body.addEventListener("change", function (event) {
     if (event.target.classList.contains("file-input__input")) {
       var input = event.target;
-      var file = input.files[0];
+      var files = input.files;
       var version = input.getAttribute("data-version");
       var orderId = document.querySelector('input[name="order_id"]').value;
       var postId = document.querySelector('input[name="post_id"]').value;
@@ -938,29 +852,34 @@ document.addEventListener("DOMContentLoaded", function () {
       );
 
       var formData = new FormData();
-      formData.append("file", file);
+      Array.from(files).forEach((file) => {
+        formData.append("file[]", file);
+      });
       formData.append("order_id", orderId);
       formData.append("post_id", postId);
       formData.append("product_id", productId);
       formData.append("version", version);
 
-      // Display a preview of the selected image
-      var reader = new FileReader();
-      reader.onload = function (e) {
-        var mockupImage =
-          "<img src='" + e.target.result + "' alt='Mockup Image' />";
-        var mockupImageContainer = mockupColumn.querySelector(".mockup-image");
+      // Display a preview of the selected images
+      Array.from(files).forEach((file) => {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var mockupImage =
+            "<img src='" + e.target.result + "' alt='Mockup Image' />";
+          var mockupImageContainer =
+            mockupColumn.querySelector(".mockup-image");
 
-        if (mockupImageContainer) {
-          mockupImageContainer.innerHTML = mockupImage;
-        } else {
-          mockupImageContainer = document.createElement("div");
-          mockupImageContainer.className = "mockup-image";
-          mockupImageContainer.innerHTML = mockupImage;
-          mockupColumn.appendChild(mockupImageContainer);
-        }
-      };
-      reader.readAsDataURL(file); // Read the file as a data URL for preview
+          if (mockupImageContainer) {
+            mockupImageContainer.innerHTML += mockupImage; // Append to existing images
+          } else {
+            mockupImageContainer = document.createElement("div");
+            mockupImageContainer.className = "mockup-image";
+            mockupImageContainer.innerHTML = mockupImage;
+            mockupColumn.appendChild(mockupImageContainer);
+          }
+        };
+        reader.readAsDataURL(file); // Read the file as a data URL for preview
+      });
 
       uploadFile(formData, input, version); // Pass the input element here
     }
@@ -968,44 +887,428 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function uploadFile(formData, input, version) {
     var mockupColumn = input.closest(".item_mockup_column");
-    // find input type="hidden" with name="mockup-image-v"+version
+    const productId = mockupColumn
+      .closest("tr")
+      .getAttribute("data-product_id");
     var mockupInput = mockupColumn.querySelector(
       'input[type="hidden"].hidden_mockup_url'
     );
     var spinner = mockupColumn.querySelector(".lds-spinner-wrap");
+    var mockupImageContainer = mockupColumn.querySelector(".mockup-image");
+    const tableMain = mockupColumn.closest("table#tableMain");
+    const tableBody = mockupColumn.closest("table#tableMain > tbody");
+    var productTitle = mockupColumn
+      .closest("tr")
+      .querySelector(".product_item_title").innerText;
 
-    var addMockupButton = document.querySelector("#addMockupButton");
     var sendProofButton = document.querySelector("#send-proof-button");
 
-    // Accept the input element as a parameter
+    tableBody.style.pointerEvents = "none";
+
     fetch(allaround_vars.fileupload_url, {
       method: "POST",
       body: formData,
     })
       .then((response) => {
         if (!response.ok) {
-          throw new Error("Network response was not ok");
+          throw new Error(
+            "Network response was not ok: " + response.statusText
+          );
         }
         return response.json();
       })
-      .then((data) => {
-        if (data.success && data.file_path) {
-          mockupInput.value = data.file_path;
+      .then((responses) => {
+        console.log("Server responses:", responses);
 
-          if (addMockupButton) {
-            addMockupButton.setAttribute("disabled", "true");
+        tableBody.style.pointerEvents = "all";
+
+        responses.forEach((data, index) => {
+          if (data.success && data.file_path) {
+            if (mockupInput.value) {
+              mockupInput.value += "," + data.file_path; // Append new file path
+            } else {
+              mockupInput.value = data.file_path;
+            }
+
+            // Replace the src of the preview images with the actual uploaded file URL
+            const imgElement =
+              mockupImageContainer.querySelectorAll("img")[index];
+            if (imgElement) {
+              imgElement.src = data.file_path;
+            }
           }
-          if (sendProofButton) {
-            sendProofButton.removeAttribute("disabled");
+        });
+
+        // Check if a new mockups version column should be added
+        var nextVersion = parseInt(version.replace("V", "")) + 1;
+        addNewMockupHeader(nextVersion);
+        addNewMockupColumn(input, nextVersion);
+
+        // Check if delete button exists, if not create it
+        if (!mockupColumn.querySelector("#om_delete_mockup")) {
+          createDeleteButton(mockupColumn, version, productId);
+        }
+
+        tableMain.scrollLeft = tableMain.scrollWidth;
+
+        // remove the delete button from the previous version mockupColumn
+        var previousMockupColumn = mockupColumn.previousElementSibling;
+        if (previousMockupColumn) {
+          previousMockupColumn.classList.add("om_expired_mockups");
+          previousMockupColumn.classList.remove("last_send_version");
+          var previousDeleteButton =
+            previousMockupColumn.querySelector("#om_delete_mockup");
+          if (previousDeleteButton) {
+            previousDeleteButton.remove();
           }
         }
+
+        if (mockupImageContainer) {
+          Array.from(mockupImageContainer.childNodes).forEach((child) => {
+            if (child.nodeType === Node.TEXT_NODE) {
+              child.remove();
+            }
+          });
+        }
+
+        if (sendProofButton) {
+          sendProofButton.removeAttribute("disabled");
+        }
+
+        attachTooltipToProductThumbnails();
+
+        Toastify({
+          text: `Mockup ${version} uploaded successfully for ${productTitle}!`,
+          duration: 3000,
+          close: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
         spinner.style.display = "none";
       })
       .catch((error) => {
         spinner.style.display = "none";
+        tableBody.style.pointerEvents = "all";
         console.error("There was a problem with your fetch operation:", error);
-        alert("There was a problem uploading file");
-        // location.reload();
+
+        Toastify({
+          text: `There was a problem uploading file: ${error.message}`,
+          duration: 3000,
+          close: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+            background: "linear-gradient(to right, #cc3366, #a10036)",
+          },
+        }).showToast();
       });
   }
+
+  function createDeleteButton(mockupColumn, version, productId) {
+    var deleteButton = document.createElement("button");
+    deleteButton.setAttribute("data-product-id", productId);
+    deleteButton.id = "om_delete_mockup";
+    deleteButton.setAttribute("data-order-id", allaround_vars.order_id);
+    deleteButton.setAttribute("data-version", version);
+    deleteButton.textContent = "Delete Mockup";
+    mockupColumn.insertBefore(deleteButton, mockupColumn.firstChild);
+  }
+
+  function addNewMockupHeader(nextVersion) {
+    var headerRow = document.querySelector("thead tr");
+    var headers = headerRow.querySelectorAll("th");
+    var headerExists = Array.from(headers).some((header) =>
+      header.innerHTML.includes(`Mockups V${nextVersion}`)
+    );
+
+    // If a header with the same version already exists, skip adding a new one
+    if (headerExists) return;
+
+    var newHeader = document.createElement("th");
+    newHeader.className = "head";
+    newHeader.innerHTML = `<strong>Mockups V${nextVersion}</strong>`;
+    headerRow.appendChild(newHeader);
+  }
+
+  function addNewMockupColumn(input, nextVersion) {
+    var row = input.closest("tr");
+    var productId = row.getAttribute("data-product_id");
+
+    // Check if a column for the next version already exists
+    if (row.querySelector('td[data-version_number="' + nextVersion + '"]')) {
+      return;
+    }
+
+    var newMockupTd = document.createElement("td");
+    newMockupTd.className = "item_mockup_column";
+    newMockupTd.setAttribute("data-version_number", +nextVersion);
+    newMockupTd.innerHTML =
+      '<div class="lds-spinner-wrap"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>' +
+      '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' +
+      nextVersion +
+      '" value="">' +
+      '<div class="mockup-image">Select Mockup Image JS</div>' +
+      '<input class="file-input__input" name="file-input[' +
+      productId +
+      ']" id="file-input-' +
+      productId +
+      "-v" +
+      nextVersion +
+      '" data-version="V' +
+      nextVersion +
+      '" type="file" placeholder="Upload Mockup" multiple >' +
+      '<label class="file-input__label" for="file-input-' +
+      productId +
+      "-v" +
+      nextVersion +
+      '">' +
+      '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
+      '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>' +
+      "</svg>" +
+      "<span>Upload file</span></label>";
+
+    row.appendChild(newMockupTd);
+  }
+
+  function createTooltip(imageUrl, parentElement) {
+    var tooltipSpan = document.createElement("span");
+    tooltipSpan.className = "tooltipContainer tooltip-span";
+    tooltipSpan.innerHTML =
+      '<img width="300" height="300" src="' +
+      imageUrl +
+      '" class="mockup_tooltip" alt="" decoding="async" srcset="' +
+      imageUrl +
+      '" sizes="(max-width: 300px) 100vw, 300px">';
+    parentElement.appendChild(tooltipSpan);
+    return tooltipSpan;
+  }
+
+  function attachTooltipToProductThumbnails() {
+    var images = document.querySelectorAll(".mockup-image img");
+
+    images.forEach(function (image) {
+      var tooltipSpan;
+
+      image.addEventListener("mouseenter", function () {
+        var parentElement = image.closest("td.item_mockup_column");
+        tooltipSpan = createTooltip(image.src, parentElement);
+        tooltipSpan.style.display = "block";
+      });
+
+      image.addEventListener("mousemove", function (e) {
+        var x = e.clientX,
+          y = e.clientY;
+        var tooltipWidth =
+          tooltipSpan.offsetWidth || tooltipSpan.getBoundingClientRect().width;
+        tooltipSpan.style.left = x + 20 + "px";
+        tooltipSpan.style.top = y - 20 + "px";
+      });
+
+      image.addEventListener("mouseleave", function () {
+        tooltipSpan.style.display = "none";
+        tooltipSpan.remove();
+      });
+
+      // Wrap the image in an anchor tag for Magnific Popup
+      var anchor = document.createElement("a");
+      anchor.href = image.src;
+      anchor.className = "mfp-image";
+      image.parentNode.insertBefore(anchor, image);
+      anchor.appendChild(image);
+
+      // Initialize Magnific Popup on click
+      jQuery(anchor).magnificPopup({
+        type: "image",
+        closeOnContentClick: true,
+        closeBtnInside: true,
+        fixedContentPos: true,
+        mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
+        image: {
+          verticalFit: true,
+        },
+        zoom: {
+          enabled: true,
+          duration: 300, // don't forget to change the duration also in CSS
+        },
+        closeMarkup:
+          '<button title="%title%" type="button" class="mfp-close">×</button>',
+      });
+    });
+  }
+
+  // Call the function initially and after images are dynamically added
+  attachTooltipToProductThumbnails();
+
+  document.body.addEventListener("click", function (event) {
+    if (event.target.id === "om_delete_mockup") {
+      var button = event.target;
+      var orderId = button.getAttribute("data-order-id");
+      var productId = button.getAttribute("data-product-id");
+      var version = button.getAttribute("data-version");
+      var productTitle = button
+        .closest("tr")
+        .querySelector(".product_item_title").innerText;
+
+      if (confirm("Are you sure you want to delete this mockup?")) {
+        var data = {
+          action: "delete_mockup_folder",
+          order_id: orderId,
+          product_id: productId,
+          version: version,
+          security: allaround_vars.nonce, // Add nonce for security
+        };
+
+        fetch(allaround_vars.ajax_url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          },
+          body: new URLSearchParams(data).toString(),
+        })
+          .then((response) => response.json())
+          .then((response) => {
+            if (response.success) {
+              var currentTd = button.closest("td.item_mockup_column");
+              var currentVersion = parseInt(
+                currentTd.getAttribute("data-version_number").replace("V", "")
+              );
+              var prevVersion =
+                "V" +
+                (parseInt(
+                  currentTd.getAttribute("data-version_number").replace("V", "")
+                ) -
+                  1);
+
+              var previousMockupColumn = currentTd.previousElementSibling;
+              if (
+                previousMockupColumn &&
+                previousMockupColumn.classList.contains("item_mockup_column")
+              ) {
+                createDeleteButton(
+                  previousMockupColumn,
+                  prevVersion,
+                  productId
+                );
+                previousMockupColumn.classList.remove("om_expired_mockups");
+              }
+
+              // Check if any of the tbody>tr>td has a data-version_number greater than currentVersion
+              var hasHigherVersion = Array.from(
+                document.querySelectorAll("tbody tr td.item_mockup_column")
+              ).some((td) => {
+                return (
+                  parseInt(
+                    td.getAttribute("data-version_number").replace("V", "")
+                  ) >
+                  currentVersion + 1
+                );
+              });
+
+              console.log("Has higher version:", hasHigherVersion);
+
+              if (!hasHigherVersion) {
+                // Find and remove the th element with "Mockups {currentVersion}"
+                var mockupHeader = Array.from(
+                  document.querySelectorAll("th")
+                ).find((th) =>
+                  th.textContent.includes(`Mockups V${currentVersion}`)
+                );
+                if (mockupHeader) {
+                  mockupHeader.remove();
+                }
+
+                //Update header versions
+                var subsequentThs = Array.from(
+                  document.querySelectorAll("th")
+                ).filter((th) => {
+                  return (
+                    parseInt(th.textContent.replace("Mockups V", "")) >
+                    currentVersion
+                  );
+                });
+
+                subsequentThs.forEach((th) => {
+                  var newVersion =
+                    parseInt(th.textContent.replace("Mockups V", "")) - 1;
+                  th.innerHTML = "<strong>Mockups V" + newVersion + "</strong>";
+                });
+              }
+
+              // Update version numbers for subsequent columns
+              var subsequentTds = Array.from(
+                currentTd
+                  .closest("tr")
+                  .querySelectorAll("td.item_mockup_column")
+              ).filter((td) => {
+                return (
+                  parseInt(
+                    td.getAttribute("data-version_number").replace("V", "")
+                  ) > currentVersion
+                );
+              });
+
+              subsequentTds.forEach((td) => {
+                var newVersion =
+                  parseInt(
+                    td.getAttribute("data-version_number").replace("V", "")
+                  ) - 1;
+                td.setAttribute("data-version_number", "V" + newVersion);
+                td.querySelector(
+                  ".hidden_mockup_url"
+                ).name = `mockup-image-v${newVersion}`;
+                td.querySelector(".file-input__input").setAttribute(
+                  "data-version",
+                  "V" + newVersion
+                );
+                td.querySelector(".file-input__input").id =
+                  "file-input-" + productId + "-v" + newVersion;
+                td.querySelector(".file-input__label").setAttribute(
+                  "for",
+                  "file-input-" + productId + "-v" + newVersion
+                );
+              });
+
+              currentTd.remove();
+
+              Toastify({
+                text: `Mockup ${version} for ${productTitle} deleted successfully!`,
+                className: "info",
+                gravity: "bottom", // `top` or `bottom`
+                position: "right", // `left`, `center` or `right`
+                style: {
+                  background: "linear-gradient(to right, #cc3366, #a10036)",
+                },
+              }).showToast();
+            } else {
+              Toastify({
+                text: `Error: ${response.data.message}!`,
+                className: "info",
+                gravity: "bottom", // `top` or `bottom`
+                position: "right", // `left`, `center` or `right`
+                style: {
+                  background: "linear-gradient(to right, #cc3366, #a10036)",
+                },
+              }).showToast();
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            Toastify({
+              text: `An error occurred. Please try again.`,
+              className: "info",
+              gravity: "bottom", // `top` or `bottom`
+              position: "right", // `left`, `center` or `right`
+              style: {
+                background: "linear-gradient(to right, #cc3366, #a10036)",
+              },
+            }).showToast();
+          });
+      }
+    }
+  });
 });
