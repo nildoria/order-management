@@ -2,6 +2,7 @@
   ("use strict");
 
   // ********** Order Management Scripts Start **********//
+
   // ********** Mockup Image Upload Post Request **********//
 
   // ********** Send Mockup to ArtWork Post Request **********//
@@ -345,6 +346,93 @@
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
       });
+  });
+
+  // ********** Update Item Cost **********//
+  $(".item-cost-input, .item-quantity-input").on("change", function () {
+    var itemId = $(this).data("item-id");
+    var newCost = $(this).closest("tr").find(".item-cost-input").val();
+    var newQuantity = $(this).closest("tr").find(".item-quantity-input").val();
+    var orderId = $('input[name="order_id"]').val();
+    var order_domain = allaround_vars.order_domain;
+
+    var newItem = {
+      order_id: orderId,
+      item_id: itemId,
+      new_cost: newCost,
+      new_quantity: newQuantity,
+    };
+
+    var requestData = {
+      action: "update_order_transient",
+      order_id: orderId,
+    };
+
+    function handleResponse(response) {
+      updateOrderTotals(
+        response.items_subtotal,
+        response.shipping_total,
+        response.order_total
+      );
+      updateItemDetails(itemId, newQuantity, newCost, response.item_total);
+    }
+
+    fetch(`${order_domain}/wp-json/update-order/v1/update-item-details`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newItem),
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json().then((data) => {
+            handleResponse(data);
+            ml_send_ajax(requestData);
+          });
+        } else {
+          return response.json().then((data) => {
+            throw new Error(data.message);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
+      });
+  });
+
+  function updateOrderTotals(itemsSubtotal, shippingTotal, orderTotal) {
+    $(".om__items_subtotal").text(
+      itemsSubtotal + "" + allaround_vars.currency_symbol
+    );
+    $(".om__shipping_total").text(
+      shippingTotal + "" + allaround_vars.currency_symbol
+    );
+    $(".om__orderTotal").text(orderTotal + "" + allaround_vars.currency_symbol);
+  }
+  function updateItemDetails(itemId, newQuantity, newCost, itemTotal) {
+    var $row = $(`tr[data-product_id="${itemId}"]`);
+    $row.find(".om__itemQuantity").text(newQuantity);
+    $row
+      .find(".om__itemRate")
+      .text(newCost + "" + allaround_vars.currency_symbol);
+    $row
+      .find(".om__itemCostTotal")
+      .text(itemTotal + "" + allaround_vars.currency_symbol);
+  }
+  // Initial update to reflect changes instantly
+  $(document).on("input", ".item-quantity-input", function () {
+    var newQuantity = $(this).val();
+    $(this).closest("tr").find(".om__itemQuantity").text(newQuantity);
+  });
+
+  $(document).on("input", ".item-cost-input", function () {
+    var newCost = $(this).val();
+    $(this)
+      .closest("tr")
+      .find(".om__itemRate")
+      .text(newCost + "" + allaround_vars.currency_symbol);
   });
 
   // ********** Fetch Products from Main Site **********//
@@ -823,9 +911,245 @@
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
 
+document.addEventListener("DOMContentLoaded", function () {});
+
 // ********** Mockup Image Upload Post Request **********//
 document.addEventListener("DOMContentLoaded", function () {
   // Use a parent element that exists when the DOM is loaded
+  var orderId = allaround_vars.order_id;
+  var mainTable = document.getElementById("tableMain");
+  // mainTable tr
+  async function initializeMockupColumns(mainTable, orderId) {
+    var mainTableTrs = mainTable.querySelectorAll("tbody > tr");
+    if (mainTableTrs.length === 0) return;
+
+    for (const column of mainTableTrs) {
+      var productId = column.getAttribute("data-product_id");
+      var thisTr = column;
+
+      // Add loading indicator to the row
+      var loadingIndicator = document.createElement("td");
+      loadingIndicator.className = "loading-indicator";
+      loadingIndicator.innerHTML = `
+      <div class="lds-spinner-wrap">
+        <div class="lds-spinner">
+          <div></div><div></div><div></div><div></div>
+          <div></div><div></div><div></div><div></div>
+          <div></div><div></div><div></div><div></div>
+        </div>
+        <span>Loading...</span>
+      </div>
+    `;
+      thisTr.appendChild(loadingIndicator);
+
+      // Initialize columns by checking directories
+      var formData = new FormData();
+      formData.append("action", "initialize_mockup_columns");
+      formData.append("order_id", orderId);
+      formData.append("product_id", productId);
+
+      try {
+        const response = await fetch(allaround_vars.ajax_url, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+        if (data.success && data.data.mockup_versions) {
+          let maxVersion = 0;
+          for (const mockup of data.data.mockup_versions) {
+            maxVersion = Math.max(maxVersion, mockup.version);
+            var mockupTd = document.createElement("td");
+            mockupTd.className = `item_mockup_column om_expired_mockups`;
+            mockupTd.setAttribute("data-version_number", mockup.version);
+
+            var spinnerWrap = document.createElement("div");
+            spinnerWrap.className = "lds-spinner-wrap";
+            var spinner = document.createElement("div");
+            spinner.className = "lds-spinner";
+            for (let i = 0; i < 12; i++) {
+              spinner.appendChild(document.createElement("div"));
+            }
+            spinnerWrap.appendChild(spinner);
+            mockupTd.appendChild(spinnerWrap);
+
+            var hiddenMockupInput = document.createElement("input");
+            hiddenMockupInput.type = "hidden";
+            hiddenMockupInput.className = "hidden_mockup_url";
+            hiddenMockupInput.name = `mockup-image-v${mockup.version}`;
+            hiddenMockupInput.value = "";
+            mockupTd.appendChild(hiddenMockupInput);
+
+            var mockupImageContainer = document.createElement("div");
+            mockupImageContainer.className = "mockup-image";
+            mockupImageContainer.textContent = "Loading mockup images...";
+            mockupTd.appendChild(mockupImageContainer);
+
+            var fileInput = document.createElement("input");
+            fileInput.className = "file-input__input";
+            fileInput.name = `file-input[${productId}]`;
+            fileInput.id = `file-input-${productId}-v${mockup.version}`;
+            fileInput.setAttribute("data-version", `V${mockup.version}`);
+            fileInput.type = "file";
+            fileInput.placeholder = "Upload Mockup";
+            fileInput.multiple = true;
+            mockupTd.appendChild(fileInput);
+
+            var label = document.createElement("label");
+            label.className = "file-input__label";
+            label.setAttribute(
+              "for",
+              `file-input-${productId}-v${mockup.version}`
+            );
+            var svg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg"
+            );
+            svg.setAttribute("aria-hidden", "true");
+            svg.setAttribute("focusable", "false");
+            svg.setAttribute("data-prefix", "fas");
+            svg.setAttribute("data-icon", "upload");
+            svg.classList.add("svg-inline--fa", "fa-upload", "fa-w-16");
+            svg.setAttribute("role", "img");
+            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            svg.setAttribute("viewBox", "0 0 512 512");
+            var path = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path"
+            );
+            path.setAttribute("fill", "currentColor");
+            path.setAttribute(
+              "d",
+              "M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"
+            );
+            svg.appendChild(path);
+            label.appendChild(svg);
+            var span = document.createElement("span");
+            span.textContent = "Upload file";
+            label.appendChild(span);
+            mockupTd.appendChild(label);
+
+            thisTr.appendChild(mockupTd);
+
+            // set display flex to closest .lds-spinner-wrap
+            spinnerWrap.style.display = "flex";
+
+            // Fetch the image URLs for this column
+            await fetchImageURLs(orderId, productId, mockup.version, mockupTd);
+          }
+          initialAddNewMockupColumn(thisTr, maxVersion + 1);
+          populateTableHeader();
+          if (maxVersion) {
+            // get the td element of this version
+            var maxColumn = thisTr.querySelector(
+              `td[data-version_number="${maxVersion}"]`
+            );
+            maxColumn.classList.remove("om_expired_mockups");
+            maxColumn.classList.add("last_send_version");
+            createDeleteButton(maxColumn, "V" + maxVersion, productId);
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing mockup columns:", error);
+      } finally {
+        // Remove loading indicator
+        thisTr.removeChild(loadingIndicator);
+      }
+    }
+  }
+
+  function fetchImageURLs(orderId, productId, version, column) {
+    var formData = new FormData();
+    formData.append("action", "fetch_mockup_files");
+    formData.append("order_id", orderId);
+    formData.append("product_id", productId);
+    formData.append("version", version);
+
+    fetch(allaround_vars.ajax_url, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success && data.data.file_list) {
+          var fileList = data.data.file_list;
+
+          // Ensure fileList is always treated as an array
+          if (!Array.isArray(fileList)) {
+            fileList = Object.values(fileList);
+          }
+
+          // Log the response
+          console.log(fileList);
+
+          var hiddenMockupInput = column.querySelector(".hidden_mockup_url");
+          var mockupImageContainer = column.querySelector(".mockup-image");
+
+          if (hiddenMockupInput && mockupImageContainer) {
+            hiddenMockupInput.value = fileList.join(",");
+            mockupImageContainer.innerHTML = fileList
+              .map(
+                (file) =>
+                  `<a href="${file}"><img src="${file}" alt="Mockup Image"  class="om_mockup-thumbnail"></a>`
+              )
+              .join("");
+            // Pass the newly added images to the tooltip function
+            const newImages = mockupImageContainer.querySelectorAll(
+              ".om_mockup-thumbnail"
+            );
+            attachTooltipToProductThumbnails(newImages);
+          }
+          // Removing the spinner after the images are loaded
+          column.querySelectorAll(".lds-spinner-wrap").forEach((wrap) => {
+            wrap.style.display = "none";
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching mockup files:", error);
+      });
+  }
+
+  function initialAddNewMockupColumn(row, nextVersion) {
+    var productId = row.getAttribute("data-product_id");
+
+    // Check if a column for the next version already exists
+    if (row.querySelector('td[data-version_number="' + nextVersion + '"]')) {
+      return;
+    }
+
+    var newMockupTd = document.createElement("td");
+    newMockupTd.className = "item_mockup_column";
+    newMockupTd.setAttribute("data-version_number", +nextVersion);
+    newMockupTd.innerHTML =
+      '<div class="lds-spinner-wrap"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>' +
+      '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' +
+      nextVersion +
+      '" value="">' +
+      '<div class="mockup-image">Select Mockup Image JS</div>' +
+      '<input class="file-input__input" name="file-input[' +
+      productId +
+      ']" id="file-input-' +
+      productId +
+      "-v" +
+      nextVersion +
+      '" data-version="V' +
+      nextVersion +
+      '" type="file" placeholder="Upload Mockup" multiple >' +
+      '<label class="file-input__label" for="file-input-' +
+      productId +
+      "-v" +
+      nextVersion +
+      '">' +
+      '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
+      '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>' +
+      "</svg>" +
+      "<span>Upload file</span></label>";
+
+    row.appendChild(newMockupTd);
+  }
+
+  initializeMockupColumns(mainTable, orderId);
+
   document.body.addEventListener("change", function (event) {
     if (event.target.classList.contains("file-input__input")) {
       var input = event.target;
@@ -861,25 +1185,27 @@ document.addEventListener("DOMContentLoaded", function () {
       formData.append("version", version);
 
       // Display a preview of the selected images
-      Array.from(files).forEach((file) => {
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          var mockupImage =
-            "<img src='" + e.target.result + "' alt='Mockup Image' />";
-          var mockupImageContainer =
-            mockupColumn.querySelector(".mockup-image");
+      // Array.from(files).forEach((file) => {
+      //   var reader = new FileReader();
+      //   reader.onload = function (e) {
+      //     var mockupImage =
+      //       "<img src='" +
+      //       e.target.result +
+      //       "' class='om_mockup-thumbnail' alt='Mockup Image' />";
+      //     var mockupImageContainer =
+      //       mockupColumn.querySelector(".mockup-image");
 
-          if (mockupImageContainer) {
-            mockupImageContainer.innerHTML += mockupImage; // Append to existing images
-          } else {
-            mockupImageContainer = document.createElement("div");
-            mockupImageContainer.className = "mockup-image";
-            mockupImageContainer.innerHTML = mockupImage;
-            mockupColumn.appendChild(mockupImageContainer);
-          }
-        };
-        reader.readAsDataURL(file); // Read the file as a data URL for preview
-      });
+      //     if (mockupImageContainer) {
+      //       mockupImageContainer.innerHTML += mockupImage; // Append to existing images
+      //     } else {
+      //       mockupImageContainer = document.createElement("div");
+      //       mockupImageContainer.className = "mockup-image";
+      //       mockupImageContainer.innerHTML = mockupImage;
+      //       mockupColumn.appendChild(mockupImageContainer);
+      //     }
+      //   };
+      //   reader.readAsDataURL(file); // Read the file as a data URL for preview
+      // });
 
       uploadFile(formData, input, version); // Pass the input element here
     }
@@ -930,12 +1256,17 @@ document.addEventListener("DOMContentLoaded", function () {
               mockupInput.value = data.file_path;
             }
 
-            // Replace the src of the preview images with the actual uploaded file URL
-            const imgElement =
-              mockupImageContainer.querySelectorAll("img")[index];
-            if (imgElement) {
-              imgElement.src = data.file_path;
-            }
+            // Create new anchor tag with image
+            const newAnchor = document.createElement("a");
+            newAnchor.href = data.file_path;
+            newAnchor.className = "mfp-image";
+            newAnchor.innerHTML = `<img src="${data.file_path}" alt="Mockup Image" class="om_mockup-thumbnail">`;
+
+            // Append the new anchor tag to the mockup image container
+            mockupImageContainer.appendChild(newAnchor);
+
+            // Apply the tooltip to the newly added image
+            attachTooltipToProductThumbnails([newAnchor.querySelector("img")]);
           }
         });
 
@@ -974,8 +1305,6 @@ document.addEventListener("DOMContentLoaded", function () {
         if (sendProofButton) {
           sendProofButton.removeAttribute("disabled");
         }
-
-        attachTooltipToProductThumbnails();
 
         Toastify({
           text: `Mockup ${version} uploaded successfully for ${productTitle}!`,
@@ -1088,8 +1417,8 @@ document.addEventListener("DOMContentLoaded", function () {
     return tooltipSpan;
   }
 
-  function attachTooltipToProductThumbnails() {
-    var images = document.querySelectorAll(".mockup-image img");
+  function attachTooltipToProductThumbnails(images) {
+    // var images = document.querySelectorAll(".mockup-image img");
 
     images.forEach(function (image) {
       var tooltipSpan;
@@ -1114,15 +1443,9 @@ document.addEventListener("DOMContentLoaded", function () {
         tooltipSpan.remove();
       });
 
-      // Wrap the image in an anchor tag for Magnific Popup
-      var anchor = document.createElement("a");
-      anchor.href = image.src;
-      anchor.className = "mfp-image";
-      image.parentNode.insertBefore(anchor, image);
-      anchor.appendChild(image);
-
+      var imageAnchor = image.closest("a");
       // Initialize Magnific Popup on click
-      jQuery(anchor).magnificPopup({
+      jQuery(imageAnchor).magnificPopup({
         type: "image",
         closeOnContentClick: true,
         closeBtnInside: true,
@@ -1140,9 +1463,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
   }
-
-  // Call the function initially and after images are dynamically added
-  attachTooltipToProductThumbnails();
 
   document.body.addEventListener("click", function (event) {
     if (event.target.id === "om_delete_mockup") {
@@ -1211,34 +1531,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
               console.log("Has higher version:", hasHigherVersion);
 
-              if (!hasHigherVersion) {
-                // Find and remove the th element with "Mockups {currentVersion}"
-                var mockupHeader = Array.from(
-                  document.querySelectorAll("th")
-                ).find((th) =>
-                  th.textContent.includes(`Mockups V${currentVersion}`)
-                );
-                if (mockupHeader) {
-                  mockupHeader.remove();
-                }
-
-                //Update header versions
-                var subsequentThs = Array.from(
-                  document.querySelectorAll("th")
-                ).filter((th) => {
-                  return (
-                    parseInt(th.textContent.replace("Mockups V", "")) >
-                    currentVersion
-                  );
-                });
-
-                subsequentThs.forEach((th) => {
-                  var newVersion =
-                    parseInt(th.textContent.replace("Mockups V", "")) - 1;
-                  th.innerHTML = "<strong>Mockups V" + newVersion + "</strong>";
-                });
-              }
-
               // Update version numbers for subsequent columns
               var subsequentTds = Array.from(
                 currentTd
@@ -1274,6 +1566,10 @@ document.addEventListener("DOMContentLoaded", function () {
               });
 
               currentTd.remove();
+
+              if (!hasHigherVersion) {
+                populateTableHeader();
+              }
 
               Toastify({
                 text: `Mockup ${version} for ${productTitle} deleted successfully!`,
@@ -1311,4 +1607,47 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
   });
+
+  function populateTableHeader() {
+    // Get the table
+    var table = document.getElementById("tableMain");
+    if (!table) return;
+
+    // Get all rows in the tbody
+    var rows = table
+      .getElementsByTagName("tbody")[0]
+      .getElementsByTagName("tr");
+    if (rows.length === 0) return;
+
+    // Initialize the maximum column count for 'item_mockup_column'
+    var maxMockupColumns = 0;
+
+    // Loop through all rows to find the maximum number of 'item_mockup_column' tds
+    for (var i = 0; i < rows.length; i++) {
+      var mockupColumns =
+        rows[i].getElementsByClassName("item_mockup_column").length;
+      if (mockupColumns > maxMockupColumns) {
+        maxMockupColumns = mockupColumns;
+      }
+    }
+
+    // Get the thead element and the first row in the thead
+    var thead = table.getElementsByTagName("thead")[0];
+    if (thead.length === 0) return;
+    var headerRow = thead.getElementsByTagName("tr")[0];
+    if (headerRow.length === 0) return;
+
+    // Remove any previously added dynamic th elements
+    while (headerRow.children.length > 3) {
+      headerRow.removeChild(headerRow.lastChild);
+    }
+
+    // Create the appropriate number of th elements
+    for (var i = 0; i < maxMockupColumns; i++) {
+      var th = document.createElement("th");
+      th.className = "head";
+      th.innerHTML = "<strong>Mockups V" + (i + 1) + "</strong>";
+      headerRow.appendChild(th);
+    }
+  }
 });

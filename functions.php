@@ -253,7 +253,8 @@ if (!function_exists('hello_elementor_scripts_styles')) {
                 'order_number' => $order_number,
                 'customer_name' => $customer_name,
                 'customer_email' => $customer_email,
-                'order_domain' => $order_domain
+                'order_domain' => $order_domain,
+                'currency_symbol' => "₪",
             )
         );
 
@@ -360,6 +361,18 @@ function redirect_to_login_if_not_logged_in()
     }
 }
 add_action('template_redirect', 'redirect_to_login_if_not_logged_in');
+
+
+function reset_user_contributor_transient($user_id)
+{
+    delete_transient('user_is_contributor_' . $user_id);
+}
+
+add_action('wp_login', 'reset_user_contributor_transient');
+add_action('wp_logout', 'reset_user_contributor_transient');
+add_action('set_user_role', 'reset_user_contributor_transient');
+add_action('profile_update', 'reset_user_contributor_transient');
+
 
 function change_post_type_labels()
 {
@@ -764,14 +777,14 @@ function create_order(WP_REST_Request $request)
     return new WP_REST_Response($post_id, 200);
 }
 
-// function add_cors_http_header()
-// {
-//     header("Access-Control-Allow-Origin: *");
-//     header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-//     header("Access-Control-Allow-Credentials: true");
-//     header("Access-Control-Allow-Headers: Content-Type, Authorization");
-// }
-// add_action('init', 'add_cors_http_header');
+function add_cors_http_header()
+{
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization");
+}
+add_action('init', 'add_cors_http_header');
 
 
 /**
@@ -868,20 +881,6 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     $currency_symbol = $order_data['currency_symbol'];
     $shipping_total = $order_data['shipping_total'];
 
-    $highest_mockup_version = 0;
-    foreach ($order->line_items as $item) {
-        $mockup_version = 1;
-        while (true) {
-            $file_list = get_file_list_from_ftp($order_id, $item->id, 'V' . $mockup_version);
-            if (!empty($file_list)) {
-                $highest_mockup_version = max($highest_mockup_version, $mockup_version);
-                $mockup_version++;
-            } else {
-                break;
-            }
-        }
-    }
-
     ob_start();
 
     echo '<table id="tableMain">';
@@ -891,9 +890,6 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<th class="head"><strong>Quantity</strong></th>';
     endif;
     echo '<th class="head"><strong>Graphics</strong></th>';
-    for ($i = 1; $i <= $highest_mockup_version + 1; $i++) {
-        echo '<th class="head"><strong>Mockups V' . $i . '</strong></th>';
-    }
     echo '</tr></thead><tbody>';
 
     foreach ($order->line_items as $item) {
@@ -924,9 +920,13 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '</td>';
         if (!ml_current_user_contributor()):
             echo '<td class="item_quantity_column">';
-            echo '<span>' . esc_attr($item->quantity) . '</span>x';
-            echo '<span>' . esc_attr(number_format($item->price, 2) . $currency_symbol) . '</span> = ';
-            echo '<span>' . esc_attr(number_format($item->total, 2) . $currency_symbol) . '</span>';
+            echo '<span class="om__itemQuantity">' . esc_attr($item->quantity) . '</span>x';
+            echo '<span class="om__itemRate">' . esc_attr(number_format($item->price, 2) . $currency_symbol) . '</span> = ';
+            echo '<span class="om__itemCostTotal">' . esc_attr(number_format($item->total, 2) . $currency_symbol) . '</span>';
+            echo '<span class="om_itemQuantPriceEdit">';
+            echo '<input type="number" class="item-quantity-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->quantity) . '" />';
+            echo '<input type="number" class="item-cost-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->price) . '" />';
+            echo '</span>';
             echo '</td>';
         endif;
         echo '<td class="item_graphics_column">';
@@ -951,55 +951,6 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         }
         echo '</td>';
 
-        $mockup_version = 1;
-        $last_version_with_mockup = 0;
-
-        while (true) {
-            $file_list = get_file_list_from_ftp($order_id, $item->id, 'V' . $mockup_version);
-            if (!empty($file_list)) {
-                $last_version_with_mockup = $mockup_version;
-            } else {
-                break;
-            }
-            $mockup_version++;
-        }
-
-        for ($mockup_version = 1; $mockup_version <= $last_version_with_mockup + 1; $mockup_version++) {
-            $file_list = get_file_list_from_ftp($order_id, $item->id, 'V' . $mockup_version);
-            $last_send_version_class = $mockup_version === $last_version_with_mockup ? ' last_send_version' : '';
-            $expired_mockup_class = !empty($file_list) && $mockup_version !== $last_version_with_mockup ? ' om_expired_mockups' : '';
-
-            echo '<td class="item_mockup_column' . $last_send_version_class . $expired_mockup_class . '" data-version_number="' . $mockup_version . '">';
-            echo '<div class="lds-spinner-wrap"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>';
-
-            if ($last_send_version_class && $mockup_version === $last_version_with_mockup) {
-                echo '<button id="om_delete_mockup" data-order-id="' . esc_attr($order_id) . '" data-product-id="' . esc_attr($item->id) . '" data-version="V' . $mockup_version . '">Delete Mockup</button>';
-            }
-
-            if (!empty($file_list)) {
-                $file_list = array_map(function ($file) {
-                    return str_replace('/public_html', 'https://lukpaluk.xyz', $file);
-                }, $file_list);
-                echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $mockup_version . '" value="' . esc_attr(implode(',', $file_list)) . '">';
-                echo '<div class="mockup-image">';
-                foreach ($file_list as $file_url) {
-                    echo '<img src="' . esc_attr($file_url) . '" alt="Mockup Image">';
-                }
-                echo '</div>';
-            } else {
-                echo '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' . $mockup_version . '" value="">';
-                echo '<div class="mockup-image">Select Mockup Image PHP</div>';
-            }
-
-            echo '<input class="file-input__input" name="file-input[' . esc_attr($item->id) . ']" id="file-input-' . esc_attr($item->id) . '-v' . $mockup_version . '" data-version="V' . $mockup_version . '" type="file" placeholder="Upload Mockup" multiple >';
-            echo '<label class="file-input__label" for="file-input-' . esc_attr($item->id) . '-v' . $mockup_version . '">';
-            echo '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
-            echo '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>';
-            echo '</svg>';
-            echo '<span>Upload file</span></label>';
-            echo '</td>';
-        }
-
         echo '</tr>';
     }
     echo '</tbody><tfoot>';
@@ -1008,9 +959,11 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<td colspan="1"><span>Items Subtotal:</span><br>';
         echo '<span>Shipping:</span><br>';
         echo '<span>Order Total:</span></td>';
-        echo '<td class="totals_column"><span>' . esc_attr(number_format($items_subtotal, 2) . ' ' . $currency_symbol) . '</span><br>';
-        echo esc_attr(number_format($shipping_total, 2) . ' ' . $currency_symbol) . '<br>';
-        echo esc_attr(number_format($order->total, 2) . ' ' . $currency_symbol) . '</span></td>';
+        echo '<td class="totals_column">';
+        echo '<span class="om__items_subtotal">' . esc_attr(number_format($items_subtotal, 2) . ' ' . $currency_symbol) . '</span><br>';
+        echo '<span class="om__shipping_total">' . esc_attr(number_format($shipping_total, 2) . ' ' . $currency_symbol) . '</span><br>';
+        echo '<span class="om__orderTotal">' . esc_attr(number_format($order->total, 2) . ' ' . $currency_symbol) . '</span>';
+        echo '</td>';
         echo '</tr>';
     endif;
     echo '</tfoot></table>';
@@ -1019,6 +972,68 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
 
     return ob_get_clean();
 }
+
+add_action('wp_ajax_initialize_mockup_columns', 'initialize_mockup_columns');
+add_action('wp_ajax_nopriv_initialize_mockup_columns', 'initialize_mockup_columns');
+
+function initialize_mockup_columns()
+{
+    $order_id = intval($_POST['order_id']);
+    $product_id = intval($_POST['product_id']);
+
+    $mockup_versions = [];
+    $mockup_version = 1;
+    while (true) {
+        $file_list = get_file_list_from_ftp($order_id, $product_id, 'V' . $mockup_version);
+        if (!empty($file_list)) {
+            $mockup_versions[] = ['version' => $mockup_version];
+            $mockup_version++;
+        } else {
+            break;
+        }
+    }
+
+    wp_send_json_success(['mockup_versions' => $mockup_versions]);
+}
+
+add_action('wp_ajax_fetch_mockup_files', 'fetch_mockup_files');
+add_action('wp_ajax_nopriv_fetch_mockup_files', 'fetch_mockup_files');
+
+function fetch_mockup_files()
+{
+    $order_id = intval($_POST['order_id']);
+    $product_id = intval($_POST['product_id']);
+    $version = sanitize_text_field($_POST['version']);
+
+    $attempts = 0;
+    $max_attempts = 3;
+    $success = false;
+
+    while ($attempts < $max_attempts && !$success) {
+        $file_list = get_file_list_from_ftp($order_id, $product_id, 'V' . $version);
+
+        // Ensure $file_list is always an array
+        if (!is_array($file_list)) {
+            $file_list = $file_list ? [$file_list] : []; // Wrap single file object in an array or set as empty array if null
+        }
+
+        if (!empty($file_list)) {
+            $file_list = array_map(function ($file) {
+                return str_replace('/public_html', 'https://lukpaluk.xyz', $file);
+            }, $file_list);
+            wp_send_json_success(['file_list' => $file_list]); // Success case
+            $success = true; // Break the loop on success
+        } else {
+            $attempts++;
+            if ($attempts >= $max_attempts) {
+                // Modified error response to include an empty 'file_list' and a 'message'
+                wp_send_json_error(['file_list' => [], 'message' => 'No files found after ' . $max_attempts . ' attempts']);
+            }
+        }
+    }
+}
+
+
 
 function get_file_list_from_ftp($order_id, $product_id, $version)
 {
@@ -1154,16 +1169,171 @@ function ml_current_user_contributor()
     // Return the result
     return $is_contributor === '1';
 }
-function reset_user_contributor_transient($user_id)
+
+/**
+ * Handle form submission to create an order
+ */
+add_action('wp_ajax_create_order', 'create_order_from_form');
+add_action('wp_ajax_nopriv_create_order', 'create_order_from_form');
+
+function create_order_from_form()
 {
-    delete_transient('user_is_contributor_' . $user_id);
+    check_ajax_referer('order_management_nonce', 'security');
+
+    // Get the current site URL
+    $site_url = site_url();
+
+    //TODO: This is for local testing only and for staging
+    // Set domain and credentials based on the site URL
+    if (strpos($site_url, '.test') !== false) {
+        $domain = 'https://allaround.test';
+        $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
+        $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
+    } else {
+        $domain = 'https://main.lukpaluk.xyz';
+        $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+        $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+    }
+
+    $billing = array(
+        'first_name' => sanitize_text_field($_POST['first_name']),
+        'last_name' => sanitize_text_field($_POST['last_name']),
+        'address_1' => sanitize_text_field($_POST['address_1']),
+        'address_2' => '',
+        'company' => sanitize_text_field($_POST['company']),
+        'city' => sanitize_text_field($_POST['city']),
+        'country' => !empty($_POST['country']) ? sanitize_text_field($_POST['country']) : 'Israel',
+        'email' => sanitize_email($_POST['email']),
+        'phone' => sanitize_text_field($_POST['phone']),
+    );
+    $shipping = $billing;
+    $line_items = json_decode(stripslashes($_POST['line_items']), true);
+    $shipping_method = sanitize_text_field($_POST['shipping_method']);
+    $shipping_method_title = sanitize_text_field($_POST['shipping_method_title']);
+
+    $shipping_total = calculate_shipping_cost($shipping_method);
+
+    foreach ($line_items as &$item) {
+        foreach ($item['meta_data'] as &$meta) {
+            if ($meta['key'] === 'Attachment') {
+                $artwork_urls = json_decode($meta['value'], true);
+                // Check if the value is an array and not empty
+                if (!empty($artwork_urls) && is_array($artwork_urls)) {
+                    $meta['value'] = ''; // Initialize as empty string to concatenate multiple artworks
+                    foreach ($artwork_urls as $artwork_url) {
+                        // Extract the file extension
+                        $extension = pathinfo($artwork_url, PATHINFO_EXTENSION);
+                        // Create the HTML content for each artwork with dynamic class based on file extension
+                        $meta['value'] .= "<p>" . basename($artwork_url) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_url . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_url . "\" /></a></div>";
+                    }
+                } elseif (!empty($artwork_urls)) { // Handle single artwork URL (not an array)
+                    // Extract the file extension for single URL
+                    $extension = pathinfo($artwork_urls, PATHINFO_EXTENSION);
+                    $meta['value'] = "<p>" . basename($artwork_urls) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_urls . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_urls . "\" /></a></div>";
+                }
+            }
+        }
+    }
+
+    $order_data = array(
+        'payment_method' => 'zcredit_checkout_payment',
+        'payment_method_title' => 'Secure Credit Card Payment',
+        'set_paid' => true,
+        'billing' => $billing,
+        'shipping' => $shipping,
+        'line_items' => $line_items,
+        'shipping_lines' => array(
+            array(
+                'method_id' => $shipping_method,
+                'method_title' => $shipping_method_title,
+                'total' => strval($shipping_total)
+            )
+        )
+    );
+
+    // Send order data to the specified domain
+    $response = wp_remote_post(
+        "$domain/wp-json/wc/v3/orders",
+        array(
+            'method' => 'POST',
+            'headers' => array(
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Basic ' . base64_encode("$consumer_key:$consumer_secret")
+            ),
+            'body' => json_encode($order_data),
+            'sslverify' => false
+        )
+    );
+
+    if (is_wp_error($response)) {
+        wp_send_json_error('Error creating order: ' . $response->get_error_message());
+    } else {
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+        if (isset($data['id'])) {
+            $data['order_id'] = $data['id'];
+            $data['order_number'] = $data['number'];
+            $data['site_url'] = $domain;
+            wp_send_json_success($data);
+        } else {
+            wp_send_json_error('Failed to create order: ' . $data['message']);
+        }
+    }
 }
 
-add_action('wp_login', 'reset_user_contributor_transient');
-add_action('wp_logout', 'reset_user_contributor_transient');
-add_action('set_user_role', 'reset_user_contributor_transient');
-add_action('profile_update', 'reset_user_contributor_transient');
 
+/**
+ * Delete a Mockup Version
+ */
+add_action('wp_ajax_delete_mockup_folder', 'delete_mockup_folder');
+add_action('wp_ajax_nopriv_delete_mockup_folder', 'delete_mockup_folder');
+
+function delete_mockup_folder()
+{
+    check_ajax_referer('order_management_nonce', 'security');
+
+    $order_id = intval($_POST['order_id']);
+    $product_id = intval($_POST['product_id']);
+    $version = sanitize_text_field($_POST['version']);
+
+    $ftp_server = '107.181.244.114';
+    $ftp_user_name = 'lukpaluk';
+    $ftp_user_pass = 'SK@8Ek9mZam45;';
+
+    $remote_directory = "/public_html/artworks/$order_id/$product_id/$version/";
+
+    // Connect to FTP server
+    $ftp_conn = ftp_connect($ftp_server) or wp_send_json_error(array('message' => "Could not connect to $ftp_server"));
+
+    // Login to FTP server
+    $login = ftp_login($ftp_conn, $ftp_user_name, $ftp_user_pass);
+    if (!$login) {
+        ftp_close($ftp_conn);
+        wp_send_json_error(array('message' => "Could not log in to FTP server"));
+    }
+
+    // Enable passive mode
+    ftp_pasv($ftp_conn, true);
+
+    // Delete all files in the directory
+    $file_list = ftp_nlist($ftp_conn, $remote_directory);
+    if ($file_list !== false) {
+        foreach ($file_list as $file) {
+            ftp_delete($ftp_conn, $file);
+        }
+    }
+
+    // Delete the directory
+    $delete_success = ftp_rmdir($ftp_conn, $remote_directory);
+
+    ftp_close($ftp_conn);
+
+    if ($delete_success) {
+        wp_send_json_success(array('message' => "Successfully deleted $remote_directory"));
+    } else {
+        wp_send_json_error(array('message' => "Error deleting $remote_directory"));
+    }
+}
 
 
 /**
@@ -1372,171 +1542,4 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
     }
 
     return ob_get_clean();
-}
-
-
-
-/**
- * Handle form submission to create an order
- */
-add_action('wp_ajax_create_order', 'create_order_from_form');
-add_action('wp_ajax_nopriv_create_order', 'create_order_from_form');
-
-function create_order_from_form()
-{
-    check_ajax_referer('order_management_nonce', 'security');
-
-    // Get the current site URL
-    $site_url = site_url();
-
-    //TODO: This is for local testing only and for staging
-    // Set domain and credentials based on the site URL
-    if (strpos($site_url, '.test') !== false) {
-        $domain = 'https://allaround.test';
-        $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
-        $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
-    } else {
-        $domain = 'https://main.lukpaluk.xyz';
-        $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-        $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-    }
-
-    $billing = array(
-        'first_name' => sanitize_text_field($_POST['first_name']),
-        'last_name' => sanitize_text_field($_POST['last_name']),
-        'address_1' => sanitize_text_field($_POST['address_1']),
-        'address_2' => '',
-        'company' => sanitize_text_field($_POST['company']),
-        'city' => sanitize_text_field($_POST['city']),
-        'country' => !empty($_POST['country']) ? sanitize_text_field($_POST['country']) : 'Israel',
-        'email' => sanitize_email($_POST['email']),
-        'phone' => sanitize_text_field($_POST['phone']),
-    );
-    $shipping = $billing;
-    $line_items = json_decode(stripslashes($_POST['line_items']), true);
-    $shipping_method = sanitize_text_field($_POST['shipping_method']);
-    $shipping_method_title = sanitize_text_field($_POST['shipping_method_title']);
-
-    $shipping_total = calculate_shipping_cost($shipping_method);
-
-    foreach ($line_items as &$item) {
-        foreach ($item['meta_data'] as &$meta) {
-            if ($meta['key'] === 'Attachment') {
-                $artwork_urls = json_decode($meta['value'], true);
-                // Check if the value is an array and not empty
-                if (!empty($artwork_urls) && is_array($artwork_urls)) {
-                    $meta['value'] = ''; // Initialize as empty string to concatenate multiple artworks
-                    foreach ($artwork_urls as $artwork_url) {
-                        // Extract the file extension
-                        $extension = pathinfo($artwork_url, PATHINFO_EXTENSION);
-                        // Create the HTML content for each artwork with dynamic class based on file extension
-                        $meta['value'] .= "<p>" . basename($artwork_url) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_url . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_url . "\" /></a></div>";
-                    }
-                } elseif (!empty($artwork_urls)) { // Handle single artwork URL (not an array)
-                    // Extract the file extension for single URL
-                    $extension = pathinfo($artwork_urls, PATHINFO_EXTENSION);
-                    $meta['value'] = "<p>" . basename($artwork_urls) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_urls . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_urls . "\" /></a></div>";
-                }
-            }
-        }
-    }
-
-    $order_data = array(
-        'payment_method' => 'zcredit_checkout_payment',
-        'payment_method_title' => 'Secure Credit Card Payment',
-        'set_paid' => true,
-        'billing' => $billing,
-        'shipping' => $shipping,
-        'line_items' => $line_items,
-        'shipping_lines' => array(
-            array(
-                'method_id' => $shipping_method,
-                'method_title' => $shipping_method_title,
-                'total' => strval($shipping_total)
-            )
-        )
-    );
-
-    // Send order data to the specified domain
-    $response = wp_remote_post(
-        "$domain/wp-json/wc/v3/orders",
-        array(
-            'method' => 'POST',
-            'headers' => array(
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Basic ' . base64_encode("$consumer_key:$consumer_secret")
-            ),
-            'body' => json_encode($order_data),
-            'sslverify' => false
-        )
-    );
-
-    if (is_wp_error($response)) {
-        wp_send_json_error('Error creating order: ' . $response->get_error_message());
-    } else {
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-        if (isset($data['id'])) {
-            $data['order_id'] = $data['id'];
-            $data['order_number'] = $data['number'];
-            $data['site_url'] = $domain;
-            wp_send_json_success($data);
-        } else {
-            wp_send_json_error('Failed to create order: ' . $data['message']);
-        }
-    }
-}
-
-
-/**
- * Delete a Mockup Version
- */
-add_action('wp_ajax_delete_mockup_folder', 'delete_mockup_folder');
-add_action('wp_ajax_nopriv_delete_mockup_folder', 'delete_mockup_folder');
-
-function delete_mockup_folder()
-{
-    check_ajax_referer('order_management_nonce', 'security');
-
-    $order_id = intval($_POST['order_id']);
-    $product_id = intval($_POST['product_id']);
-    $version = sanitize_text_field($_POST['version']);
-
-    $ftp_server = '107.181.244.114';
-    $ftp_user_name = 'lukpaluk';
-    $ftp_user_pass = 'SK@8Ek9mZam45;';
-
-    $remote_directory = "/public_html/artworks/$order_id/$product_id/$version/";
-
-    // Connect to FTP server
-    $ftp_conn = ftp_connect($ftp_server) or wp_send_json_error(array('message' => "Could not connect to $ftp_server"));
-
-    // Login to FTP server
-    $login = ftp_login($ftp_conn, $ftp_user_name, $ftp_user_pass);
-    if (!$login) {
-        ftp_close($ftp_conn);
-        wp_send_json_error(array('message' => "Could not log in to FTP server"));
-    }
-
-    // Enable passive mode
-    ftp_pasv($ftp_conn, true);
-
-    // Delete all files in the directory
-    $file_list = ftp_nlist($ftp_conn, $remote_directory);
-    if ($file_list !== false) {
-        foreach ($file_list as $file) {
-            ftp_delete($ftp_conn, $file);
-        }
-    }
-
-    // Delete the directory
-    $delete_success = ftp_rmdir($ftp_conn, $remote_directory);
-
-    ftp_close($ftp_conn);
-
-    if ($delete_success) {
-        wp_send_json_success(array('message' => "Successfully deleted $remote_directory"));
-    } else {
-        wp_send_json_error(array('message' => "Error deleting $remote_directory"));
-    }
 }
