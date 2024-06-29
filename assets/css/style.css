@@ -88,6 +88,12 @@ span#om__itemVariUpdateModal {
   right: 20px;
   top: 35px;
   cursor: pointer;
+  opacity: 0;
+  transition: all ease 0.3s;
+}
+.item_product_column:hover .om__editItemMeta {
+  opacity: 1;
+  right: 10px;
 }
 .om__itemVariUpdateModal {
   position: relative;
@@ -350,14 +356,29 @@ button#om--create-new-order.om_add_item_selected {
 .om_shipping_submit {
   border-radius: 7px;
   padding: 0;
-  width: 35px;
+  width: 45px;
   border: 0px solid transparent;
   display: none;
-  background-image: url(../images/mark_icon-svg.svg);
-  background-size: 30px auto;
+  background-image: url(../images/check.png);
+  background-size: contain;
   background-repeat: no-repeat;
   text-indent: -9999999px;
   background-position: center center;
+}
+.om_shipping_submit.pulse {
+  background-image: url(../images/upload.png);
+}
+.pulse {
+  -webkit-animation: pulse 1s infinite ease-in-out alternate;
+  animation: pulse 1s infinite ease-in-out alternate;
+}
+@keyframes pulse {
+  from {
+    transform: scale(0.8);
+  }
+  to {
+    transform: scale(1.2);
+  }
 }
 .om_shipping_submit:focus-visible,
 .om_shipping_submit:focus {

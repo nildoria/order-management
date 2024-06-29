@@ -490,7 +490,7 @@ function update_order_shipping_method()
                 $transient_key = 'order_details_' . $order_id;
                 delete_transient($transient_key);
 
-                wp_send_json_success('Shipping method updated successfully.');
+                wp_send_json_success(array('message' => 'Shipping method updated successfully.', 'shipping_total' => number_format((float) $shipping_total, 2, '.', '')));
             }
         } else {
             wp_send_json_error('Order not found.');
@@ -902,7 +902,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         if (!ml_current_user_contributor()):
             echo '<span class="om_duplicate_item"><img src="' . get_template_directory_uri() . '/assets/images/copy.png" alt="Copy" /></span>';
             echo '<span class="om_delete_item"><img src="' . get_template_directory_uri() . '/assets/images/delete.png" alt="Delete" /></span>';
-            echo '<span class="om__editItemMeta" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Delete" /></span>';
+            echo '<span class="om__editItemMeta" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></span>';
         endif;
         if (isset($item->id)) {
             echo '<input type="hidden" name="item_id" value="' . esc_attr($item_id) . '">';
@@ -926,9 +926,6 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<strong class="om__itemVariUpdateTitle">' . esc_html($item->name) . '</strong>';
         echo '<span class="om__itemVariUpdateMeta">';
         foreach ($item->meta_data as $meta) {
-            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
-                continue;
-            }
             if (in_array($meta->key, ["Color"])) {
                 echo '<label for="color-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
                 echo '<select id="color-input_' . $item_id . '">';
@@ -952,6 +949,26 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '<label for="instruction-note-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
                 echo '<input type="text" id="instruction-note-input_' . $item_id . '" value="' . esc_html(strip_tags($meta->value)) . '" placeholder="Enter instruction note">';
             }
+        }
+        $has_meta_data = false;
+
+        // Check if any of the desired meta keys are present
+        foreach ($item->meta_data as $meta) {
+            if (in_array($meta->key, ["Color", "Size", "Art Position", "Instruction Note"])) {
+                $has_meta_data = true;
+                break;
+            }
+        }
+
+        // If none of the desired meta keys are present, show the default part
+        if (!$has_meta_data) {
+            echo '<label for="color-input_' . $item_id . '">Color</label>';
+            echo '<select id="color-input_' . $item_id . '">';
+            echo '<option value="">Select Color</option>';
+            echo '</select>';
+            echo '<br>';
+            echo '<label for="instruction-note-input_' . $item_id . '">Instruction Note</label>';
+            echo '<input type="text" id="instruction-note-input_' . $item_id . '" placeholder="Enter instruction note">';
         }
         echo '</span>';
         echo '<button data-order_id="' . $order_id . '" data-item_id="' . $item_id . '" id="update-item-meta-btn_' . $item_id . '">Update Item Meta</button>';

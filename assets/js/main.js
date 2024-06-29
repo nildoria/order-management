@@ -649,12 +649,14 @@
 
   function updateOrderTotals(itemsSubtotal, shippingTotal, orderTotal) {
     $(".om__items_subtotal").text(
-      itemsSubtotal + "" + allaround_vars.currency_symbol
+      itemsSubtotal + " " + allaround_vars.currency_symbol
     );
     $(".om__shipping_total").text(
-      shippingTotal + "" + allaround_vars.currency_symbol
+      shippingTotal + " " + allaround_vars.currency_symbol
     );
-    $(".om__orderTotal").text(orderTotal + "" + allaround_vars.currency_symbol);
+    $(".om__orderTotal").text(
+      orderTotal + " " + allaround_vars.currency_symbol
+    );
   }
   function updateItemDetails(itemId, newQuantity, newCost, itemTotal) {
     var $row = $(`tr[data-product_id="${itemId}"]`);
@@ -1111,6 +1113,7 @@
       'select[name="shipping_method"] option:checked'
     ).text;
     var nonce = allaround_vars.nonce;
+    $(".om_shipping_submit").addClass("pulse");
 
     fetch(allaround_vars.ajax_url, {
       method: "POST",
@@ -1129,8 +1132,24 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
-          alert("Shipping method updated successfully.");
-          location.reload();
+          $(".om__shipping_total").text(
+            data.data.shipping_total + " " + allaround_vars.currency_symbol
+          );
+
+          var itemsTotal = parseFloat(
+            $(".om__items_subtotal")
+              .text()
+              .replace(/[^0-9.-]+/g, "")
+          );
+          var newOrderTotal = itemsTotal + parseFloat(data.data.shipping_total);
+          $(".om__orderTotal").text(
+            newOrderTotal.toFixed(2) + " " + allaround_vars.currency_symbol
+          );
+
+          $(".om_shipping_submit").removeClass("pulse");
+          setTimeout(() => {
+            $(".om_shipping_submit").fadeOut();
+          }, 500);
         } else {
           alert("Failed to update shipping method: " + data.data);
         }
@@ -1183,15 +1202,15 @@ document.addEventListener("DOMContentLoaded", function () {
   var mainTable = document.getElementById("tableMain");
   // mainTable tr
   async function initializeMockupColumns(mainTable, orderId) {
-    var mainTableTrs = mainTable.querySelectorAll("tbody > tr");
+    const mainTableTrs = mainTable.querySelectorAll("tbody > tr");
     if (mainTableTrs.length === 0) return;
 
     for (const column of mainTableTrs) {
-      var productId = column.getAttribute("data-product_id");
-      var thisTr = column;
+      const productId = column.getAttribute("data-product_id");
+      const thisTr = column;
 
       // Add loading indicator to the row
-      var loadingIndicator = document.createElement("td");
+      const loadingIndicator = document.createElement("td");
       loadingIndicator.className = "loading-indicator";
       loadingIndicator.innerHTML = `
       <div class="lds-spinner-wrap">
@@ -1206,7 +1225,7 @@ document.addEventListener("DOMContentLoaded", function () {
       thisTr.appendChild(loadingIndicator);
 
       // Initialize columns by checking directories
-      var formData = new FormData();
+      const formData = new FormData();
       formData.append("action", "initialize_mockup_columns");
       formData.append("order_id", orderId);
       formData.append("product_id", productId);
@@ -1217,93 +1236,41 @@ document.addEventListener("DOMContentLoaded", function () {
           body: formData,
         });
         const data = await response.json();
+
         if (data.success && data.data.mockup_versions) {
           let maxVersion = 0;
           for (const mockup of data.data.mockup_versions) {
             maxVersion = Math.max(maxVersion, mockup.version);
-            var mockupTd = document.createElement("td");
+            const mockupVersion = mockup.version;
+            const mockupTd = document.createElement("td");
             mockupTd.className = `item_mockup_column om_expired_mockups`;
-            mockupTd.setAttribute("data-version_number", mockup.version);
+            mockupTd.setAttribute("data-version_number", mockupVersion);
 
-            var spinnerWrap = document.createElement("div");
-            spinnerWrap.className = "lds-spinner-wrap";
-            var spinner = document.createElement("div");
-            spinner.className = "lds-spinner";
-            for (let i = 0; i < 12; i++) {
-              spinner.appendChild(document.createElement("div"));
-            }
-            spinnerWrap.appendChild(spinner);
-            mockupTd.appendChild(spinnerWrap);
-
-            var hiddenMockupInput = document.createElement("input");
-            hiddenMockupInput.type = "hidden";
-            hiddenMockupInput.className = "hidden_mockup_url";
-            hiddenMockupInput.name = `mockup-image-v${mockup.version}`;
-            hiddenMockupInput.value = "";
-            mockupTd.appendChild(hiddenMockupInput);
-
-            var mockupImageContainer = document.createElement("div");
-            mockupImageContainer.className = "mockup-image";
-            mockupImageContainer.textContent = "Loading mockup images...";
-            mockupTd.appendChild(mockupImageContainer);
-
-            var fileInput = document.createElement("input");
-            fileInput.className = "file-input__input";
-            fileInput.name = `file-input[${productId}]`;
-            fileInput.id = `file-input-${productId}-v${mockup.version}`;
-            fileInput.setAttribute("data-version", `V${mockup.version}`);
-            fileInput.type = "file";
-            fileInput.placeholder = "Upload Mockup";
-            fileInput.multiple = true;
-            mockupTd.appendChild(fileInput);
-
-            var label = document.createElement("label");
-            label.className = "file-input__label";
-            label.setAttribute(
-              "for",
-              `file-input-${productId}-v${mockup.version}`
-            );
-            var svg = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "svg"
-            );
-            svg.setAttribute("aria-hidden", "true");
-            svg.setAttribute("focusable", "false");
-            svg.setAttribute("data-prefix", "fas");
-            svg.setAttribute("data-icon", "upload");
-            svg.classList.add("svg-inline--fa", "fa-upload", "fa-w-16");
-            svg.setAttribute("role", "img");
-            svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-            svg.setAttribute("viewBox", "0 0 512 512");
-            var path = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path"
-            );
-            path.setAttribute("fill", "currentColor");
-            path.setAttribute(
-              "d",
-              "M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"
-            );
-            svg.appendChild(path);
-            label.appendChild(svg);
-            var span = document.createElement("span");
-            span.textContent = "Upload file";
-            label.appendChild(span);
-            mockupTd.appendChild(label);
-
+            mockupTd.innerHTML = `
+            <div class="lds-spinner-wrap" style="display: flex;">
+              <div class="lds-spinner">
+                ${"<div></div>".repeat(12)}
+              </div>
+            </div>
+            <input type="hidden" class="hidden_mockup_url" name="mockup-image-v${mockupVersion}" value="">
+            <div class="mockup-image">Loading mockup images...</div>
+            <input class="file-input__input" name="file-input[${productId}]" id="file-input-${productId}-v${mockupVersion}" data-version="V${mockupVersion}" type="file" placeholder="Upload Mockup" multiple>
+            <label class="file-input__label" for="file-input-${productId}-v${mockupVersion}">
+              <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>
+              </svg>
+              <span>Upload file</span>
+            </label>
+          `;
             thisTr.appendChild(mockupTd);
 
-            // set display flex to closest .lds-spinner-wrap
-            spinnerWrap.style.display = "flex";
-
             // Fetch the image URLs for this column
-            await fetchImageURLs(orderId, productId, mockup.version, mockupTd);
+            await fetchImageURLs(orderId, productId, mockupVersion, mockupTd);
           }
           initialAddNewMockupColumn(thisTr, maxVersion + 1);
           populateTableHeader();
           if (maxVersion) {
-            // get the td element of this version
-            var maxColumn = thisTr.querySelector(
+            const maxColumn = thisTr.querySelector(
               `td[data-version_number="${maxVersion}"]`
             );
             maxColumn.classList.remove("om_expired_mockups");
@@ -1340,9 +1307,6 @@ document.addEventListener("DOMContentLoaded", function () {
           if (!Array.isArray(fileList)) {
             fileList = Object.values(fileList);
           }
-
-          // Log the response
-          console.log(fileList);
 
           var hiddenMockupInput = column.querySelector(".hidden_mockup_url");
           var mockupImageContainer = column.querySelector(".mockup-image");
@@ -1446,29 +1410,6 @@ document.addEventListener("DOMContentLoaded", function () {
       formData.append("post_id", postId);
       formData.append("product_id", productId);
       formData.append("version", version);
-
-      // Display a preview of the selected images
-      // Array.from(files).forEach((file) => {
-      //   var reader = new FileReader();
-      //   reader.onload = function (e) {
-      //     var mockupImage =
-      //       "<img src='" +
-      //       e.target.result +
-      //       "' class='om_mockup-thumbnail' alt='Mockup Image' />";
-      //     var mockupImageContainer =
-      //       mockupColumn.querySelector(".mockup-image");
-
-      //     if (mockupImageContainer) {
-      //       mockupImageContainer.innerHTML += mockupImage; // Append to existing images
-      //     } else {
-      //       mockupImageContainer = document.createElement("div");
-      //       mockupImageContainer.className = "mockup-image";
-      //       mockupImageContainer.innerHTML = mockupImage;
-      //       mockupColumn.appendChild(mockupImageContainer);
-      //     }
-      //   };
-      //   reader.readAsDataURL(file); // Read the file as a data URL for preview
-      // });
 
       uploadFile(formData, input, version); // Pass the input element here
     }
