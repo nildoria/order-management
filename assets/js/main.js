@@ -348,7 +348,154 @@
       });
   });
 
-  // ********** Update Item Cost **********//
+  // ********** Order Meta Update Script **********//
+  $(document).on("click", "[id^=update-item-meta-btn_]", function () {
+    const itemId = $(this).data("item_id");
+    const orderId = $(this).data("order_id");
+    const newSize = $("#size-input_" + itemId).val();
+    const newColor = $("#color-input_" + itemId).val();
+    const newArtPosition = $("#art-position-input_" + itemId).val();
+    const newInstructionNote = $("#instruction-note-input_" + itemId).val();
+
+    updateItemMeta(
+      orderId,
+      itemId,
+      newSize,
+      newColor,
+      newArtPosition,
+      newInstructionNote
+    );
+  });
+
+  function updateItemMeta(
+    orderId,
+    itemId,
+    newSize,
+    newColor,
+    newArtPosition,
+    newInstructionNote
+  ) {
+    var order_domain = allaround_vars.order_domain;
+
+    var newItemMeta = {
+      order_id: orderId,
+      item_id: itemId,
+      size: newSize,
+      color: newColor,
+      art_position: newArtPosition,
+      instruction_note: newInstructionNote,
+    };
+
+    var requestData = {
+      action: "update_order_transient",
+      order_id: orderId,
+    };
+
+    function handleResponse(response) {
+      alert("Item meta updated successfully");
+      location.reload(); // Refresh the page to see the updated item
+    }
+
+    fetch(`${order_domain}/wp-json/update-order/v1/update-item-meta`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newItemMeta),
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          return response.json().then((data) => {
+            throw new Error(data.message);
+          });
+        }
+      })
+      .then((data) => {
+        if (data.success) {
+          ml_send_ajax(requestData, handleResponse);
+        } else {
+          alert("Failed to update item meta: " + data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
+      });
+  }
+
+  // ********** Fetch Item Meta **********//
+  $(document).on("click", ".om__editItemMeta", function () {
+    var itemId = $(this).data("item_id");
+    $.magnificPopup.open({
+      items: {
+        src: "#om__itemVariUpdateModal_" + itemId,
+      },
+      type: "inline",
+      midClick: true, // Allow opening popup on middle mouse click.
+    });
+  });
+
+  $(document).on("focus", "[id^=color-input_]", function () {
+    const itemId = $(this)
+      .closest(".om__itemVariUpdateModal")
+      .data("source_product_id");
+    fetchProductOptions(itemId, "color", $(this).attr("id"));
+  });
+
+  $(document).on("focus", "[id^=size-input_]", function () {
+    const itemId = $(this)
+      .closest(".om__itemVariUpdateModal")
+      .data("source_product_id");
+    fetchProductOptions(itemId, "size", $(this).attr("id"));
+  });
+
+  $(document).on("focus", "[id^=art-position-input_]", function () {
+    const itemId = $(this)
+      .closest(".om__itemVariUpdateModal")
+      .data("source_product_id");
+    fetchProductOptions(itemId, "art_position", $(this).attr("id"));
+  });
+
+  function fetchProductOptions(productId, optionType, selectorId) {
+    let order_domain = allaround_vars.order_domain;
+
+    console.log("Fetching product options...");
+
+    fetch(`${order_domain}/wp-json/alarnd-main/v1/products`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("HTTP error " + response.status);
+        }
+        return response.json();
+      })
+      .then((products) => {
+        const product = products.find((product) => product.id === productId);
+        console.log("Product:", product);
+        if (product) {
+          if (optionType === "color") {
+            if (product.is_custom_quantity) {
+              populateCustomQuantityColors("#" + selectorId, product.colors);
+            } else if (product.is_group_quantity) {
+              populateGroupQuantityColors("#" + selectorId, product.colors);
+            }
+          } else if (optionType === "size") {
+            populateSizeDropdown("#" + selectorId, product.sizes);
+          } else if (optionType === "art_position") {
+            populateArtPositionsDropdown(
+              "#" + selectorId,
+              product.art_positions
+            );
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching product options:", error);
+      });
+  }
+
+  // ********** Update Item Details **********//
   $(".item-cost-input, .item-quantity-input").on("change", function () {
     var itemId = $(this).data("item-id");
     var newCost = $(this).closest("tr").find(".item-cost-input").val();
@@ -375,6 +522,17 @@
         response.order_total
       );
       updateItemDetails(itemId, newQuantity, newCost, response.item_total);
+      Toastify({
+        text: `${response.message}`,
+        duration: 3000,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+      }).showToast();
     }
 
     fetch(`${order_domain}/wp-json/update-order/v1/update-item-details`, {
@@ -393,6 +551,17 @@
         } else {
           return response.json().then((data) => {
             throw new Error(data.message);
+            Toastify({
+              text: `A problem occurred: ${data.message}`,
+              duration: 3000,
+              close: true,
+              gravity: "bottom", // `top` or `bottom`
+              position: "right", // `left`, `center` or `right`
+              stopOnFocus: true, // Prevents dismissing of toast on hover
+              style: {
+                background: "linear-gradient(to right, #cc3366, #a10036)",
+              },
+            }).showToast();
           });
         }
       })
@@ -436,7 +605,6 @@
   });
 
   // ********** Fetch Products from Main Site **********//
-
   function fetchProducts() {
     let order_domain = allaround_vars.order_domain;
     console.log(order_domain);
@@ -531,7 +699,11 @@
 
   function populateCustomQuantityColors(selector, colors) {
     const dropdown = $(selector);
+    const currentValue = dropdown.val();
     dropdown.empty();
+    dropdown.append(
+      `<option value="${currentValue}" selected>${currentValue}</option>`
+    );
     dropdown.append('<option value="">Select Color</option>');
     if (Array.isArray(colors)) {
       colors.forEach((item) => {
@@ -542,8 +714,13 @@
 
   function populateGroupQuantityColors(selector, colors) {
     const dropdown = $(selector);
+    const currentValue = dropdown.val();
     dropdown.empty();
-    dropdown.append('<option value="">Select Color</option>');
+    dropdown.append(
+      `<option value="${currentValue && currentValue}" selected>${
+        currentValue ? currentValue : "Select Color"
+      }</option>`
+    );
     if (Array.isArray(colors)) {
       colors.forEach((item) => {
         dropdown.append(
@@ -555,6 +732,7 @@
 
   function populateSizeDropdown(selector, sizes) {
     const dropdown = $(selector);
+    const currentValue = dropdown.val();
     dropdown.empty();
     if (
       !sizes ||
@@ -566,7 +744,11 @@
 
     dropdown.closest(".form-group").show();
     dropdown.show();
-    dropdown.append('<option value="">Select Size</option>');
+    dropdown.append(
+      `<option value="${currentValue && currentValue}" selected>${
+        currentValue ? currentValue : "Select Size"
+      }</option>`
+    );
     if (sizes && typeof sizes === "object") {
       Object.values(sizes).forEach((item) => {
         dropdown.append(`<option value="${item}">${item}</option>`);
@@ -576,6 +758,7 @@
 
   function populateArtPositionsDropdown(selector, artPositions) {
     const dropdown = $(selector);
+    const currentValue = dropdown.val();
     dropdown.empty();
     if (!artPositions || !Array.isArray(artPositions)) {
       dropdown.hide();
@@ -584,7 +767,11 @@
 
     dropdown.closest(".form-group").show();
     dropdown.show();
-    dropdown.append('<option value="">Select Art Position</option>');
+    dropdown.append(
+      `<option value="${currentValue && currentValue}" selected>${
+        currentValue ? currentValue : "Select Art Position"
+      }</option>`
+    );
     artPositions.forEach((item) => {
       dropdown.append(`<option value="${item.title}">${item.title}</option>`);
     });

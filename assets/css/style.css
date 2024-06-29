@@ -66,7 +66,41 @@ td.item_quantity_column:hover .om_itemQuantPriceEdit {
   opacity: 0;
   transition: all ease 0.3s;
 }
-
+span#om__itemVariUpdateModal {
+  clear: both;
+  display: inline-block;
+  overflow: hidden;
+}
+.om__itemVariUpdateTitle {
+  display: block;
+  clear: both;
+  margin-bottom: 10px;
+}
+.om__itemVariUpdateMeta {
+  overflow: hidden;
+  display: block;
+}
+.om__editItemMeta {
+  display: inline-block;
+  width: 25px;
+  height: 25px;
+  position: absolute;
+  right: 20px;
+  top: 35px;
+}
+.om__itemVariUpdateModal {
+  position: relative;
+  background-color: #fff;
+  width: 600px;
+  max-width: 90%;
+  border-radius: 7px;
+  padding: 35px;
+  margin: 0 auto;
+  display: block;
+}
+.om__itemVariUpdateModal button.mfp-close {
+  top: -10px;
+}
 .om_itemQuantPriceEdit input {
   padding: 5px;
   max-width: 50px !important;

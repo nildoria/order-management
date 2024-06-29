@@ -893,14 +893,19 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     echo '</tr></thead><tbody>';
 
     foreach ($order->line_items as $item) {
-        echo '<tr class="alt" id="' . esc_attr($item->id) . '" data-product_id="' . esc_attr($item->id) . '">';
+
+        $item_id = esc_attr($item->id);
+        $product_id = esc_attr($item->product_id);
+
+        echo '<tr class="alt" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
         echo '<td class="item_product_column">';
         if (!ml_current_user_contributor()):
             echo '<span class="om_duplicate_item"><img src="' . get_template_directory_uri() . '/assets/images/copy.png" alt="Copy" /></span>';
             echo '<span class="om_delete_item"><img src="' . get_template_directory_uri() . '/assets/images/delete.png" alt="Delete" /></span>';
+            echo '<span class="om__editItemMeta" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Delete" /></span>';
         endif;
         if (isset($item->id)) {
-            echo '<input type="hidden" name="item_id" value="' . esc_attr($item->id) . '">';
+            echo '<input type="hidden" name="item_id" value="' . esc_attr($item_id) . '">';
         }
         if (isset($item->image->src)) {
             $thumbnail_url = $item->image->src;
@@ -916,6 +921,40 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '<li>' . esc_html($meta->key) . ': ' . esc_html(strip_tags($meta->value)) . '</li>';
         }
         echo '</ul>';
+        echo '</span>';
+        echo '<span data-source_product_id="' . esc_attr($product_id) . '" id="om__itemVariUpdateModal_' . $item_id . '" class="mfp-hide om__itemVariUpdateModal">';
+        echo '<strong class="om__itemVariUpdateTitle">' . esc_html($item->name) . '</strong>';
+        echo '<span class="om__itemVariUpdateMeta">';
+        foreach ($item->meta_data as $meta) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
+                continue;
+            }
+            if (in_array($meta->key, ["Color"])) {
+                echo '<label for="color-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
+                echo '<select id="color-input_' . $item_id . '">';
+                echo '<option value="' . esc_html(strip_tags($meta->value)) . '">' . esc_html(strip_tags($meta->value)) . '</option>';
+                echo '</select>';
+            }
+            if (in_array($meta->key, ["Size"])) {
+                echo '<label for="size-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
+                echo '<select id="size-input_' . $item_id . '">';
+                echo '<option value="' . esc_html(strip_tags($meta->value)) . '">' . esc_html(strip_tags($meta->value)) . '</option>';
+                echo '</select>';
+
+            }
+            if (in_array($meta->key, ["Art Position"])) {
+                echo '<label for="art-position-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
+                echo '<select id="art-position-input_' . $item_id . '">';
+                echo '<option value="' . esc_html(strip_tags($meta->value)) . '">' . esc_html(strip_tags($meta->value)) . '</option>';
+                echo '</select>';
+            }
+            if (in_array($meta->key, ["Instruction Note"])) {
+                echo '<label for="instruction-note-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
+                echo '<input type="text" id="instruction-note-input_' . $item_id . '" value="' . esc_html(strip_tags($meta->value)) . '" placeholder="Enter instruction note">';
+            }
+        }
+        echo '</span>';
+        echo '<button data-order_id="' . $order_id . '" data-item_id="' . $item_id . '" id="update-item-meta-btn_' . $item_id . '">Update Item Meta</button>';
         echo '</span>';
         echo '</td>';
         if (!ml_current_user_contributor()):
@@ -1317,6 +1356,10 @@ function delete_mockup_folder()
 
     // Delete all files in the directory
     $file_list = ftp_nlist($ftp_conn, $remote_directory);
+    // Filter out "." and ".." entries
+    $file_list = array_filter($file_list, function ($file) {
+        return !in_array(basename($file), ['.', '..']);
+    });
     if ($file_list !== false) {
         foreach ($file_list as $file) {
             ftp_delete($ftp_conn, $file);
