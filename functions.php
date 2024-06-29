@@ -918,7 +918,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
                 continue;
             }
-            echo '<li>' . esc_html($meta->key) . ': ' . esc_html(strip_tags($meta->value)) . '</li>';
+            echo '<li data-meta_key="' . esc_html($meta->key) . '">' . esc_html($meta->key) . ': ' . esc_html(strip_tags($meta->value)) . '</li>';
         }
         echo '</ul>';
         echo '</span>';

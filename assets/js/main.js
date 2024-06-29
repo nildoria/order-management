@@ -357,43 +357,31 @@
     const newArtPosition = $("#art-position-input_" + itemId).val();
     const newInstructionNote = $("#instruction-note-input_" + itemId).val();
 
-    updateItemMeta(
-      orderId,
-      itemId,
-      newSize,
-      newColor,
-      newArtPosition,
-      newInstructionNote
-    );
-  });
-
-  function updateItemMeta(
-    orderId,
-    itemId,
-    newSize,
-    newColor,
-    newArtPosition,
-    newInstructionNote
-  ) {
-    var order_domain = allaround_vars.order_domain;
-
-    var newItemMeta = {
+    // Collect only the fields that have changed
+    let newItemMeta = {
       order_id: orderId,
       item_id: itemId,
-      size: newSize,
-      color: newColor,
-      art_position: newArtPosition,
-      instruction_note: newInstructionNote,
     };
+
+    if (newSize) newItemMeta.size = newSize;
+    if (newColor) newItemMeta.color = newColor;
+    if (newArtPosition) newItemMeta.art_position = newArtPosition;
+    if (newInstructionNote) newItemMeta.instruction_note = newInstructionNote;
+
+    updateItemMeta(newItemMeta);
+  });
+
+  function updateItemMeta(newItemMeta) {
+    var order_domain = allaround_vars.order_domain;
 
     var requestData = {
       action: "update_order_transient",
-      order_id: orderId,
+      order_id: newItemMeta.order_id,
     };
 
     function handleResponse(response) {
-      alert("Item meta updated successfully");
-      location.reload(); // Refresh the page to see the updated item
+      console.log("Response:", response);
+      $.magnificPopup.close();
     }
 
     fetch(`${order_domain}/wp-json/update-order/v1/update-item-meta`, {
@@ -415,14 +403,105 @@
       .then((data) => {
         if (data.success) {
           ml_send_ajax(requestData, handleResponse);
+          updateItemMetaInDOM(newItemMeta.item_id, data.data);
+          Toastify({
+            text: `${data.message}`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
         } else {
           alert("Failed to update item meta: " + data.message);
         }
+        $.magnificPopup.close();
       })
       .catch((error) => {
         console.error("Error:", error);
-        alert("An error occurred: " + error.message);
+        $.magnificPopup.close();
+        Toastify({
+          text: `An error occurred: ${error.message}`,
+          className: "info",
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          style: {
+            background: "linear-gradient(to right, #cc3366, #a10036)",
+          },
+        }).showToast();
       });
+  }
+
+  function updateItemMetaInDOM(itemId, updatedData) {
+    // console.log("Updated Data:", updatedData);
+    // console.log("Item ID:", itemId);
+    var itemRow = document.querySelector(
+      'tr[data-product_id="' + itemId + '"]'
+    );
+    if (itemRow) {
+      var metaList = itemRow.querySelector(".item_name_variations ul");
+
+      if (updatedData.size) {
+        var sizeItem = metaList.querySelector('li[data-meta_key="Size"]');
+        if (sizeItem) {
+          sizeItem.textContent = "Size: " + updatedData.size;
+        } else {
+          metaList.insertAdjacentHTML(
+            "beforeend",
+            '<li data-meta_key="Size">Size: ' + updatedData.size + "</li>"
+          );
+        }
+      }
+
+      if (updatedData.color) {
+        var colorItem = metaList.querySelector('li[data-meta_key="Color"]');
+        if (colorItem) {
+          colorItem.textContent = "Color: " + updatedData.color;
+        } else {
+          metaList.insertAdjacentHTML(
+            "beforeend",
+            '<li data-meta_key="Color">Color: ' + updatedData.color + "</li>"
+          );
+        }
+      }
+
+      if (updatedData.art_position) {
+        var artPositionItem = metaList.querySelector(
+          'li[data-meta_key="Art Position"]'
+        );
+        if (artPositionItem) {
+          artPositionItem.textContent =
+            "Art Position: " + updatedData.art_position;
+        } else {
+          metaList.insertAdjacentHTML(
+            "beforeend",
+            '<li data-meta_key="Art Position">Art Position: ' +
+              updatedData.art_position +
+              "</li>"
+          );
+        }
+      }
+
+      if (updatedData.instruction_note) {
+        var instructionNoteItem = metaList.querySelector(
+          'li[data-meta_key="Instruction Note"]'
+        );
+        if (instructionNoteItem) {
+          instructionNoteItem.textContent =
+            "Instruction Note: " + updatedData.instruction_note;
+        } else {
+          metaList.insertAdjacentHTML(
+            "beforeend",
+            '<li data-meta_key="Instruction Note">Instruction Note: ' +
+              updatedData.instruction_note +
+              "</li>"
+          );
+        }
+      }
+    }
   }
 
   // ********** Fetch Item Meta **********//
@@ -461,8 +540,6 @@
   function fetchProductOptions(productId, optionType, selectorId) {
     let order_domain = allaround_vars.order_domain;
 
-    console.log("Fetching product options...");
-
     fetch(`${order_domain}/wp-json/alarnd-main/v1/products`)
       .then((response) => {
         if (!response.ok) {
@@ -472,7 +549,6 @@
       })
       .then((products) => {
         const product = products.find((product) => product.id === productId);
-        console.log("Product:", product);
         if (product) {
           if (optionType === "color") {
             if (product.is_custom_quantity) {

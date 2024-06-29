@@ -87,6 +87,7 @@ span#om__itemVariUpdateModal {
   position: absolute;
   right: 20px;
   top: 35px;
+  cursor: pointer;
 }
 .om__itemVariUpdateModal {
   position: relative;
