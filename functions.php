@@ -915,7 +915,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<strong class="product_item_title">' . esc_html($item->name) . '</strong>';
         echo '<ul>';
         foreach ($item->meta_data as $meta) {
-            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_artwork_id2", "_allaround_art_pos_key"])) {
                 continue;
             }
             echo '<li data-meta_key="' . esc_html($meta->key) . '">' . esc_html($meta->key) . ': ' . esc_html(strip_tags($meta->value)) . '</li>';
@@ -989,6 +989,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         $artworkFound = false;
         foreach ($item->meta_data as $meta) {
             if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
+                $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
                 if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
                     $filename = $matches[1];
                     $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
@@ -997,10 +998,13 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                     $class_name = 'file-format-unknown';
                 }
                 $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
+                $value = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></label>' . $value;
+                $value = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="' . $clean_key . '" style="display:none" />' . $value;
                 $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $value . '</div>';
                 echo $value;
                 $artworkFound = true;
             }
+
         }
         if (!$artworkFound) {
             echo 'No Artwork Attached';

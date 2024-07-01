@@ -380,8 +380,18 @@
     };
 
     function handleResponse(response) {
-      console.log("Response:", response);
       $.magnificPopup.close();
+      Toastify({
+        text: `${response.message}`,
+        duration: 3000,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+      }).showToast();
     }
 
     fetch(`${order_domain}/wp-json/update-order/v1/update-item-meta`, {
@@ -402,19 +412,9 @@
       })
       .then((data) => {
         if (data.success) {
-          ml_send_ajax(requestData, handleResponse);
+          handleResponse(data);
+          ml_send_ajax(requestData);
           updateItemMetaInDOM(newItemMeta.item_id, data.data);
-          Toastify({
-            text: `${data.message}`,
-            duration: 3000,
-            close: true,
-            gravity: "bottom", // `top` or `bottom`
-            position: "right", // `left`, `center` or `right`
-            stopOnFocus: true, // Prevents dismissing of toast on hover
-            style: {
-              background: "linear-gradient(to right, #00b09b, #96c93d)",
-            },
-          }).showToast();
         } else {
           alert("Failed to update item meta: " + data.message);
         }
@@ -502,6 +502,157 @@
         }
       }
     }
+  }
+
+  // ********** Order Artwork Meta Update **********//
+  $(".om__upload_artwork").on("change", function (event) {
+    let $this = $(this);
+    var files = event.target.files;
+    var uploadedFiles = [];
+    const orderId = allaround_vars.order_id;
+    const itemId = $(this).data("item_id");
+    const metaKey = $(this).data("meta_key");
+    var artworkContainer = $this.closest(".uploaded_graphics");
+
+    if (files.length > 0) {
+      $("body").addClass("updating");
+      $this.siblings(".om__editItemArtwork").hide();
+      showSpinner(artworkContainer); // Show spinner
+
+      var formData = new FormData();
+      for (var i = 0; i < files.length; i++) {
+        formData.append("files[]", files[i]);
+      }
+
+      let newArtworkMeta = {
+        order_id: orderId,
+        item_id: itemId,
+        art_meta_key: metaKey,
+      };
+
+      fetch("/wp-content/themes/manage-order/includes/php/artwork-upload.php", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            uploadedFiles = data.file_paths;
+            var fileInfo = uploadedFiles[0];
+            if (fileInfo) newArtworkMeta.artwork_img = fileInfo;
+            updateItemArtworkMeta(newArtworkMeta, artworkContainer);
+          } else {
+            alert("Failed to upload files: " + data.message);
+            $("body").removeClass("updating");
+            hideSpinner(artworkContainer); // Hide spinner
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("Error: " + error.message);
+          $("body").removeClass("updating");
+          hideSpinner(artworkContainer); // Hide spinner
+        })
+        .finally(() => {
+          $this.siblings(".om__editItemArtwork").show();
+        });
+    }
+  });
+
+  function updateItemArtworkMeta(newArtworkMeta, artworkContainer) {
+    var order_domain = allaround_vars.order_domain;
+    let themeAssets = allaround_vars.assets;
+
+    artworkContainer.find(".om__editItemArtwork").hide();
+
+    var requestData = {
+      action: "update_order_transient",
+      order_id: newArtworkMeta.order_id,
+    };
+
+    function handleResponse(response) {
+      Toastify({
+        text: `Artwork updated successfully!`,
+        duration: 3000,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+      }).showToast();
+    }
+
+    fetch(`${order_domain}/wp-json/update-order/v1/update-item-meta`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newArtworkMeta),
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          return response.json().then((data) => {
+            throw new Error(data.message);
+          });
+        }
+      })
+      .then((data) => {
+        if (data.success) {
+          console.log(data.data);
+          ml_send_ajax(requestData, handleResponse);
+          var fileInfo = data.data.attachment_url;
+          var link = artworkContainer.find("a");
+          if (link.length) {
+            link.attr("href", fileInfo);
+          }
+          var img = artworkContainer.find(".alarnd__artwork_img");
+          if (img.length) {
+            // Check if fileInfo ends with .png, .jpg, or .jpeg
+            if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
+              img.attr("src", fileInfo);
+            } else {
+              img.attr("src", `${themeAssets}images/pdf-icon.svg`);
+            }
+          }
+        } else {
+          alert("Failed to update item meta: " + data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        Toastify({
+          text: `An error occurred: ${error.message}`,
+          className: "info",
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          style: {
+            background: "linear-gradient(to right, #cc3366, #a10036)",
+          },
+        }).showToast();
+      })
+      .finally(() => {
+        $("body").removeClass("updating");
+        artworkContainer.find(".om__editItemArtwork").show();
+        setTimeout(() => {
+          hideSpinner(artworkContainer); // Hide spinner
+        }, 100);
+      });
+  }
+
+  function showSpinner(container) {
+    const spinnerHtml =
+      '<div class="lds-spinner-wrap" style="display: flex"><div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>';
+    container.prepend(spinnerHtml);
+  }
+
+  function hideSpinner(container) {
+    container.find(".lds-spinner-wrap").fadeOut(500, function () {
+      $(this).remove();
+    });
   }
 
   // ********** Fetch Item Meta **********//

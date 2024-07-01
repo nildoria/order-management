@@ -409,6 +409,23 @@ select#shipping-method-list {
 .uploaded_graphics {
   text-align: center;
   margin: 10px 0;
+  position: relative;
+}
+.om__editItemArtwork {
+  display: inline-block;
+  width: 25px;
+  height: 25px;
+  position: absolute;
+  z-index: 99;
+  right: -5px;
+  top: 0px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all ease 0.3s;
+}
+.uploaded_graphics:hover > .om__editItemArtwork {
+  opacity: 1;
+  right: -15px;
 }
 .uploaded_graphics.file-format-pdf > a {
   width: 80px;
