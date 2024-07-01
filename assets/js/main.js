@@ -608,6 +608,11 @@
           var link = artworkContainer.find("a");
           if (link.length) {
             link.attr("href", fileInfo);
+          } else {
+            link = $("<a></a>")
+              .attr("href", fileInfo)
+              .appendTo(artworkContainer);
+            artworkContainer.find(".no_artwork_text").remove();
           }
           var img = artworkContainer.find(".alarnd__artwork_img");
           if (img.length) {
@@ -617,6 +622,15 @@
             } else {
               img.attr("src", `${themeAssets}images/pdf-icon.svg`);
             }
+          } else {
+            img = $('<img class="alarnd__artwork_img">');
+            if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
+              img.attr("src", fileInfo);
+            } else {
+              img.attr("src", `${themeAssets}images/pdf-icon.svg`);
+            }
+            artworkContainer.append(img);
+            artworkContainer.find(".no_artwork_text").remove();
           }
         } else {
           alert("Failed to update item meta: " + data.message);

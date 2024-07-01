@@ -1007,7 +1007,11 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
 
         }
         if (!$artworkFound) {
-            echo 'No Artwork Attached';
+            echo '<div class="uploaded_graphics">';
+            echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
+            echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></label>';
+            echo '<span class="no_artwork_text">No Artwork Attached</span>';
+            echo '</div>';
         }
         echo '</td>';
 
