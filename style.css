@@ -446,14 +446,14 @@ button:-moz-focusring,
 button,
 [type="submit"],
 [type="button"] {
-  display: inline-block;
+  /* display: inline-block; */
   font-weight: 400;
-  color: #cc3366;
+  color: #1a1a1a;
   text-align: center;
   white-space: nowrap;
   user-select: none;
   background-color: transparent;
-  border: 1px solid #cc3366;
+  border: 0px solid transparent;
   padding: 0.5rem 1rem;
   font-size: 1rem;
   border-radius: 3px;
@@ -462,7 +462,7 @@ button,
 button:focus,
 [type="submit"]:focus,
 [type="button"]:focus {
-  outline: 5px auto -webkit-focus-ring-color;
+  outline: 0px auto -webkit-focus-ring-color;
 }
 button:hover,
 button:focus,
@@ -470,7 +470,7 @@ button:focus,
 [type="submit"]:focus,
 [type="button"]:hover,
 [type="button"]:focus {
-  color: #ffffff;
+  color: #1a1a1a;
   background-color: transparent;
   text-decoration: none;
 }

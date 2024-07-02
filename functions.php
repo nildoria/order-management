@@ -9,6 +9,8 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
+require_once get_template_directory() . '/includes/classes/class-clients.php';
+
 define('HELLO_ELEMENTOR_VERSION', '2.4.2');
 
 if (!isset($content_width)) {
@@ -404,6 +406,198 @@ function change_post_type_labels()
     $post_type_object->labels = (object) array_merge((array) $post_type_object->labels, $labels);
 }
 add_action('init', 'change_post_type_labels');
+
+
+/**
+ * Custom Metaboxes for Order Post
+ */
+function add_order_manage_metabox()
+{
+    add_meta_box(
+        'order_manage_metabox',
+        'Order Management',
+        'order_manage_metabox_content',
+        'post',
+        'normal',
+        'default'
+    );
+}
+add_action('add_meta_boxes', 'add_order_manage_metabox');
+
+function order_manage_metabox_content($post)
+{
+    // Add a nonce field so we can check for it later.
+    wp_nonce_field('order_manage_metabox_nonce', 'order_manage_metabox_nonce');
+
+    // Use get_post_meta to retrieve an existing value from the database.
+    $order_manage_general_comment = get_post_meta($post->ID, '_order_manage_general_comment', true);
+
+    // Display the form, using the current value.
+    echo '<label for="order_manage_general_comment">Order Notes</label>';
+    echo '<input type="text" id="order_manage_general_comment" name="order_manage_general_comment" value="' . ($order_manage_general_comment) . '" style="width:100%;" />';
+}
+
+function save_order_manage_metabox($post_id)
+{
+    // Check if our nonce is set.
+    if (!isset($_POST['order_manage_metabox_nonce'])) {
+        return $post_id;
+    }
+
+    $nonce = $_POST['order_manage_metabox_nonce'];
+
+    // Verify that the nonce is valid.
+    if (!wp_verify_nonce($nonce, 'order_manage_metabox_nonce')) {
+        return $post_id;
+    }
+
+    // If this is an autosave, our form has not been submitted, so we don't want to do anything.
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return $post_id;
+    }
+
+    // Check the user's permissions.
+    if ('post' == $_POST['post_type']) {
+        if (!current_user_can('edit_post', $post_id)) {
+            return $post_id;
+        }
+    }
+
+    /* OK, it's safe for us to save the data now. */
+
+    // Sanitize user input.
+    $order_manage_general_comment = sanitize_text_field($_POST['order_manage_general_comment']);
+
+    // Update the meta field in the database.
+    update_post_meta($post_id, '_order_manage_general_comment', $order_manage_general_comment);
+}
+add_action('save_post', 'save_order_manage_metabox');
+
+
+function save_order_general_comment()
+{
+    // Check nonce for security
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = intval($_POST['post_id']);
+    $order_comment = sanitize_text_field($_POST['order_general_comment']);
+
+    if (empty($post_id) || (empty($order_comment) && empty($_FILES['order_extra_attachments']))) {
+        wp_send_json_error('Invalid post ID or comment.');
+    }
+
+    $attachments = array();
+
+    if (!empty($_FILES['order_extra_attachments'])) {
+        $attachments = handle_file_uploads($_FILES['order_extra_attachments'], $post_id);
+        if (is_wp_error($attachments)) {
+            wp_send_json_error($attachments->get_error_message());
+        }
+        // Overwrite the post meta for the attachments
+        update_post_meta($post_id, '_order_extra_attachments', $attachments);
+    }
+
+    // Update the post meta for the comment if provided
+    if (!empty($order_comment)) {
+        update_post_meta($post_id, '_order_manage_general_comment', $order_comment);
+    } else {
+        $order_comment = get_post_meta($post_id, '_order_manage_general_comment', true);
+    }
+
+    wp_send_json_success(
+        array(
+            'order_general_comment' => $order_comment,
+            'attachments' => $attachments
+        )
+    );
+}
+add_action('wp_ajax_save_order_general_comment', 'save_order_general_comment');
+add_action('wp_ajax_nopriv_save_order_general_comment', 'save_order_general_comment');
+
+
+/**
+ * Handle file uploads for order attachments
+ @returns array
+ */
+function handle_file_uploads($files, $post_id)
+{
+    ini_set('memory_limit', '1024M'); // Temporarily increase memory limit
+
+    $attachments = array();
+
+    foreach ($files['name'] as $key => $value) {
+        if ($files['error'][$key] === UPLOAD_ERR_OK) {
+            $file = array(
+                'name' => $files['name'][$key],
+                'type' => $files['type'][$key],
+                'tmp_name' => $files['tmp_name'][$key],
+                'error' => $files['error'][$key],
+                'size' => $files['size'][$key]
+            );
+
+            // Validate the image dimensions before resizing
+            $validation_result = validate_image_dimensions($file, 3000, 3000);
+            if (is_wp_error($validation_result)) {
+                return $validation_result;
+            }
+
+            resize_image($file, 3000, 3000); // Resize the image if needed
+
+            // Upload the file and get the attachment ID
+            $attachment_id = media_handle_sideload($file, $post_id);
+
+            if (is_wp_error($attachment_id)) {
+                continue;
+            } else {
+                $attachment_url = wp_get_attachment_url($attachment_id);
+                $attachments[] = array(
+                    'id' => $attachment_id,
+                    'url' => $attachment_url,
+                    'name' => $file['name']
+                );
+            }
+        }
+    }
+
+    return $attachments;
+}
+
+function validate_image_dimensions($file, $max_width, $max_height)
+{
+    list($original_width, $original_height) = getimagesize($file['tmp_name']);
+
+    // Check if the image dimensions exceed the maximum allowed dimensions
+    if ($original_width > $max_width || $original_height > $max_height) {
+        return new WP_Error('image_too_large', 'Image dimensions exceed the maximum allowed size of 3000px.');
+    }
+
+    return true;
+}
+
+function resize_image($file, $max_width = 2000, $max_height = 2000)
+{
+    list($original_width, $original_height) = getimagesize($file['tmp_name']);
+
+    // Check if the image dimensions exceed the maximum allowed dimensions
+    if ($original_width <= $max_width && $original_height <= $max_height) {
+        // No resizing needed
+        return;
+    }
+
+    $scale = min($max_width / $original_width, $max_height / $original_height);
+
+    $new_width = ceil($scale * $original_width);
+    $new_height = ceil($scale * $original_height);
+
+    $new_image = imagecreatetruecolor($new_width, $new_height);
+    $source_image = imagecreatefromjpeg($file['tmp_name']);
+    imagecopyresampled($new_image, $source_image, 0, 0, 0, 0, $new_width, $new_height, $original_width, $original_height);
+
+    imagejpeg($new_image, $file['tmp_name'], 100); // Save the resized image
+
+    imagedestroy($new_image);
+    imagedestroy($source_image);
+}
 
 
 /**

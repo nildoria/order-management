@@ -1,0 +1,172 @@
+.form-group-flex {
+  display: flex;
+  gap: 3px;
+}
+
+.form-group-flex input[type="button"] {
+  font-size: 14px;
+}
+
+.form-group input[type="button"]:hover,
+.form-group input[type="button"]:focus,
+.form-group input[type="button"]:active {
+  color: #cc3366;
+}
+
+.form-group input[type="text"].error {
+  border: 1px solid #cc3366;
+}
+
+.form-group label.error {
+  display: none !important;
+}
+
+.form-group.form-group-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+
+.form-group.form-group-row label {
+  margin: 0;
+}
+.form-group-row .form-group-flex {
+  gap: 15px;
+}
+
+.form-group-row .form-group-flex .form-check input {
+  position: relative;
+  top: 2px;
+}
+
+.om_hidden_details {
+  display: none;
+}
+
+td.td_index {
+  width: 30px;
+}
+
+/* Add this to your theme's style.css file */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.pagination a,
+.pagination span {
+  margin: 0 5px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #0073aa;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.pagination .current {
+  background-color: #0073aa;
+  color: #fff;
+  border-color: #0073aa;
+}
+
+.pagination a:hover {
+  background-color: #005b8c;
+  color: #fff;
+  border-color: #005b8c;
+}
+
+.pagination .disabled {
+  color: #999;
+  border-color: #ddd;
+  cursor: not-allowed;
+}
+
+.allaround-client-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.allaround-client-header h2 {
+  margin: 0;
+}
+
+.allaround-client-header a {
+  display: inline-block;
+  border: 1px solid;
+  padding: 7px 12px;
+  font-size: 16px;
+  color: #1a1a1a;
+  font-weight: bold;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: 0.2s all;
+  -webkit-transition: 0.2s all;
+  -moz-transition: 0.2s all;
+  -ms-transition: 0.2s all;
+  -o-transition: 0.2s all;
+}
+
+.allaround-client-header a:hover,
+.allaround-client-header a:focus,
+.allaround-client-header a:active {
+  color: #fff;
+  background-color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+.allaround-client-top-left {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.allaround-client-search form {
+  display: flex;
+  align-items: center;
+}
+
+.allaround-client-search form label {
+  width: 170px;
+}
+
+.allaround-client-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 40px 0;
+}
+
+.om_order_type_submit {
+  border-radius: 7px;
+  padding: 0;
+  width: 35px;
+  border: 0px solid transparent;
+  display: none;
+  background-image: url(../images/check.png);
+  background-size: 30px auto;
+  background-repeat: no-repeat;
+  text-indent: -9999999px;
+  background-position: center center;
+}
+
+.order_type_update_box {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+form#order_type-form {
+  display: flex;
+  gap: 10px;
+}
+
+select#order_type {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}

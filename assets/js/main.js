@@ -1355,10 +1355,113 @@
     });
   });
 
+  // ********** Update Prder General Comment **********//
+  //
+  // on change to #order_extra_attachments show the selected file names in the input field #uploaded_extra_file_path
+  $("#order_extra_attachments").on("change", function () {
+    var files = $(this)[0].files;
+    var fileNames = [];
+    for (var i = 0; i < files.length; i++) {
+      fileNames.push(files[i].name);
+    }
+    $("#uploaded_extra_file_path").val(fileNames.join(", "));
+  });
+
+  $("#add-order-comment").on("click", function () {
+    var orderComment = $("#order_general_comment").val();
+    var postId = allaround_vars.post_id;
+    var nonce = allaround_vars.nonce;
+    $(this).addClass("ml_loading");
+
+    var files = $("#order_extra_attachments")[0].files;
+
+    if (orderComment === "" && files.length === 0) {
+      alert("Please enter a comment or select files to upload.");
+      return;
+    }
+
+    var formData = new FormData();
+    formData.append("action", "save_order_general_comment");
+    formData.append("order_general_comment", orderComment);
+    formData.append("post_id", postId);
+    formData.append("nonce", nonce);
+
+    for (var i = 0; i < files.length; i++) {
+      formData.append("order_extra_attachments[]", files[i]);
+    }
+
+    $.ajax({
+      type: "POST",
+      url: allaround_vars.ajax_url,
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (response) {
+        if (response.success) {
+          $("#add-order-comment").removeClass("ml_loading");
+          $(".om_addOrderNote").removeClass("om_no_notes_addNote");
+          $.magnificPopup.close();
+          // Update the UI with the new comment and attachments
+          if (orderComment !== "") {
+            $(".om__orderGeneralComment_text").remove();
+            $(".om__displayOrderComment").removeClass("om_no_notes");
+            $(".om__displayOrderComment").append(`
+                        <div class="om__orderGeneralComment_text">
+                            <p>${response.data.order_general_comment}</p>
+                        </div>
+                    `);
+          }
+
+          if (response.data.attachments.length > 0) {
+            $(".om__orderNoteFiles").remove(); // Remove existing attachments
+            var attachmentsHtml = '<div class="om__orderNoteFiles">';
+            response.data.attachments.forEach(function (attachment) {
+              attachmentsHtml += `<a href="${attachment.url}" target="_blank">${attachment.name}</a><br>`;
+            });
+            attachmentsHtml += "</div>";
+            $(".om__orderNoteFiles_container").removeClass("om_no_notes");
+            $(".om__orderNoteFiles_container").append(attachmentsHtml);
+          }
+
+          // Clear the textarea and file input only if they were used
+          if (orderComment !== "") {
+            $("#order_general_comment").val(""); // Clear the textarea
+          }
+          if (files.length > 0) {
+            $("#order_extra_attachments").val(""); // Clear the file input
+            $("#uploaded_extra_file_path").val(""); // Clear the hidden input
+          }
+          Toastify({
+            text: `Order Note Updated Successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+        } else {
+          alert("Something went wrong: " + response.data);
+        }
+      },
+      error: function (error) {
+        alert("An error occurred: " + error.responseText);
+      },
+    });
+  });
+
+  $(".om_addOrderNote ").magnificPopup({
+    items: {
+      src: "#om__orderNote_container",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
-
-document.addEventListener("DOMContentLoaded", function () {});
 
 // ********** Mockup Image Upload Post Request **********//
 document.addEventListener("DOMContentLoaded", function () {
