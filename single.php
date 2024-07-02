@@ -14,6 +14,7 @@ get_header();
         $current_id = get_the_ID();
         $order_number = get_post_meta(get_the_ID(), 'order_number', true);
         $order_id = get_post_meta(get_the_ID(), 'order_id', true);
+        $order_type = get_post_meta(get_the_ID(), 'order_type', true);
         $shipping_method = get_post_meta(get_the_ID(), 'shipping_method', true);
         $order_status = get_post_meta(get_the_ID(), 'order_status', true);
         $order_domain = get_post_meta(get_the_ID(), 'site_url', true);
@@ -51,6 +52,30 @@ get_header();
                                             שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
                                         <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
                                         <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                                    </select>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="order_type_update_box">
+                            <div class="order_type_title">
+                                <h6><?php echo esc_html__('Order Type:', 'hello-elementor'); ?></h6>
+                            </div>
+                            <div class="order_type_value">
+                                <?php if (!ml_current_user_contributor()): ?>
+                                <form id="order_type-form">
+                                    <input type="hidden" name="post_id" value="<?php echo $current_id; ?>">
+                                    <select id="order_type" name="order_type">
+                                        <option value="">Select Order Type</option>
+                                        <option value="client" <?php selected($order_type, 'client'); ?>>Client</option>
+                                        <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
+                                    </select>
+                                    <input class="om_order_type_submit" type="submit" value="Update">
+                                </form>
+                                <?php else: ?>
+                                    <select id="order_type" class="non-admin-shipping-list" name="order_type">
+                                        <option value="">Select Order Type</option>
+                                        <option value="client" <?php selected($order_type, 'client'); ?>>Client</option>
+                                        <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
                                     </select>
                                 <?php endif; ?>
                             </div>

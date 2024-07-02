@@ -92,6 +92,8 @@ if (!function_exists('hello_elementor_setup')) {
 
         add_image_size('related_thumb', 400, 270, true);
         add_image_size('blog_thumb', 450, 250, true);
+
+        flush_rewrite_rules();
     }
 }
 add_action('after_setup_theme', 'hello_elementor_setup');
@@ -490,7 +492,7 @@ function update_order_shipping_method()
                 $transient_key = 'order_details_' . $order_id;
                 delete_transient($transient_key);
 
-                wp_send_json_success(array('message' => 'Shipping method updated successfully.', 'shipping_total' => number_format((float) $shipping_total, 2, '.', '')));
+                wp_send_json_success('Shipping method updated successfully.');
             }
         } else {
             wp_send_json_error('Order not found.');
@@ -729,7 +731,7 @@ function create_order(WP_REST_Request $request)
     // Get the order data from the request
     $order_data = $request->get_json_params();
 
-    error_log(print_r($order_data, true));
+    // error_log(print_r($order_data, true));
 
     $order_number = str_replace(' ', '', sanitize_text_field($order_data['order_number']));
     $order_id = str_replace(' ', '', sanitize_text_field($order_data['order_id']));
@@ -766,12 +768,14 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'order_id', $order_id);
     update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $shipping_method_id);
-    update_post_meta($post_id, 'items', $order_data['items']);
+    update_post_meta($post_id, 'items', isset( $order_data['items'] ) ? $order_data['items'] : []);
     update_post_meta($post_id, 'billing', $order_data['billing']);
     update_post_meta($post_id, 'shipping', $order_data['shipping']);
     update_post_meta($post_id, 'payment_method', $order_data['payment_method']);
     update_post_meta($post_id, 'payment_method_title', $order_data['payment_method_title']);
     update_post_meta($post_id, 'site_url', $order_data['site_url']);
+
+    do_action( 'all_around_create_client', $post_id, $order_data, $order_id, $order_number );
 
     // Return the ID of the new post
     return new WP_REST_Response($post_id, 200);
@@ -902,7 +906,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         if (!ml_current_user_contributor()):
             echo '<span class="om_duplicate_item"><img src="' . get_template_directory_uri() . '/assets/images/copy.png" alt="Copy" /></span>';
             echo '<span class="om_delete_item"><img src="' . get_template_directory_uri() . '/assets/images/delete.png" alt="Delete" /></span>';
-            echo '<span class="om__editItemMeta" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></span>';
+            echo '<span class="om__editItemMeta" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Delete" /></span>';
         endif;
         if (isset($item->id)) {
             echo '<input type="hidden" name="item_id" value="' . esc_attr($item_id) . '">';
@@ -915,7 +919,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<strong class="product_item_title">' . esc_html($item->name) . '</strong>';
         echo '<ul>';
         foreach ($item->meta_data as $meta) {
-            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_artwork_id2", "_allaround_art_pos_key"])) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
                 continue;
             }
             echo '<li data-meta_key="' . esc_html($meta->key) . '">' . esc_html($meta->key) . ': ' . esc_html(strip_tags($meta->value)) . '</li>';
@@ -926,6 +930,9 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<strong class="om__itemVariUpdateTitle">' . esc_html($item->name) . '</strong>';
         echo '<span class="om__itemVariUpdateMeta">';
         foreach ($item->meta_data as $meta) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_art_pos_key"])) {
+                continue;
+            }
             if (in_array($meta->key, ["Color"])) {
                 echo '<label for="color-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
                 echo '<select id="color-input_' . $item_id . '">';
@@ -950,26 +957,6 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '<input type="text" id="instruction-note-input_' . $item_id . '" value="' . esc_html(strip_tags($meta->value)) . '" placeholder="Enter instruction note">';
             }
         }
-        $has_meta_data = false;
-
-        // Check if any of the desired meta keys are present
-        foreach ($item->meta_data as $meta) {
-            if (in_array($meta->key, ["Color", "Size", "Art Position", "Instruction Note"])) {
-                $has_meta_data = true;
-                break;
-            }
-        }
-
-        // If none of the desired meta keys are present, show the default part
-        if (!$has_meta_data) {
-            echo '<label for="color-input_' . $item_id . '">Color</label>';
-            echo '<select id="color-input_' . $item_id . '">';
-            echo '<option value="">Select Color</option>';
-            echo '</select>';
-            echo '<br>';
-            echo '<label for="instruction-note-input_' . $item_id . '">Instruction Note</label>';
-            echo '<input type="text" id="instruction-note-input_' . $item_id . '" placeholder="Enter instruction note">';
-        }
         echo '</span>';
         echo '<button data-order_id="' . $order_id . '" data-item_id="' . $item_id . '" id="update-item-meta-btn_' . $item_id . '">Update Item Meta</button>';
         echo '</span>';
@@ -989,7 +976,6 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         $artworkFound = false;
         foreach ($item->meta_data as $meta) {
             if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
-                $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
                 if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
                     $filename = $matches[1];
                     $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
@@ -998,20 +984,13 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                     $class_name = 'file-format-unknown';
                 }
                 $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                $value = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></label>' . $value;
-                $value = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="' . $clean_key . '" style="display:none" />' . $value;
                 $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $value . '</div>';
                 echo $value;
                 $artworkFound = true;
             }
-
         }
         if (!$artworkFound) {
-            echo '<div class="uploaded_graphics">';
-            echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
-            echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></label>';
-            echo '<span class="no_artwork_text">No Artwork Attached</span>';
-            echo '</div>';
+            echo 'No Artwork Attached';
         }
         echo '</td>';
 
@@ -1611,3 +1590,6 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     return ob_get_clean();
 }
+
+
+require_once get_template_directory() . '/includes/classes/class-clients.php';

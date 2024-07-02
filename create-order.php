@@ -79,11 +79,11 @@ get_header();
                         <div class="shipping_method_value">
                             <select id="shipping-method-list" name="shipping_method">
                                 <option value="">Select Shipping Option</option>
-                                <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
+                                <option value="flat_rate">
                                     שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
-                                <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח
+                                <option value="free_shipping">משלוח
                                     חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
-                                <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>
+                                <option value="local_pickup">
                                     איסוף
                                     עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
                             </select>
