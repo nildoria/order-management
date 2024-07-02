@@ -15,9 +15,9 @@ get_header();
         $order_number = get_post_meta(get_the_ID(), 'order_number', true);
         $order_id = get_post_meta(get_the_ID(), 'order_id', true);
         $shipping_method = get_post_meta(get_the_ID(), 'shipping_method', true);
-        $order_status = get_post_meta(get_the_ID(), 'order_status', true);
+        $order_type = get_post_meta(get_the_ID(), 'order_type', true);
         $order_domain = get_post_meta(get_the_ID(), 'site_url', true);
-        // $proof_version = get_post_meta(get_the_ID(), 'send_proof_last_version', true);
+        $client_type = get_post_meta(get_the_ID(), 'order_type', true);
         $order_manage_general_comment = get_post_meta(get_the_ID(), '_order_manage_general_comment', true);
         $order_extra_attachments = get_post_meta(get_the_ID(), '_order_extra_attachments', true);
         ?>

@@ -620,14 +620,14 @@
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
             } else {
-              img.attr("src", `${themeAssets}images/pdf-icon.svg`);
+              img.attr("src", `${themeAssets}images/document.png`);
             }
           } else {
             img = $('<img class="alarnd__artwork_img">');
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
             } else {
-              img.attr("src", `${themeAssets}images/pdf-icon.svg`);
+              img.attr("src", `${themeAssets}images/document.png`);
             }
             artworkContainer.append(img);
             artworkContainer.find(".no_artwork_text").remove();
@@ -1458,6 +1458,16 @@
       type: "inline",
     },
     closeBtnInside: true,
+  });
+
+  // .alarnd__artwork_img src is not jpg, png or jpeg change to document.png
+  $(".alarnd__artwork_img").each(function () {
+    if (
+      !/\.(png|jpg|jpeg)$/i.test($(this).attr("src")) &&
+      $(this).attr("src") !== ""
+    ) {
+      $(this).attr("src", `${allaround_vars.assets}images/document.png`);
+    }
   });
 
   $(window).on("load", function () {});

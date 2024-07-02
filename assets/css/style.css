@@ -366,7 +366,7 @@ button#om--create-new-order.om_add_item_selected {
   background-position: center center;
 }
 .om_shipping_submit.pulse {
-  background-image: url(../images/upload.png);
+  background-image: url(../images/document.png);
 }
 .pulse {
   -webkit-animation: pulse 1s infinite ease-in-out alternate;
@@ -427,16 +427,28 @@ select#shipping-method-list {
   opacity: 1;
   right: -15px;
 }
-.uploaded_graphics.file-format-pdf > a {
+.uploaded_graphics[class*="file-format-"] > a {
   width: 80px;
   height: 80px;
   display: block;
-  background-image: url(../images/pdf-icon.svg);
-  background-repeat: no-repeat;
+  /* background-image: url(../images/document.png);
+  background-repeat: no-repeat; */
   margin: auto;
 }
-.uploaded_graphics.file-format-pdf img.alarnd__artwork_img {
+/* .uploaded_graphics[class*="file-format-"] img.alarnd__artwork_img {
   display: none;
+} */
+.uploaded_graphics.file-format-png > a,
+.uploaded_graphics.file-format-jpg > a,
+.uploaded_graphics.file-format-jpeg > a {
+  background-image: none;
+  width: auto;
+  height: auto;
+}
+.uploaded_graphics.file-format-png img.alarnd__artwork_img,
+.uploaded_graphics.file-format-jpg img.alarnd__artwork_img,
+.uploaded_graphics.file-format-jpeg img.alarnd__artwork_img {
+  display: inline-block;
 }
 .mockup-image {
   max-width: 200px;

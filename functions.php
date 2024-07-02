@@ -1769,7 +1769,7 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
             if (!empty($comment->artwork_new_file)) {
                 $image_html .= '<div class="artwork-new-file">';
                 if (pathinfo($comment->artwork_new_file, PATHINFO_EXTENSION) == 'pdf') {
-                    $image_html .= '<img src="' . get_template_directory_uri() . '/assets/images/pdf-icon.svg" alt="Placeholder">';
+                    $image_html .= '<img src="' . get_template_directory_uri() . '/assets/images/document.png" alt="Placeholder">';
                 } else {
                     $image_html .= '<img src="' . esc_url($comment->artwork_new_file) . '" alt="Artwork Image">';
                 }
