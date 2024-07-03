@@ -32,7 +32,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
 
             $args = array(
                 'post_type'      => 'client',
-                'posts_per_page' => 1,
+                'posts_per_page' => 10,
                 'paged'          => $paged
             );
 
@@ -71,6 +71,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             <th class="td_index"></th>
                             <th>Title</th>
                             <th>Email</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -81,6 +82,12 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                                 <td class="td_index"><?php echo $index; ?></td>
                                 <td><?php the_title(); ?></td>
                                 <td><?php echo esc_html(get_post_meta(get_the_ID(), 'email', true)); ?></td>
+                                <td>
+                                    <div class="allaround--client-actions">
+                                        <a href="<?php echo esc_url( admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . get_the_ID() . '&_nonce=' . wp_create_nonce( 'get_client_nonce' ) ); ?> " class="allaround--client-orders">View Orders</a>
+                                        <a href="<?php echo esc_url(get_permalink()); ?>">Edit</a>
+                                    </div>
+                                </td>
                             </tr>
                         <?php 
                         $index++;

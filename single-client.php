@@ -14,12 +14,7 @@ if( ! is_user_logged_in() ) {
 
     $client_id = get_the_ID();
 
-    $all_meta = get_post_meta($client_id);
     $subscribed = get_post_meta($client_id, 'subscribed', true);
-
-    echo '<pre>';
-    print_r( $all_meta );
-    echo '</pre>';
 
     $fields = [
         'client_type' => get_post_meta($client_id, 'client_type', true),

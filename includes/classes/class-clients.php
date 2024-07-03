@@ -14,6 +14,7 @@ class AllAroundClientsDB {
         add_action( 'wp_ajax_create_client', array( $this, 'create_client_ajax' ) );
         add_action( 'wp_ajax_update_client', array( $this, 'update_client_ajax' ) );
         add_action( 'wp_ajax_update_order_type', array( $this, 'update_order_type_ajax' ) );
+        add_action( 'wp_ajax_get_client_orders', array( $this, 'get_client_orders' ) );
 
         add_action( 'init', [ $this, 'register_post_type_cb' ], 0 );
         add_filter('post_type_link', [ $this, 'client_post_type_link' ], 1, 2);
@@ -21,6 +22,55 @@ class AllAroundClientsDB {
 
         add_shortcode('allaround_client_lists', [$this, 'client_lists_shortcode']);
 
+    }
+
+    public function get_client_orders() {
+        check_ajax_referer( 'get_client_nonce', '_nonce' );
+
+        $client_id = isset( $_REQUEST['client_id'] ) ? sanitize_text_field( $_REQUEST['client_id'] ) : 0;
+        
+        // get post type = post with meta_key client_id and value $client_id
+        $args = array(
+            'post_type' => 'post',
+            'posts_per_page' => -1,
+            'post_status' => 'publish',
+            'meta_key' => 'client_id',
+            'meta_value' => $client_id
+        );
+
+        $first_name = get_post_meta( $client_id, 'first_name', true );
+        $last_name = get_post_meta( $client_id, 'last_name', true );
+        $full_name = $first_name . ' ' . $last_name;
+        
+        $orders = get_posts( $args );
+        ?>
+        <div class="allrnd--order-lists-modal white-popup-block">
+            <div class="allrnd-client-order-list">
+                <h2><?php echo $full_name; ?>'s orders</h2>
+                <ul>
+                    <?php if( ! empty( $orders ) ) : ?>
+                    <?php foreach( $orders as $order ) :
+                        $order_id = get_post_meta( $order->ID, 'order_id', true );
+                        $order_number = get_post_meta( $order->ID, 'order_number', true );
+                        $site_url = get_post_meta( $order->ID, 'site_url', true );
+                        $order_status = get_post_meta( $order->ID, 'order_status', true );    
+                    ?>
+                    <li>
+                        <a target="_blank" href="<?php echo esc_url( get_permalink( $order->ID ) ); ?>" class="allaround--client-orders"><?php echo esc_html( get_permalink( $order->ID ) ); ?></a>
+                        <?php echo ! empty( $order_id ) ? '<span>Order ID: '. $order_id .'</span>' : ''; ?>
+                        <?php echo ! empty( $order_number ) ? '<span>Order Number: '. $order_number.'</span>' : ''; ?>
+                        <?php echo ! empty( $site_url ) ? '<span>Site URL: '. $site_url.'</span>' : ''; ?>
+                        <?php echo ! empty( $order_status ) ? '<span>Order Status: '. $order_status.'</span>' : ''; ?>  
+                    </li>
+                    <?php endforeach; ?>
+                    <?php else : ?>
+                        <li>No orders found</li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+        </div>
+        <?php 
+        wp_die();
     }
 
     public function create_client_ajax() {
@@ -36,15 +86,6 @@ class AllAroundClientsDB {
             wp_send_json_error( array(
                 "message_type" => 'reqular',
                 "message" => esc_html__("Please enter a valid email address.", "hello-elementor")
-            ) );
-            wp_die();
-        }
-
-        // check by email if client already exists
-        if( $this->clientExistsByEmail( $email ) ) {
-            wp_send_json_error( array(
-                "message_type" => 'reqular',
-                "message" => "Client already exists with email: $email"
             ) );
             wp_die();
         }
@@ -86,6 +127,37 @@ class AllAroundClientsDB {
         $filteredPostData = array_intersect_key($_POST, array_flip($allowedFields));
 
         error_log( print_r( $filteredPostData, true ) );
+
+        // check by email if client already exists
+        if( $client_id = $this->clientExistsByEmail( $email ) ) {
+
+            $old_client_type = get_post_meta( $client_id, 'client_type', true );
+
+            if( isset( $filteredPostData ) && ! empty( $filteredPostData ) ) {
+                // error_log( print_r( $filteredPostData, true ) );
+                foreach( (array) $filteredPostData as $key => $value ) {
+                    if( "client_type" === $key && "company" === $old_client_type ) {
+                        continue;
+                    }
+                    $this->ml_update_postmeta( $client_id, $key, $value );
+                }
+            }
+    
+            $old_first_name = get_post_meta( $client_id, 'first_name', true );
+            $old_last_name = get_post_meta( $client_id, 'last_name', true );
+    
+            // if name changed update post title
+            if( $old_first_name !== $first_name || $old_last_name !== $last_name ) {
+                $new_name = $this->createFullName($first_name, $last_name);
+                $this->update_post_title( $client_id, $new_name );
+            }
+    
+            wp_send_json_success( array(
+                "message_type" => 'reqular',
+                "message" => "Client $client_id successfully updated."
+            ) );
+            wp_die();
+        }
         
         // if( ! empty( $email ) ) {
         //     $name = "$name ($email)";
@@ -320,7 +392,7 @@ class AllAroundClientsDB {
             'posts_per_page' => 1, // We only need to check if one post exists
             'fields' => 'ids' // We only need the IDs for checking existence
         );
-
+    
         if ($post_id) {
             $args['post__not_in'] = array($post_id);
         }
@@ -328,13 +400,13 @@ class AllAroundClientsDB {
         // Custom query
         $query = new WP_Query($args);
     
-        // Check if any posts were found
-        $exists = $query->have_posts();
+        // Get the post ID if a post was found
+        $post_id = $query->have_posts() ? $query->posts[0] : false;
     
         // Clean up after WP_Query
         wp_reset_postdata();
     
-        return $exists;
+        return $post_id;
     }
 
     function createFullName($first_name, $last_name) {
@@ -359,16 +431,43 @@ class AllAroundClientsDB {
         $last_name = isset( $order_data['billing']['last_name'] ) ? $order_data['billing']['last_name'] : '';
         $email = isset( $order_data['billing']['email'] ) ? $order_data['billing']['email'] : '';
 
+        $filteredPostData = $order_data['billing'];
+
         // check if email is empty
         if( empty( $email ) ) {
             error_log( "Email is empty inside create_client_cb" );
             return;
         }
 
-        // check by email if client already exists
-        if( $this->clientExistsByEmail( $email ) ) {
-            error_log( "Client already exists with email: $email" );
-            return;
+        // check by email if client already exists and get client id
+        if( $client_id = $this->clientExistsByEmail( $email ) ) {
+
+            $old_client_type = get_post_meta( $client_id, 'client_type', true );
+
+            if( isset( $filteredPostData ) && ! empty( $filteredPostData ) ) {
+                // error_log( print_r( $filteredPostData, true ) );
+                foreach( (array) $filteredPostData as $key => $value ) {
+                    if( "client_type" === $key && "company" === $old_client_type ) {
+                        continue;
+                    }
+                    $this->ml_update_postmeta( $client_id, $key, $value );
+                }
+            }
+    
+            $old_first_name = get_post_meta( $client_id, 'first_name', true );
+            $old_last_name = get_post_meta( $client_id, 'last_name', true );
+    
+            // if name changed update post title
+            if( $old_first_name !== $first_name || $old_last_name !== $last_name ) {
+                $new_name = $this->createFullName($first_name, $last_name);
+                $this->update_post_title( $client_id, $new_name );
+            }
+    
+            wp_send_json_success( array(
+                "message_type" => 'reqular',
+                "message" => "Client $client_id successfully updated."
+            ) );
+            wp_die();
         }
 
         $name = $this->createFullName($first_name, $last_name);
@@ -389,9 +488,9 @@ class AllAroundClientsDB {
             )
         );
 
-        if( isset( $order_data['billing'] ) && ! empty( $order_data['billing'] ) ) {
-            // error_log( print_r( $order_data['billing'], true ) );
-            foreach( (array) $order_data['billing'] as $key => $value ) {
+        if( isset( $filteredPostData ) && ! empty( $filteredPostData ) ) {
+            // error_log( print_r( $filteredPostData, true ) );
+            foreach( (array) $filteredPostData as $key => $value ) {
                 // error_log( "Key: $key, Value: $value" );
                 update_post_meta( $client_id, $key, $value );
             }
@@ -635,7 +734,8 @@ class AllAroundClientsDB {
 
         wp_enqueue_media();
         wp_enqueue_script('jquery-validate', get_template_directory_uri() . '/assets/js/jquery.validate.min.js', ['jquery'], null, true);
-        wp_enqueue_script('script', get_template_directory_uri() . '/assets/js/metabox-frontend.js', ['jquery', 'jquery-validate'], null, true);
+        wp_enqueue_script('magnific-popup', get_template_directory_uri() . '/assets/js/jquery.magnific-popup.min.js', array('jquery'), HELLO_ELEMENTOR_VERSION, true);
+        wp_enqueue_script('script', get_template_directory_uri() . '/assets/js/metabox-frontend.js', ['jquery', 'jquery-validate', 'magnific-popup'], null, true);
 
         wp_localize_script(
             'script',
