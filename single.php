@@ -33,12 +33,14 @@ get_header();
         }
         ?>
 
+
             <div class="alarnd--single-content mockup-revision-page">
                 <?php echo '<input type="hidden" id="order_id" value="' . esc_attr($order_id) . '">'; ?>
                 <?php echo '<input type="hidden" id="post_id" value="' . esc_attr($current_id) . '">'; ?>
 
                 <div id="order_mngmnt_headings" class="order_mngmnt_headings">
                     <div class="om_headin_titles">
+                        
                         <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?> <?php echo $order_number; ?></h6>
                         <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?> <?php echo $order_status; ?></h6>
                         <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?> <a href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a></h6>

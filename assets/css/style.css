@@ -450,6 +450,10 @@ select#shipping-method-list {
 .uploaded_graphics.file-format-jpeg img.alarnd__artwork_img {
   display: inline-block;
 }
+.uploaded_graphics.file-format-pdf > a {
+  background-image: url(../images/pdf-icon.svg);
+  background-repeat: no-repeat;
+}
 .mockup-image {
   max-width: 200px;
   text-align: center;

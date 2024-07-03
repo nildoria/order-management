@@ -53,7 +53,8 @@ if (!is_user_logged_in()) {
                         <div class="form-group">
                             <label for="type">Type</label>
                             <select name="type" id="client_type">
-                                <option value="client" <?php selected($fields['client_type'], 'client'); ?>>Client</option>
+                                <option value="personal" <?php selected($fields['client_type'], 'personal'); ?>>Personal
+                                </option>
                                 <option value="company" <?php selected($fields['client_type'], 'company'); ?>>Company
                                 </option>
                             </select>
@@ -142,7 +143,7 @@ if (!is_user_logged_in()) {
 
                     <div class="om_create__customer_details">
                         <div class="om_hidden_details"
-                            style="display: <?php echo $fields['client_type'] ? 'block' : 'none'; ?>;">
+                            style="display: <?php echo $fields['client_type'] == 'company' ? 'block' : 'none'; ?>;">
                             <div class="om_customer__details_title">
                                 <h4><?php echo esc_html__('Company Details:', 'hello-elementor'); ?></h4>
                             </div>

@@ -494,6 +494,12 @@ class AllAroundClientsDB
                 $this->update_post_title($client_id, $new_name);
             }
 
+            // Update the status to "client"
+            $this->ml_update_postmeta($client_id, 'status', 'client');
+
+            // update client_id to the order post
+            update_post_meta($post_id, 'client_id', $client_id);
+
             wp_send_json_success(
                 array(
                     "message_type" => 'reqular',
@@ -528,6 +534,9 @@ class AllAroundClientsDB
                 update_post_meta($client_id, $key, $value);
             }
         }
+
+        // Update the status to "client"
+        update_post_meta($client_id, 'status', 'client');
 
         // update client_id to the order post
         update_post_meta($post_id, 'client_id', $client_id);
@@ -579,7 +588,7 @@ class AllAroundClientsDB
         <p>
             <label for="client_type">client_type:</label><br>
             <select name="client_type" id="client_type" required>
-                <option value="client" <?php selected($fields['client_type'], 'client'); ?>>Client</option>
+                <option value="personal" <?php selected($fields['client_type'], 'personal'); ?>>Personal</option>
                 <option value="company" <?php selected($fields['client_type'], 'company'); ?>>Company</option>
             </select>
         </p>

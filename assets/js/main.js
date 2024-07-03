@@ -524,6 +524,8 @@
             // Check if fileInfo ends with .png, .jpg, or .jpeg
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
+            } else if (/\.(pdf)$/i.test(fileInfo)) {
+              img.attr("src", `${themeAssets}images/pdf-icon.svg`);
             } else {
               img.attr("src", `${themeAssets}images/document.png`);
             }
@@ -531,6 +533,8 @@
             img = $('<img class="alarnd__artwork_img">');
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
+            } else if (/\.(pdf)$/i.test(fileInfo)) {
+              img.attr("src", `${themeAssets}images/pdf-icon.svg`);
             } else {
               img.attr("src", `${themeAssets}images/document.png`);
             }
@@ -1470,7 +1474,7 @@
   // .alarnd__artwork_img src is not jpg, png or jpeg change to document.png
   $(".alarnd__artwork_img").each(function () {
     if (
-      !/\.(png|jpg|jpeg)$/i.test($(this).attr("src")) &&
+      !/\.(png|jpg|jpeg|pdf)$/i.test($(this).attr("src")) &&
       $(this).attr("src") !== ""
     ) {
       $(this).attr("src", `${allaround_vars.assets}images/document.png`);
