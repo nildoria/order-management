@@ -14,7 +14,7 @@ a.custom-logo-link {
   align-items: center;
 }
 .order_mngmnt_headings {
-  margin-bottom: 35px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
 }
@@ -366,7 +366,7 @@ button#om--create-new-order.om_add_item_selected {
   background-position: center center;
 }
 .om_shipping_submit.pulse {
-  background-image: url(../images/upload.png);
+  background-image: url(../images/document.png);
 }
 .pulse {
   -webkit-animation: pulse 1s infinite ease-in-out alternate;
@@ -427,16 +427,28 @@ select#shipping-method-list {
   opacity: 1;
   right: -15px;
 }
-.uploaded_graphics.file-format-pdf > a {
+.uploaded_graphics[class*="file-format-"] > a {
   width: 80px;
   height: 80px;
   display: block;
-  background-image: url(../images/pdf-icon.svg);
-  background-repeat: no-repeat;
+  /* background-image: url(../images/document.png);
+  background-repeat: no-repeat; */
   margin: auto;
 }
-.uploaded_graphics.file-format-pdf img.alarnd__artwork_img {
+/* .uploaded_graphics[class*="file-format-"] img.alarnd__artwork_img {
   display: none;
+} */
+.uploaded_graphics.file-format-png > a,
+.uploaded_graphics.file-format-jpg > a,
+.uploaded_graphics.file-format-jpeg > a {
+  background-image: none;
+  width: auto;
+  height: auto;
+}
+.uploaded_graphics.file-format-png img.alarnd__artwork_img,
+.uploaded_graphics.file-format-jpg img.alarnd__artwork_img,
+.uploaded_graphics.file-format-jpeg img.alarnd__artwork_img {
+  display: inline-block;
 }
 .mockup-image {
   max-width: 200px;
@@ -548,6 +560,108 @@ div#selectedProductDisplay {
   transition: all ease-in-out 0.5s;
 }
 /* END PROGRESS BAR */
+.om__extraOrder_Note_File {
+  position: relative;
+}
+.om__extraAttachment_label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  padding: 8px 12px;
+  background-color: #003380;
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.25);
+  text-transform: uppercase;
+  line-height: 1.3;
+  position: relative;
+  right: 0;
+  bottom: 83px;
+  float: right;
+}
+.om__extraAttachment_label svg {
+  height: 16px;
+  margin-right: 5px;
+}
+#order_extra_attachments {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+.om_no_notes {
+  display: none;
+}
+.om_displayOrderNotesGrid.om_no_notes {
+  display: none;
+}
+.om__orderNote_container {
+  position: relative;
+  background-color: #fff;
+  width: 600px;
+  max-width: 90%;
+  border-radius: 7px;
+  padding: 35px;
+  margin: 0 auto;
+}
+.om__orderNote_container button.mfp-close {
+  top: -10px;
+}
+.om_displayOrderNotesGrid {
+  display: flex;
+  justify-content: space-between;
+  margin: 0px 0 20px;
+  color: #202020;
+  background: #ecf3fe;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  border: 2px solid #5ba4e6;
+  min-height: 40px;
+  position: relative;
+}
+.om_addOrderNote.om_no_notes_addNote {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: static;
+}
+.om__orderComment_input textarea#order_general_comment {
+  height: 90px;
+}
+.om_addOrderNote {
+  cursor: pointer;
+  padding: 5px 8px;
+  display: inline-block;
+  position: absolute;
+  right: 0;
+  font-size: 14px;
+}
+.om__displayOrderComment {
+  flex: 1;
+  padding: 15px 20px 10px;
+}
+.om__orderNoteFiles_container {
+  flex: 1;
+  padding: 15px 20px 10px;
+  border-left: 2px solid #5ba4e6;
+}
+button#add-order-comment {
+  margin-top: 10px;
+}
+.om__displayOrderComment h4,
+.om__orderNoteFiles_container h4 {
+  display: inline-block;
+  margin: 5px 0 10px;
+  padding: 0 15px 3px 0px;
+  border-bottom: 1px solid #c3c4c7;
+  font-size: 1.4em;
+}
 body.single.single-artwork {
   background-color: #f7f7f7 !important;
 }
