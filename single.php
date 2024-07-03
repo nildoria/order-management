@@ -12,14 +12,25 @@ get_header();
         the_post();
 
         $current_id = get_the_ID();
-        $order_number = get_post_meta(get_the_ID(), 'order_number', true);
-        $order_id = get_post_meta(get_the_ID(), 'order_id', true);
-        $shipping_method = get_post_meta(get_the_ID(), 'shipping_method', true);
-        $order_type = get_post_meta(get_the_ID(), 'order_type', true);
-        $order_domain = get_post_meta(get_the_ID(), 'site_url', true);
-        $client_type = get_post_meta(get_the_ID(), 'order_type', true);
-        $order_manage_general_comment = get_post_meta(get_the_ID(), '_order_manage_general_comment', true);
-        $order_extra_attachments = get_post_meta(get_the_ID(), '_order_extra_attachments', true);
+        $order_number = get_post_meta($current_id, 'order_number', true);
+        $order_id = get_post_meta($current_id, 'order_id', true);
+        $order_status = get_post_meta($current_id, 'order_status', true);
+        $shipping_method = get_post_meta($current_id, 'shipping_method', true);
+        $order_type = get_post_meta($current_id, 'order_type', true);
+        $order_domain = get_post_meta($current_id, 'site_url', true);
+        $order_manage_general_comment = get_post_meta($current_id, '_order_manage_general_comment', true);
+        $order_extra_attachments = get_post_meta($current_id, '_order_extra_attachments', true);
+        $client_id = get_post_meta($current_id, 'client_id', true);
+        $client_name = '';
+        $client_url = '';
+        if (!empty($client_id)) {
+            // get the post url for the client post with the id
+            $first_name = get_post_meta($client_id, 'first_name', true);
+            $last_name = get_post_meta($client_id, 'last_name', true);
+            $email = get_post_meta($client_id, 'email', true);
+            $client_name = $first_name . ' ' . $last_name . ' (' . $email . ')';
+            $client_url = get_permalink($client_id);
+        }
         ?>
 
             <div class="alarnd--single-content mockup-revision-page">
@@ -28,9 +39,10 @@ get_header();
 
                 <div id="order_mngmnt_headings" class="order_mngmnt_headings">
                     <div class="om_headin_titles">
-                        <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?>         <?php echo $order_number; ?></h6>
-                        <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?>         <?php echo $order_status; ?></h6>
-                        <!-- <h6><?php// echo esc_html__('Last Sent Mockup:', 'hello-elementor'); ?> V<?php// echo $proof_version; ?></h6> -->
+                        <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?> <?php echo $order_number; ?></h6>
+                        <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?> <?php echo $order_status; ?></h6>
+                        <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?> <a href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a></h6>
+
                         <div class="shipping_method_update_box">
                             <div class="shipping_method_title">
                                 <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
@@ -68,7 +80,7 @@ get_header();
                                     <input type="hidden" name="post_id" value="<?php echo $current_id; ?>">
                                     <select id="order_type" name="order_type">
                                         <option value="">Select Order Type</option>
-                                        <option value="client" <?php selected($order_type, 'client'); ?>>Client</option>
+                                        <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
                                         <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
                                     </select>
                                     <input class="om_order_type_submit" type="submit" value="Update">
@@ -76,7 +88,7 @@ get_header();
                                 <?php else: ?>
                                     <select id="order_type" class="non-admin-shipping-list" name="order_type">
                                         <option value="">Select Order Type</option>
-                                        <option value="client" <?php selected($order_type, 'client'); ?>>Client</option>
+                                        <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
                                         <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
                                     </select>
                                 <?php endif; ?>
@@ -125,7 +137,7 @@ get_header();
                         <div class="form-container">
                             <div class="form-group">
                                 <label for="fetchProductList">Add New Item</label>
-                                <!-- <input type="text" id="fetchProductList" placeholder="Add New Item" /> -->
+                                <input type="text" id="fetchProductList" placeholder="Add New Item" />
                                 <div id="selectedProductDisplay">Select Product...</div>
                                 <ul id="productDropdown" class="product-dropdown" style="display: none;"></ul>
                             </div>

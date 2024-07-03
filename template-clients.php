@@ -21,42 +21,43 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
             <div class="allaround-client-search">
                 <form method="get" action="<?php echo esc_url(home_url('/clients')); ?>">
                     <label for="search_input">Search Client:</label>
-                    <input type="text" name="search" id="search_input" placeholder="Search..." value="<?php echo esc_attr($search_query); ?>">
+                    <input type="text" name="search" id="search_input" placeholder="Search..."
+                        value="<?php echo esc_attr($search_query); ?>">
                 </form>
             </div>
         </div>
-        
+
         <div class="client-list-wrapper">
             <?php
-            
+
 
             $args = array(
-                'post_type'      => 'client',
-                'posts_per_page' => 1,
-                'paged'          => $paged
+                'post_type' => 'client',
+                'posts_per_page' => 10,
+                'paged' => $paged
             );
 
-            if ( ! empty( $search_query ) ) {
+            if (!empty($search_query)) {
                 $args['meta_query'] = array(
                     'relation' => 'OR',
                     array(
-                        'key'     => 'first_name',
-                        'value'   => $search_query,
+                        'key' => 'first_name',
+                        'value' => $search_query,
                         'compare' => 'LIKE'
                     ),
                     array(
-                        'key'     => 'last_name',
-                        'value'   => $search_query,
+                        'key' => 'last_name',
+                        'value' => $search_query,
                         'compare' => 'LIKE'
                     ),
                     array(
-                        'key'     => 'full_name',
-                        'value'   => $search_query,
+                        'key' => 'full_name',
+                        'value' => $search_query,
                         'compare' => 'LIKE'
                     ),
                     array(
-                        'key'     => 'email',
-                        'value'   => $search_query,
+                        'key' => 'email',
+                        'value' => $search_query,
                         'compare' => 'LIKE'
                     )
                 );
@@ -64,51 +65,62 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
 
             $clients_query = new WP_Query($args);
 
-            if ($clients_query->have_posts()) : ?>
+            if ($clients_query->have_posts()): ?>
                 <table>
                     <thead>
                         <tr>
                             <th class="td_index"></th>
                             <th>Title</th>
                             <th>Email</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php 
+                        <?php
                         $index = 1;
-                        while ($clients_query->have_posts()) : $clients_query->the_post(); ?>
+                        while ($clients_query->have_posts()):
+                            $clients_query->the_post(); ?>
                             <tr>
                                 <td class="td_index"><?php echo $index; ?></td>
                                 <td><?php the_title(); ?></td>
                                 <td><?php echo esc_html(get_post_meta(get_the_ID(), 'email', true)); ?></td>
+                                <td>
+                                    <div class="allaround--client-actions">
+                                        <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . get_the_ID() . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
+                                            class="allaround--client-orders">View Orders</a>
+                                        <a href="<?php echo esc_url(get_permalink()); ?>">Edit</a>
+                                    </div>
+                                </td>
                             </tr>
-                        <?php 
-                        $index++;
+                            <?php
+                            $index++;
                         endwhile; ?>
                     </tbody>
                 </table>
 
                 <div class="pagination">
                     <?php
-                    echo paginate_links(array(
-                        'total' => $clients_query->max_num_pages,
-                        'current' => $paged,
-                        'format' => '?paged=%#%',
-                        'show_all' => false,
-                        'type' => 'plain',
-                        'end_size' => 2,
-                        'mid_size' => 2,
-                        'prev_next' => true,
-                        'prev_text' => __('« Prev'),
-                        'next_text' => __('Next »'),
-                        'add_args' => false,
-                        'add_fragment' => '',
-                    ));
+                    echo paginate_links(
+                        array(
+                            'total' => $clients_query->max_num_pages,
+                            'current' => $paged,
+                            'format' => '?paged=%#%',
+                            'show_all' => false,
+                            'type' => 'plain',
+                            'end_size' => 2,
+                            'mid_size' => 2,
+                            'prev_next' => true,
+                            'prev_text' => __('« Prev'),
+                            'next_text' => __('Next »'),
+                            'add_args' => false,
+                            'add_fragment' => '',
+                        )
+                    );
                     ?>
                 </div>
 
                 <?php wp_reset_postdata();
-            else : ?>
+            else: ?>
                 <p><?php _e('No clients found.'); ?></p>
             <?php endif;
             ?>
@@ -116,7 +128,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
     </div>
 
 
-    
+
 
 </main>
 <?php get_footer(); ?>

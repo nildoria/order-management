@@ -2,17 +2,23 @@
   ("use strict");
 
   // ********** Order Management Scripts Start **********//
-
+  const mainTable = document.getElementById("tableMain");
   // ********** Mockup Image Upload Post Request **********//
 
   // ********** Send Mockup to ArtWork Post Request **********//
 
   $("#send-proof-button").on("click", function () {
-    var orderId = allaround_vars.order_id;
-    var orderNumber = allaround_vars.order_number;
-    var customerName = allaround_vars.customer_name;
-    var customerEmail = allaround_vars.customer_email;
-    var commentText = "Your comment here"; // Customize as needed
+    let orderId = allaround_vars.order_id;
+    let orderNumber = allaround_vars.order_number;
+    let customerName = allaround_vars.customer_name;
+    let customerEmail = allaround_vars.customer_email;
+    let commentText = "Your comment here"; // Customize as needed
+
+    let mainTable = document.getElementById("tableMain");
+    if (!mainTable) {
+      alert("Nothing to send! Please add Mockup to the order.");
+      return;
+    }
 
     // Select the first <tr> element
     let firstTr = document.querySelector("tbody > tr");
@@ -31,11 +37,11 @@
       version = 1;
     }
 
-    // var proofStatus = "Mockups V" + version + " Sent";
-    var proofStatus = "Mockup V1 Sent";
+    // let proofStatus = "Mockups V" + version + " Sent";
+    let proofStatus = "Mockup V1 Sent";
     console.log("proofStatus", proofStatus);
 
-    var imageUrls = [];
+    let imageUrls = [];
 
     document.querySelectorAll("tbody > tr").forEach(function (row) {
       let itemMockupColumns = row.querySelectorAll(".item_mockup_column");
@@ -54,10 +60,10 @@
       }
     });
 
-    var imageUrlString = imageUrls.join(",");
+    let imageUrlString = imageUrls.join(",");
     console.log(imageUrlString); // Outputs: url1,url2,url3...
 
-    var data = {
+    let data = {
       comment_text: commentText,
       order_id: orderId,
       order_number: orderNumber,
@@ -67,7 +73,7 @@
       customer_email: customerEmail,
     };
 
-    var requestData = {
+    let requestData = {
       action: "send_proof_version",
       post_id: allaround_vars.post_id,
       version: version,
@@ -119,107 +125,6 @@
       });
   });
 
-  // ********** Add New Item to the Order **********//
-  $("#new_product_artwork").on("change", function (event) {
-    var files = event.target.files;
-    var uploadedFiles = [];
-
-    if (files.length > 0) {
-      $("#addNewItemButton, #addProductButton")
-        .addClass("ml_loading")
-        .prop("disabled", true);
-      var formData = new FormData();
-      for (var i = 0; i < files.length; i++) {
-        formData.append("files[]", files[i]);
-      }
-
-      fetch("/wp-content/themes/manage-order/includes/php/artwork-upload.php", {
-        method: "POST",
-        body: formData,
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.success) {
-            // Store the file paths in an array
-            uploadedFiles = data.file_paths;
-            $("#uploaded_file_path").val(JSON.stringify(uploadedFiles));
-            console.log("Files uploaded successfully:", data.file_paths);
-          } else {
-            alert("Failed to upload files: " + data.message);
-          }
-          $("#addNewItemButton, #addProductButton")
-            .removeClass("ml_loading")
-            .prop("disabled", false);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-          alert("Error: " + error.message);
-          $("#addNewItemButton, #addProductButton")
-            .removeClass("ml_loading")
-            .prop("disabled", false);
-        });
-    }
-  });
-
-  $("#addProductModal").magnificPopup({
-    items: {
-      src: "#add-item-modal",
-      type: "inline",
-    },
-    closeBtnInside: true,
-  });
-
-  $("#addNewItemButton").on("click", function (event) {
-    event.preventDefault();
-    const newItem = {
-      product_id: $("#new_product_id").val(),
-      quantity: $("#new_product_quantity").val(),
-      alarnd_color: $("#new_product_color").val(),
-      alarnd_size: $("#new_product_size").val(),
-      allaround_art_pos: $("#new_product_art_pos").val(),
-      allaround_instruction_note: $("#new_product_instruction_note").val(),
-      alarnd_artwork: $("#uploaded_file_path").val(),
-      order_id: allaround_vars.order_id,
-      nonce: allaround_vars.nonce,
-    };
-
-    let order_domain = allaround_vars.order_domain;
-
-    var requestData = {
-      action: "update_order_transient",
-      order_id: allaround_vars.order_id,
-    };
-
-    function handleResponse(response) {
-      alert("Item added successfully");
-      location.reload(); // Refresh the page to see the new item
-    }
-
-    fetch(`${order_domain}/wp-json/update-order/v1/add-item-to-order`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newItem),
-    })
-      .then((response) => {
-        if (response.ok) {
-          ml_send_ajax(requestData, handleResponse);
-        } else {
-          return response.json();
-        }
-      })
-      .then((data) => {
-        if (data) {
-          alert("Failed to add item: " + data.message);
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("Error: " + error.message);
-      });
-  });
-
   function ml_send_ajax(data, callback) {
     $.ajax({
       type: "POST",
@@ -244,23 +149,23 @@
 
   // ********** Duplicate Order Item **********//
   $(document).on("click", ".om_duplicate_item", function () {
-    var order_id = allaround_vars.order_id;
-    var item_id = $(this).siblings('input[name="item_id"]').val();
-    var order_domain = allaround_vars.order_domain;
+    let order_id = allaround_vars.order_id;
+    let item_id = $(this).siblings('input[name="item_id"]').val();
+    let order_domain = allaround_vars.order_domain;
 
     // Debugging
     console.log("Order ID:", order_id);
     console.log("Item ID:", item_id);
     console.log("Order Domain:", order_domain);
 
-    var newItem = {
+    let newItem = {
       order_id: order_id,
       item_id: item_id,
       method: "duplicateItem",
       nonce: allaround_vars.nonce,
     };
 
-    var requestData = {
+    let requestData = {
       action: "update_order_transient",
       order_id: order_id,
     };
@@ -297,23 +202,23 @@
 
   // ********** Delete Order Item **********//
   $(document).on("click", ".om_delete_item", function () {
-    var order_id = allaround_vars.order_id;
-    var item_id = $(this).siblings('input[name="item_id"]').val();
-    var order_domain = allaround_vars.order_domain;
+    let order_id = allaround_vars.order_id;
+    let item_id = $(this).siblings('input[name="item_id"]').val();
+    let order_domain = allaround_vars.order_domain;
 
     // Debugging
     console.log("Order ID:", order_id);
     console.log("Item ID:", item_id);
     console.log("Order Domain:", order_domain);
 
-    var newItem = {
+    let newItem = {
       order_id: order_id,
       item_id: item_id,
       method: "deleteItem",
       nonce: allaround_vars.nonce,
     };
 
-    var requestData = {
+    let requestData = {
       action: "update_order_transient",
       order_id: order_id,
     };
@@ -372,9 +277,9 @@
   });
 
   function updateItemMeta(newItemMeta) {
-    var order_domain = allaround_vars.order_domain;
+    let order_domain = allaround_vars.order_domain;
 
-    var requestData = {
+    let requestData = {
       action: "update_order_transient",
       order_id: newItemMeta.order_id,
     };
@@ -438,14 +343,14 @@
   function updateItemMetaInDOM(itemId, updatedData) {
     // console.log("Updated Data:", updatedData);
     // console.log("Item ID:", itemId);
-    var itemRow = document.querySelector(
+    let itemRow = document.querySelector(
       'tr[data-product_id="' + itemId + '"]'
     );
     if (itemRow) {
-      var metaList = itemRow.querySelector(".item_name_variations ul");
+      let metaList = itemRow.querySelector(".item_name_variations ul");
 
       if (updatedData.size) {
-        var sizeItem = metaList.querySelector('li[data-meta_key="Size"]');
+        let sizeItem = metaList.querySelector('li[data-meta_key="Size"]');
         if (sizeItem) {
           sizeItem.textContent = "Size: " + updatedData.size;
         } else {
@@ -457,7 +362,7 @@
       }
 
       if (updatedData.color) {
-        var colorItem = metaList.querySelector('li[data-meta_key="Color"]');
+        let colorItem = metaList.querySelector('li[data-meta_key="Color"]');
         if (colorItem) {
           colorItem.textContent = "Color: " + updatedData.color;
         } else {
@@ -469,7 +374,7 @@
       }
 
       if (updatedData.art_position) {
-        var artPositionItem = metaList.querySelector(
+        let artPositionItem = metaList.querySelector(
           'li[data-meta_key="Art Position"]'
         );
         if (artPositionItem) {
@@ -486,7 +391,7 @@
       }
 
       if (updatedData.instruction_note) {
-        var instructionNoteItem = metaList.querySelector(
+        let instructionNoteItem = metaList.querySelector(
           'li[data-meta_key="Instruction Note"]'
         );
         if (instructionNoteItem) {
@@ -507,20 +412,20 @@
   // ********** Order Artwork Meta Update **********//
   $(".om__upload_artwork").on("change", function (event) {
     let $this = $(this);
-    var files = event.target.files;
-    var uploadedFiles = [];
+    let files = event.target.files;
+    let uploadedFiles = [];
     const orderId = allaround_vars.order_id;
     const itemId = $(this).data("item_id");
     const metaKey = $(this).data("meta_key");
-    var artworkContainer = $this.closest(".uploaded_graphics");
+    let artworkContainer = $this.closest(".uploaded_graphics");
 
     if (files.length > 0) {
       $("body").addClass("updating");
       $this.siblings(".om__editItemArtwork").hide();
       showSpinner(artworkContainer); // Show spinner
 
-      var formData = new FormData();
-      for (var i = 0; i < files.length; i++) {
+      let formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
         formData.append("files[]", files[i]);
       }
 
@@ -538,7 +443,7 @@
         .then((data) => {
           if (data.success) {
             uploadedFiles = data.file_paths;
-            var fileInfo = uploadedFiles[0];
+            let fileInfo = uploadedFiles[0];
             if (fileInfo) newArtworkMeta.artwork_img = fileInfo;
             updateItemArtworkMeta(newArtworkMeta, artworkContainer);
           } else {
@@ -560,12 +465,12 @@
   });
 
   function updateItemArtworkMeta(newArtworkMeta, artworkContainer) {
-    var order_domain = allaround_vars.order_domain;
+    let order_domain = allaround_vars.order_domain;
     let themeAssets = allaround_vars.assets;
 
     artworkContainer.find(".om__editItemArtwork").hide();
 
-    var requestData = {
+    let requestData = {
       action: "update_order_transient",
       order_id: newArtworkMeta.order_id,
     };
@@ -604,8 +509,8 @@
         if (data.success) {
           console.log(data.data);
           ml_send_ajax(requestData, handleResponse);
-          var fileInfo = data.data.attachment_url;
-          var link = artworkContainer.find("a");
+          let fileInfo = data.data.attachment_url;
+          let link = artworkContainer.find("a");
           if (link.length) {
             link.attr("href", fileInfo);
           } else {
@@ -614,7 +519,7 @@
               .appendTo(artworkContainer);
             artworkContainer.find(".no_artwork_text").remove();
           }
-          var img = artworkContainer.find(".alarnd__artwork_img");
+          let img = artworkContainer.find(".alarnd__artwork_img");
           if (img.length) {
             // Check if fileInfo ends with .png, .jpg, or .jpeg
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
@@ -671,7 +576,7 @@
 
   // ********** Fetch Item Meta **********//
   $(document).on("click", ".om__editItemMeta", function () {
-    var itemId = $(this).data("item_id");
+    let itemId = $(this).data("item_id");
     $.magnificPopup.open({
       items: {
         src: "#om__itemVariUpdateModal_" + itemId,
@@ -738,20 +643,20 @@
 
   // ********** Update Item Details **********//
   $(".item-cost-input, .item-quantity-input").on("change", function () {
-    var itemId = $(this).data("item-id");
-    var newCost = $(this).closest("tr").find(".item-cost-input").val();
-    var newQuantity = $(this).closest("tr").find(".item-quantity-input").val();
-    var orderId = $('input[name="order_id"]').val();
-    var order_domain = allaround_vars.order_domain;
+    let itemId = $(this).data("item-id");
+    let newCost = $(this).closest("tr").find(".item-cost-input").val();
+    let newQuantity = $(this).closest("tr").find(".item-quantity-input").val();
+    let orderId = $('input[name="order_id"]').val();
+    let order_domain = allaround_vars.order_domain;
 
-    var newItem = {
+    let newItem = {
       order_id: orderId,
       item_id: itemId,
       new_cost: newCost,
       new_quantity: newQuantity,
     };
 
-    var requestData = {
+    let requestData = {
       action: "update_order_transient",
       order_id: orderId,
     };
@@ -791,7 +696,6 @@
           });
         } else {
           return response.json().then((data) => {
-            throw new Error(data.message);
             Toastify({
               text: `A problem occurred: ${data.message}`,
               duration: 3000,
@@ -803,6 +707,7 @@
                 background: "linear-gradient(to right, #cc3366, #a10036)",
               },
             }).showToast();
+            throw new Error(data.message);
           });
         }
       })
@@ -824,7 +729,7 @@
     );
   }
   function updateItemDetails(itemId, newQuantity, newCost, itemTotal) {
-    var $row = $(`tr[data-product_id="${itemId}"]`);
+    let $row = $(`tr[data-product_id="${itemId}"]`);
     $row.find(".om__itemQuantity").text(newQuantity);
     $row
       .find(".om__itemRate")
@@ -835,19 +740,30 @@
   }
   // Initial update to reflect changes instantly
   $(document).on("input", ".item-quantity-input", function () {
-    var newQuantity = $(this).val();
+    let newQuantity = $(this).val();
     $(this).closest("tr").find(".om__itemQuantity").text(newQuantity);
   });
 
   $(document).on("input", ".item-cost-input", function () {
-    var newCost = $(this).val();
+    let newCost = $(this).val();
     $(this)
       .closest("tr")
       .find(".om__itemRate")
       .text(newCost + "" + allaround_vars.currency_symbol);
   });
 
-  // ********** Fetch Products from Main Site **********//
+  // ********** Fetch Products from Ordered Site **********//
+  $("#fetchProductList")
+    .on("click", function () {
+      if (!$(this).data("loaded")) {
+        fetchProducts();
+        $(this).data("loaded", true);
+      }
+      $("#productDropdown").slideDown();
+    })
+    .on("focusout", function () {
+      $("#productDropdown").slideUp();
+    });
   function fetchProducts() {
     let order_domain = allaround_vars.order_domain;
     console.log(order_domain);
@@ -1034,146 +950,236 @@
     dropdown.closest(".form-group").hide();
   }
 
-  // ********** Add Item to create Order **********//
+  // ********** Add New Item to the Existing Order **********//
+  $("#new_product_artwork").on("change", function (event) {
+    let files = event.target.files;
+    let uploadedFiles = [];
 
-  // ********** Add New Order **********//
-  var products = [];
-
-  // $("#fetchAddProductList")
-  //   .on("focus", function () {
-  //     if (!$(this).data("loaded")) {
-  //       fetchAddProducts();
-  //       $(this).data("loaded", true);
-  //     }
-  //     $("#productDropdown").slideDown();
-  //   })
-  //   .on("focusout", function () {
-  //     $("#productDropdown").slideUp();
-  //   });
-
-  $("#selectedProductDisplay").on("click", function () {
-    if (!$(this).data("loaded")) {
-      fetchAddProducts();
-      $(this).data("loaded", true);
-    }
-    $("#productDropdown").slideDown();
-  });
-
-  $(document).on("mouseup", function (e) {
-    var container = $("#selectedProductDisplay");
-
-    // if the target of the click isn't the container nor a descendant of the container
-    if (!container.is(e.target) && container.has(e.target).length === 0) {
-      $("#productDropdown").slideUp();
-    }
-  });
-
-  function fetchAddProducts() {
-    const manageOrderUrl = allaround_vars.redirecturl;
-
-    let order_domain = "https://main.lukpaluk.xyz";
-    //TODO: This is for local testing only and for staging
-    if (manageOrderUrl.includes(".test")) {
-      order_domain = "https://allaround.test";
-    }
-
-    fetch(`${order_domain}/wp-json/alarnd-main/v1/products`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("HTTP error " + response.status);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        displayProductList(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching products:", error);
-      });
-  }
-
-  // Handle adding product to line items
-  $("#addProductButton").on("click", function () {
-    const productId = $("#new_product_id").val();
-    const productHTML = $("#selectedProductDisplay").html();
-    const quantity = $("#new_product_quantity").val();
-    const color = $("#new_product_color").val();
-    const size = $("#new_product_size").val();
-    const artPos = $("#new_product_art_pos").val();
-    const instructionNote = $("#new_product_instruction_note").val();
-    let alarnd_artwork = [];
-
-    const uploadedFilePathValue = $("#uploaded_file_path").val();
-
-    if (uploadedFilePathValue) {
-      try {
-        alarnd_artwork = JSON.parse(uploadedFilePathValue);
-      } catch (error) {
-        console.error("Parsing error for uploaded_file_path:", error);
-        alarnd_artwork = []; // Default to an empty array if parsing fails
+    if (files.length > 0) {
+      $("#addNewItemButton, #addProductButton")
+        .addClass("ml_loading")
+        .prop("disabled", true);
+      let formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("files[]", files[i]);
       }
+
+      fetch("/wp-content/themes/manage-order/includes/php/artwork-upload.php", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Store the file paths in an array
+            uploadedFiles = data.file_paths;
+            $("#uploaded_file_path").val(JSON.stringify(uploadedFiles));
+            console.log("Files uploaded successfully:", data.file_paths);
+          } else {
+            alert("Failed to upload files: " + data.message);
+          }
+          $("#addNewItemButton, #addProductButton")
+            .removeClass("ml_loading")
+            .prop("disabled", false);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("Error: " + error.message);
+          $("#addNewItemButton, #addProductButton")
+            .removeClass("ml_loading")
+            .prop("disabled", false);
+        });
     }
+  });
 
-    if (!productId || !quantity) {
-      alert("Please select a product and specify quantity.");
-      return;
-    }
+  $("#addProductModal").magnificPopup({
+    items: {
+      src: "#add-item-modal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
 
-    const meta_data = [
-      { key: "Color", value: color },
-      { key: "Size", value: size },
-      { key: "Art Position", value: artPos },
-      { key: "Instruction Note", value: instructionNote },
-    ];
-
-    // Add each artwork URL as a separate meta field
-    // if (alarnd_artwork && Array.isArray(alarnd_artwork)) {
-    //   alarnd_artwork.forEach((url) => {
-    //     // Create a URL object and use the pathname property
-    //     const pathname = new URL(url).pathname;
-    //     // Extract the filename from the pathname
-    //     const filename = pathname.split("/").pop();
-    //     const formattedValue = `<p>${filename}</p><a href="${url}" target="_blank"><img class="alarnd__artwork_img" src="${url}" /></a>`;
-    //     meta_data.push({
-    //       key: "Attachment",
-    //       value: formattedValue,
-    //     });
-    //   });
-    // }
-    if (alarnd_artwork.length > 0) {
-      meta_data.push({
-        key: "Attachment",
-        value: JSON.stringify(alarnd_artwork),
-      });
-    }
-
-    const lineItem = {
-      product_id: productId,
-      product_html: productHTML,
-      quantity: quantity,
-      meta_data: meta_data,
+  $("#addNewItemButton").on("click", function (event) {
+    event.preventDefault();
+    const newItem = {
+      product_id: $("#new_product_id").val(),
+      quantity: $("#new_product_quantity").val(),
+      alarnd_color: $("#new_product_color").val(),
+      alarnd_size: $("#new_product_size").val(),
+      allaround_art_pos: $("#new_product_art_pos").val(),
+      allaround_instruction_note: $("#new_product_instruction_note").val(),
+      alarnd_artwork: $("#uploaded_file_path").val(),
+      order_id: allaround_vars.order_id,
+      nonce: allaround_vars.nonce,
     };
 
-    console.log(lineItem);
+    let order_domain = allaround_vars.order_domain;
 
-    products.push(lineItem);
-    alert("Product added to order.");
-    $("#line_items").val(JSON.stringify(products));
-    $("#om--create-new-order")
-      .prop("disabled", false)
-      .addClass("om_add_item_selected");
-    displayAddedProducts();
+    let requestData = {
+      action: "update_order_transient",
+      order_id: allaround_vars.order_id,
+    };
+
+    function handleResponse(response) {
+      alert("Item added successfully");
+      location.reload(); // Refresh the page to see the new item
+    }
+
+    fetch(`${order_domain}/wp-json/update-order/v1/add-item-to-order`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newItem),
+    })
+      .then((response) => {
+        if (response.ok) {
+          ml_send_ajax(requestData, handleResponse);
+        } else {
+          return response.json();
+        }
+      })
+      .then((data) => {
+        if (data) {
+          alert("Failed to add item: " + data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("Error: " + error.message);
+      });
   });
+  // ********** Add Item to create Order **********//
 
-  // Function to display the added products
-  function displayAddedProducts() {
-    let lineItemsAddedOm = $("#line_items_added_om");
-    lineItemsAddedOm.empty();
-    products.forEach((product, index) => {
-      const filteredMetaData = product.meta_data.filter(
-        (meta) => meta.value !== null && meta.value !== ""
-      );
-      const productHtml = `
+  if (!mainTable) {
+    console.log("Main table not found");
+    // ********** Add New Order **********//
+    let products = [];
+
+    $("#selectedProductDisplay").on("click", function () {
+      if (!$(this).data("loaded")) {
+        fetchAddProducts();
+        $(this).data("loaded", true);
+      }
+      $("#productDropdown").slideDown();
+    });
+
+    $(document).on("mouseup", function (e) {
+      let container = $("#selectedProductDisplay");
+
+      if (!container.is(e.target) && container.has(e.target).length === 0) {
+        $("#productDropdown").slideUp();
+      }
+    });
+
+    // ********** Fetch Products from Main Site **********//
+    function fetchAddProducts() {
+      const manageOrderUrl = allaround_vars.redirecturl;
+
+      let order_domain = "https://main.lukpaluk.xyz";
+      //TODO: This is for local testing only and for staging
+      if (manageOrderUrl.includes(".test")) {
+        order_domain = "https://allaround.test";
+      }
+
+      fetch(`${order_domain}/wp-json/alarnd-main/v1/products`)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("HTTP error " + response.status);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          displayProductList(data);
+        })
+        .catch((error) => {
+          console.error("Error fetching products:", error);
+        });
+    }
+
+    // Handle adding product to line items
+    $("#addProductButton").on("click", function () {
+      const productId = $("#new_product_id").val();
+      const productHTML = $("#selectedProductDisplay").html();
+      const quantity = $("#new_product_quantity").val();
+      const color = $("#new_product_color").val();
+      const size = $("#new_product_size").val();
+      const artPos = $("#new_product_art_pos").val();
+      const instructionNote = $("#new_product_instruction_note").val();
+      let alarnd_artwork = [];
+
+      const uploadedFilePathValue = $("#uploaded_file_path").val();
+
+      if (uploadedFilePathValue) {
+        try {
+          alarnd_artwork = JSON.parse(uploadedFilePathValue);
+        } catch (error) {
+          console.error("Parsing error for uploaded_file_path:", error);
+          alarnd_artwork = []; // Default to an empty array if parsing fails
+        }
+      }
+
+      if (!productId || !quantity) {
+        alert("Please select a product and specify quantity.");
+        return;
+      }
+
+      const meta_data = [
+        { key: "Color", value: color },
+        { key: "Size", value: size },
+        { key: "Art Position", value: artPos },
+        { key: "Instruction Note", value: instructionNote },
+      ];
+
+      // Add each artwork URL as a separate meta field
+      // if (alarnd_artwork && Array.isArray(alarnd_artwork)) {
+      //   alarnd_artwork.forEach((url) => {
+      //     // Create a URL object and use the pathname property
+      //     const pathname = new URL(url).pathname;
+      //     // Extract the filename from the pathname
+      //     const filename = pathname.split("/").pop();
+      //     const formattedValue = `<p>${filename}</p><a href="${url}" target="_blank"><img class="alarnd__artwork_img" src="${url}" /></a>`;
+      //     meta_data.push({
+      //       key: "Attachment",
+      //       value: formattedValue,
+      //     });
+      //   });
+      // }
+      if (alarnd_artwork.length > 0) {
+        meta_data.push({
+          key: "Attachment",
+          value: JSON.stringify(alarnd_artwork),
+        });
+      }
+
+      const lineItem = {
+        product_id: productId,
+        product_html: productHTML,
+        quantity: quantity,
+        meta_data: meta_data,
+      };
+
+      console.log(lineItem);
+
+      products.push(lineItem);
+      alert("Product added to order.");
+      $("#line_items").val(JSON.stringify(products));
+      $("#om--create-new-order")
+        .prop("disabled", false)
+        .addClass("om_add_item_selected");
+      displayAddedProducts();
+    });
+
+    // Function to display the added products
+    function displayAddedProducts() {
+      let lineItemsAddedOm = $("#line_items_added_om");
+      lineItemsAddedOm.empty();
+      products.forEach((product, index) => {
+        const filteredMetaData = product.meta_data.filter(
+          (meta) => meta.value !== null && meta.value !== ""
+        );
+        const productHtml = `
       <div class="om__line-item">
         <p><strong>Product ID:</strong>${product.product_html}</p>
         <p><strong>Quantity:</strong> ${product.quantity}</p>
@@ -1188,80 +1194,81 @@
       </div>
       <hr>
     `;
-      lineItemsAddedOm.append(productHtml);
+        lineItemsAddedOm.append(productHtml);
+      });
+
+      // Add event listener to remove buttons
+      $(".remove-product").on("click", function () {
+        const index = $(this).data("index");
+        products.splice(index, 1);
+        displayAddedProducts();
+        const lineItemsValue = JSON.stringify(products);
+        $("#line_items").val(lineItemsValue);
+
+        // Check if the line_items array is empty and disable the button if it is
+        if (lineItemsValue === "[]") {
+          $("#om--create-new-order")
+            .removeClass("om_add_item_selected")
+            .prop("disabled", true)
+            .css("opacity", 0.7);
+        } else {
+          $("#om--create-new-order").prop("disabled", false).css("opacity", 1);
+        }
+      });
+    }
+
+    // Handle form submission via AJAX
+    $("#orderForm").on("submit", function (event) {
+      event.preventDefault();
+
+      const shippingMethodId = $("#shipping-method-list").val();
+      const shippingMethodTitle = $(
+        "#shipping-method-list option:selected"
+      ).text();
+
+      const formData = {
+        action: "create_order",
+        security: allaround_vars.nonce,
+        first_name: $("#firstName").val(),
+        last_name: $("#lastName").val(),
+        company: $("#company").val(),
+        address_1: $("#address").val(),
+        city: $("#city").val(),
+        country: $("#country").val(),
+        email: $("#email").val(),
+        phone: $("#phone").val(),
+        line_items: $("#line_items").val(),
+        shipping_method: shippingMethodId,
+        shipping_method_title: shippingMethodTitle,
+      };
+
+      $.post(allaround_vars.ajax_url, formData, function (response) {
+        if (response.success) {
+          alert("Order created successfully.");
+          // Create the order post
+          createOrderPost(response.data);
+          console.log(response.data);
+        } else {
+          alert(response.data);
+        }
+      });
     });
 
-    // Add event listener to remove buttons
-    $(".remove-product").on("click", function () {
-      const index = $(this).data("index");
-      products.splice(index, 1);
-      displayAddedProducts();
-      const lineItemsValue = JSON.stringify(products);
-      $("#line_items").val(lineItemsValue);
-
-      // Check if the line_items array is empty and disable the button if it is
-      if (lineItemsValue === "[]") {
-        $("#om--create-new-order")
-          .removeClass("om_add_item_selected")
-          .prop("disabled", true)
-          .css("opacity", 0.7);
-      } else {
-        $("#om--create-new-order").prop("disabled", false).css("opacity", 1);
-      }
-    });
-  }
-
-  // Handle form submission via AJAX
-  $("#orderForm").on("submit", function (event) {
-    event.preventDefault();
-
-    const shippingMethodId = $("#shipping-method-list").val();
-    const shippingMethodTitle = $(
-      "#shipping-method-list option:selected"
-    ).text();
-
-    const formData = {
-      action: "create_order",
-      security: allaround_vars.nonce,
-      first_name: $("#firstName").val(),
-      last_name: $("#lastName").val(),
-      company: $("#company").val(),
-      address_1: $("#address").val(),
-      city: $("#city").val(),
-      country: $("#country").val(),
-      email: $("#email").val(),
-      phone: $("#phone").val(),
-      line_items: $("#line_items").val(),
-      shipping_method: shippingMethodId,
-      shipping_method_title: shippingMethodTitle,
-    };
-
-    $.post(allaround_vars.ajax_url, formData, function (response) {
-      if (response.success) {
-        alert("Order created successfully.");
-        // Create the order post
-        createOrderPost(response.data);
-        console.log(response.data);
-      } else {
-        alert(response.data);
-      }
-    });
-  });
-
-  function createOrderPost(orderData) {
-    $.ajax({
-      url: `${allaround_vars.redirecturl}/wp-json/manage-order/v1/create`,
-      method: "POST",
-      contentType: "application/json",
-      data: JSON.stringify(orderData),
-      success: function (response) {
-        alert("Order post created successfully. Post ID: " + response);
-        // location.reload();
-      },
-      error: function (xhr, status, error) {
-        alert("Error creating order post: " + error);
-      },
-    });
+    function createOrderPost(orderData) {
+      $.ajax({
+        url: `${allaround_vars.redirecturl}/wp-json/manage-order/v1/create`,
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(orderData),
+        success: function (response) {
+          alert("Order post created successfully. Post ID: " + response);
+          // location.reload();
+        },
+        error: function (xhr, status, error) {
+          alert("Error creating order post: " + error);
+        },
+      });
+    }
   }
 
   // ********** Shipping Method Update Ajax **********//
@@ -1269,15 +1276,15 @@
   $("#shipping-method-form").on("submit", function (event) {
     event.preventDefault();
 
-    var order_id = allaround_vars.order_id;
-    var order_domain = allaround_vars.order_domain;
-    var shipping_method_id = document.querySelector(
+    let order_id = allaround_vars.order_id;
+    let order_domain = allaround_vars.order_domain;
+    let shipping_method_id = document.querySelector(
       'select[name="shipping_method"]'
     ).value;
-    var shipping_method_title = document.querySelector(
+    let shipping_method_title = document.querySelector(
       'select[name="shipping_method"] option:checked'
     ).text;
-    var nonce = allaround_vars.nonce;
+    let nonce = allaround_vars.nonce;
     $(".om_shipping_submit").addClass("pulse");
 
     fetch(allaround_vars.ajax_url, {
@@ -1301,12 +1308,12 @@
             data.data.shipping_total + " " + allaround_vars.currency_symbol
           );
 
-          var itemsTotal = parseFloat(
+          let itemsTotal = parseFloat(
             $(".om__items_subtotal")
               .text()
               .replace(/[^0-9.-]+/g, "")
           );
-          var newOrderTotal = itemsTotal + parseFloat(data.data.shipping_total);
+          let newOrderTotal = itemsTotal + parseFloat(data.data.shipping_total);
           $(".om__orderTotal").text(
             newOrderTotal.toFixed(2) + " " + allaround_vars.currency_symbol
           );
@@ -1359,34 +1366,34 @@
   //
   // on change to #order_extra_attachments show the selected file names in the input field #uploaded_extra_file_path
   $("#order_extra_attachments").on("change", function () {
-    var files = $(this)[0].files;
-    var fileNames = [];
-    for (var i = 0; i < files.length; i++) {
+    let files = $(this)[0].files;
+    let fileNames = [];
+    for (let i = 0; i < files.length; i++) {
       fileNames.push(files[i].name);
     }
     $("#uploaded_extra_file_path").val(fileNames.join(", "));
   });
 
   $("#add-order-comment").on("click", function () {
-    var orderComment = $("#order_general_comment").val();
-    var postId = allaround_vars.post_id;
-    var nonce = allaround_vars.nonce;
+    let orderComment = $("#order_general_comment").val();
+    let postId = allaround_vars.post_id;
+    let nonce = allaround_vars.nonce;
     $(this).addClass("ml_loading");
 
-    var files = $("#order_extra_attachments")[0].files;
+    let files = $("#order_extra_attachments")[0].files;
 
     if (orderComment === "" && files.length === 0) {
       alert("Please enter a comment or select files to upload.");
       return;
     }
 
-    var formData = new FormData();
+    let formData = new FormData();
     formData.append("action", "save_order_general_comment");
     formData.append("order_general_comment", orderComment);
     formData.append("post_id", postId);
     formData.append("nonce", nonce);
 
-    for (var i = 0; i < files.length; i++) {
+    for (let i = 0; i < files.length; i++) {
       formData.append("order_extra_attachments[]", files[i]);
     }
 
@@ -1414,7 +1421,7 @@
 
           if (response.data.attachments.length > 0) {
             $(".om__orderNoteFiles").remove(); // Remove existing attachments
-            var attachmentsHtml = '<div class="om__orderNoteFiles">';
+            let attachmentsHtml = '<div class="om__orderNoteFiles">';
             response.data.attachments.forEach(function (attachment) {
               attachmentsHtml += `<a href="${attachment.url}" target="_blank">${attachment.name}</a><br>`;
             });
@@ -1476,9 +1483,10 @@
 // ********** Mockup Image Upload Post Request **********//
 document.addEventListener("DOMContentLoaded", function () {
   // Use a parent element that exists when the DOM is loaded
-  var orderId = allaround_vars.order_id;
-  var mainTable = document.getElementById("tableMain");
-  // mainTable tr
+  let orderId = allaround_vars.order_id;
+  let mainTable = document.getElementById("tableMain");
+  if (!mainTable) return;
+
   async function initializeMockupColumns(mainTable, orderId) {
     const mainTableTrs = mainTable.querySelectorAll("tbody > tr");
     if (mainTableTrs.length === 0) return;
@@ -1566,7 +1574,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function fetchImageURLs(orderId, productId, version, column) {
-    var formData = new FormData();
+    let formData = new FormData();
     formData.append("action", "fetch_mockup_files");
     formData.append("order_id", orderId);
     formData.append("product_id", productId);
@@ -1579,15 +1587,15 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((response) => response.json())
       .then((data) => {
         if (data.success && data.data.file_list) {
-          var fileList = data.data.file_list;
+          let fileList = data.data.file_list;
 
           // Ensure fileList is always treated as an array
           if (!Array.isArray(fileList)) {
             fileList = Object.values(fileList);
           }
 
-          var hiddenMockupInput = column.querySelector(".hidden_mockup_url");
-          var mockupImageContainer = column.querySelector(".mockup-image");
+          let hiddenMockupInput = column.querySelector(".hidden_mockup_url");
+          let mockupImageContainer = column.querySelector(".mockup-image");
 
           if (hiddenMockupInput && mockupImageContainer) {
             hiddenMockupInput.value = fileList.join(",");
@@ -1615,14 +1623,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function initialAddNewMockupColumn(row, nextVersion) {
-    var productId = row.getAttribute("data-product_id");
+    let productId = row.getAttribute("data-product_id");
 
     // Check if a column for the next version already exists
     if (row.querySelector('td[data-version_number="' + nextVersion + '"]')) {
       return;
     }
 
-    var newMockupTd = document.createElement("td");
+    let newMockupTd = document.createElement("td");
     newMockupTd.className = "item_mockup_column";
     newMockupTd.setAttribute("data-version_number", +nextVersion);
     newMockupTd.innerHTML =
@@ -1657,14 +1665,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.body.addEventListener("change", function (event) {
     if (event.target.classList.contains("file-input__input")) {
-      var input = event.target;
-      var files = input.files;
-      var version = input.getAttribute("data-version");
-      var orderId = document.querySelector('input[name="order_id"]').value;
-      var postId = document.querySelector('input[name="post_id"]').value;
+      let input = event.target;
+      let files = input.files;
+      let version = input.getAttribute("data-version");
+      let orderId = document.querySelector('input[name="order_id"]').value;
+      let postId = document.querySelector('input[name="post_id"]').value;
 
-      var mockupColumn = input.closest(".item_mockup_column");
-      var spinner = mockupColumn.querySelector(".lds-spinner-wrap");
+      let mockupColumn = input.closest(".item_mockup_column");
+      let spinner = mockupColumn.querySelector(".lds-spinner-wrap");
       spinner.style.display = "flex";
 
       const productId = mockupColumn
@@ -1680,7 +1688,7 @@ document.addEventListener("DOMContentLoaded", function () {
         version
       );
 
-      var formData = new FormData();
+      let formData = new FormData();
       Array.from(files).forEach((file) => {
         formData.append("file[]", file);
       });
@@ -1694,22 +1702,22 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   function uploadFile(formData, input, version) {
-    var mockupColumn = input.closest(".item_mockup_column");
+    let mockupColumn = input.closest(".item_mockup_column");
     const productId = mockupColumn
       .closest("tr")
       .getAttribute("data-product_id");
-    var mockupInput = mockupColumn.querySelector(
+    let mockupInput = mockupColumn.querySelector(
       'input[type="hidden"].hidden_mockup_url'
     );
-    var spinner = mockupColumn.querySelector(".lds-spinner-wrap");
-    var mockupImageContainer = mockupColumn.querySelector(".mockup-image");
+    let spinner = mockupColumn.querySelector(".lds-spinner-wrap");
+    let mockupImageContainer = mockupColumn.querySelector(".mockup-image");
     const tableMain = mockupColumn.closest("table#tableMain");
     const tableBody = mockupColumn.closest("table#tableMain > tbody");
-    var productTitle = mockupColumn
+    let productTitle = mockupColumn
       .closest("tr")
       .querySelector(".product_item_title").innerText;
 
-    var sendProofButton = document.querySelector("#send-proof-button");
+    let sendProofButton = document.querySelector("#send-proof-button");
 
     tableBody.style.pointerEvents = "none";
 
@@ -1753,7 +1761,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         // Check if a new mockups version column should be added
-        var nextVersion = parseInt(version.replace("V", "")) + 1;
+        let nextVersion = parseInt(version.replace("V", "")) + 1;
         addNewMockupHeader(nextVersion);
         addNewMockupColumn(input, nextVersion);
 
@@ -1765,11 +1773,11 @@ document.addEventListener("DOMContentLoaded", function () {
         tableMain.scrollLeft = tableMain.scrollWidth;
 
         // remove the delete button from the previous version mockupColumn
-        var previousMockupColumn = mockupColumn.previousElementSibling;
+        let previousMockupColumn = mockupColumn.previousElementSibling;
         if (previousMockupColumn) {
           previousMockupColumn.classList.add("om_expired_mockups");
           previousMockupColumn.classList.remove("last_send_version");
-          var previousDeleteButton =
+          let previousDeleteButton =
             previousMockupColumn.querySelector("#om_delete_mockup");
           if (previousDeleteButton) {
             previousDeleteButton.remove();
@@ -1821,7 +1829,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function createDeleteButton(mockupColumn, version, productId) {
-    var deleteButton = document.createElement("button");
+    let deleteButton = document.createElement("button");
     deleteButton.setAttribute("data-product-id", productId);
     deleteButton.id = "om_delete_mockup";
     deleteButton.setAttribute("data-order-id", allaround_vars.order_id);
@@ -1831,31 +1839,31 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function addNewMockupHeader(nextVersion) {
-    var headerRow = document.querySelector("thead tr");
-    var headers = headerRow.querySelectorAll("th");
-    var headerExists = Array.from(headers).some((header) =>
+    let headerRow = document.querySelector("thead tr");
+    let headers = headerRow.querySelectorAll("th");
+    let headerExists = Array.from(headers).some((header) =>
       header.innerHTML.includes(`Mockups V${nextVersion}`)
     );
 
     // If a header with the same version already exists, skip adding a new one
     if (headerExists) return;
 
-    var newHeader = document.createElement("th");
+    let newHeader = document.createElement("th");
     newHeader.className = "head";
     newHeader.innerHTML = `<strong>Mockups V${nextVersion}</strong>`;
     headerRow.appendChild(newHeader);
   }
 
   function addNewMockupColumn(input, nextVersion) {
-    var row = input.closest("tr");
-    var productId = row.getAttribute("data-product_id");
+    let row = input.closest("tr");
+    let productId = row.getAttribute("data-product_id");
 
     // Check if a column for the next version already exists
     if (row.querySelector('td[data-version_number="' + nextVersion + '"]')) {
       return;
     }
 
-    var newMockupTd = document.createElement("td");
+    let newMockupTd = document.createElement("td");
     newMockupTd.className = "item_mockup_column";
     newMockupTd.setAttribute("data-version_number", +nextVersion);
     newMockupTd.innerHTML =
@@ -1887,7 +1895,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function createTooltip(imageUrl, parentElement) {
-    var tooltipSpan = document.createElement("span");
+    let tooltipSpan = document.createElement("span");
     tooltipSpan.className = "tooltipContainer tooltip-span";
     tooltipSpan.innerHTML =
       '<img width="300" height="300" src="' +
@@ -1900,21 +1908,21 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function attachTooltipToProductThumbnails(images) {
-    // var images = document.querySelectorAll(".mockup-image img");
+    // let images = document.querySelectorAll(".mockup-image img");
 
     images.forEach(function (image) {
-      var tooltipSpan;
+      let tooltipSpan;
 
       image.addEventListener("mouseenter", function () {
-        var parentElement = image.closest("td.item_mockup_column");
+        let parentElement = image.closest("td.item_mockup_column");
         tooltipSpan = createTooltip(image.src, parentElement);
         tooltipSpan.style.display = "block";
       });
 
       image.addEventListener("mousemove", function (e) {
-        var x = e.clientX,
+        let x = e.clientX,
           y = e.clientY;
-        var tooltipWidth =
+        let tooltipWidth =
           tooltipSpan.offsetWidth || tooltipSpan.getBoundingClientRect().width;
         tooltipSpan.style.left = x + 20 + "px";
         tooltipSpan.style.top = y - 20 + "px";
@@ -1925,7 +1933,7 @@ document.addEventListener("DOMContentLoaded", function () {
         tooltipSpan.remove();
       });
 
-      var imageAnchor = image.closest("a");
+      let imageAnchor = image.closest("a");
       // Initialize Magnific Popup on click
       jQuery(imageAnchor).magnificPopup({
         type: "image",
@@ -1948,16 +1956,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.body.addEventListener("click", function (event) {
     if (event.target.id === "om_delete_mockup") {
-      var button = event.target;
-      var orderId = button.getAttribute("data-order-id");
-      var productId = button.getAttribute("data-product-id");
-      var version = button.getAttribute("data-version");
-      var productTitle = button
+      let button = event.target;
+      let orderId = button.getAttribute("data-order-id");
+      let productId = button.getAttribute("data-product-id");
+      let version = button.getAttribute("data-version");
+      let productTitle = button
         .closest("tr")
         .querySelector(".product_item_title").innerText;
 
       if (confirm("Are you sure you want to delete this mockup?")) {
-        var data = {
+        let data = {
           action: "delete_mockup_folder",
           order_id: orderId,
           product_id: productId,
@@ -1975,18 +1983,18 @@ document.addEventListener("DOMContentLoaded", function () {
           .then((response) => response.json())
           .then((response) => {
             if (response.success) {
-              var currentTd = button.closest("td.item_mockup_column");
-              var currentVersion = parseInt(
+              let currentTd = button.closest("td.item_mockup_column");
+              let currentVersion = parseInt(
                 currentTd.getAttribute("data-version_number").replace("V", "")
               );
-              var prevVersion =
+              let prevVersion =
                 "V" +
                 (parseInt(
                   currentTd.getAttribute("data-version_number").replace("V", "")
                 ) -
                   1);
 
-              var previousMockupColumn = currentTd.previousElementSibling;
+              let previousMockupColumn = currentTd.previousElementSibling;
               if (
                 previousMockupColumn &&
                 previousMockupColumn.classList.contains("item_mockup_column")
@@ -2000,7 +2008,7 @@ document.addEventListener("DOMContentLoaded", function () {
               }
 
               // Check if any of the tbody>tr>td has a data-version_number greater than currentVersion
-              var hasHigherVersion = Array.from(
+              let hasHigherVersion = Array.from(
                 document.querySelectorAll("tbody tr td.item_mockup_column")
               ).some((td) => {
                 return (
@@ -2014,7 +2022,7 @@ document.addEventListener("DOMContentLoaded", function () {
               console.log("Has higher version:", hasHigherVersion);
 
               // Update version numbers for subsequent columns
-              var subsequentTds = Array.from(
+              let subsequentTds = Array.from(
                 currentTd
                   .closest("tr")
                   .querySelectorAll("td.item_mockup_column")
@@ -2027,7 +2035,7 @@ document.addEventListener("DOMContentLoaded", function () {
               });
 
               subsequentTds.forEach((td) => {
-                var newVersion =
+                let newVersion =
                   parseInt(
                     td.getAttribute("data-version_number").replace("V", "")
                   ) - 1;
@@ -2092,21 +2100,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function populateTableHeader() {
     // Get the table
-    var table = document.getElementById("tableMain");
+    let table = document.getElementById("tableMain");
     if (!table) return;
 
     // Get all rows in the tbody
-    var rows = table
+    let rows = table
       .getElementsByTagName("tbody")[0]
       .getElementsByTagName("tr");
     if (rows.length === 0) return;
 
     // Initialize the maximum column count for 'item_mockup_column'
-    var maxMockupColumns = 0;
+    let maxMockupColumns = 0;
 
     // Loop through all rows to find the maximum number of 'item_mockup_column' tds
-    for (var i = 0; i < rows.length; i++) {
-      var mockupColumns =
+    for (let i = 0; i < rows.length; i++) {
+      let mockupColumns =
         rows[i].getElementsByClassName("item_mockup_column").length;
       if (mockupColumns > maxMockupColumns) {
         maxMockupColumns = mockupColumns;
@@ -2114,9 +2122,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Get the thead element and the first row in the thead
-    var thead = table.getElementsByTagName("thead")[0];
+    let thead = table.getElementsByTagName("thead")[0];
     if (thead.length === 0) return;
-    var headerRow = thead.getElementsByTagName("tr")[0];
+    let headerRow = thead.getElementsByTagName("tr")[0];
     if (headerRow.length === 0) return;
 
     // Remove any previously added dynamic th elements
@@ -2125,8 +2133,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Create the appropriate number of th elements
-    for (var i = 0; i < maxMockupColumns; i++) {
-      var th = document.createElement("th");
+    for (let i = 0; i < maxMockupColumns; i++) {
+      let th = document.createElement("th");
       th.className = "head";
       th.innerHTML = "<strong>Mockups V" + (i + 1) + "</strong>";
       headerRow.appendChild(th);

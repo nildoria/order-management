@@ -170,3 +170,46 @@ select#order_type {
   padding-top: 5px;
   padding-bottom: 5px;
 }
+.allaround--client-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: center;
+}
+
+.allaround--client-actions a {
+  text-decoration: underline;
+  font-size: 18px;
+}
+
+.allaround--client-actions a.allaround--client-orders {
+  background-color: #2673e7;
+  color: white;
+  text-decoration: none;
+  padding: 5px 10px;
+  margin: 0;
+  border-radius: 4px;
+}
+
+.allrnd--order-lists-modal.white-popup-block {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: white;
+  padding: 30px 50px;
+}
+
+.allrnd-client-order-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.allrnd-client-order-list ul li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-bottom: 15px;
+  padding-top: 15px;
+}

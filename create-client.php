@@ -15,16 +15,16 @@ get_header();
             <div class="om_create_order_box">
 
                 <div class="om_create__product_details">
-        
+
                     <div class="form-group">
                         <label for="type">Type</label>
                         <select name="client_type" id="client_type">
-                            <option value="client">Client</option>
+                            <option value="client">Personal</option>
                             <option value="company">Company</option>
                         </select>
                     </div>
                     <br>
-                    
+
                     <div class="form-group">
                         <label for="firstName">First Name:</label>
                         <input type="text" id="firstName" name="first_name" required>
@@ -42,7 +42,7 @@ get_header();
                         <input type="text" id="address" name="address_1">
                     </div>
                     <br>
-                    
+
                     <div class="form-group">
                         <label for="street_number">Street Number:</label>
                         <input type="text" id="street_number" name="street_number">
@@ -82,7 +82,8 @@ get_header();
                         <label>Subscribed:</label>
                         <div class="form-group-flex">
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="subscribed" id="yes" value="yes" checked>
+                                <input class="form-check-input" type="radio" name="subscribed" id="yes" value="yes"
+                                    checked>
                                 <label class="form-check-label" for="yes">Yes</label>
                             </div>
                             <div class="form-check">
@@ -91,7 +92,7 @@ get_header();
                             </div>
                         </div>
                     </div>
-                    
+
                     <br>
                     <br>
 
@@ -108,8 +109,10 @@ get_header();
                             <label for="dark_logo">Dark Logo:</label>
                             <div class="form-group-flex">
                                 <input type="text" name="dark_logo" id="dark_logo" value="" />
-                                <input type="button" id="dark_logo_button" class="button upload-image-button" value="Upload Image" />
-                                <input type="button" id="remove_dark_logo_button" class="button remove-image-button" value="Remove Image" style="display: none; ?>;" />
+                                <input type="button" id="dark_logo_button" class="button upload-image-button"
+                                    value="Upload Image" />
+                                <input type="button" id="remove_dark_logo_button" class="button remove-image-button"
+                                    value="Remove Image" style="display: none; ?>;" />
                             </div>
                             <img src="" style="max-width: 300px; display: none;" />
                         </div>
@@ -118,8 +121,10 @@ get_header();
                             <label for="lighter_logo">Lighter Logo:</label>
                             <div class="form-group-flex">
                                 <input type="text" name="lighter_logo" id="lighter_logo" value="" />
-                                <input type="button" id="lighter_logo_button" class="button upload-image-button" value="Upload Image" />
-                                <input type="button" id="remove_lighter_logo_button" class="button remove-image-button" value="Remove Image" style="display: none; ?>;" />
+                                <input type="button" id="lighter_logo_button" class="button upload-image-button"
+                                    value="Upload Image" />
+                                <input type="button" id="remove_lighter_logo_button" class="button remove-image-button"
+                                    value="Remove Image" style="display: none; ?>;" />
                             </div>
                             <img src="" style="max-width: 300px; display: none;" />
                         </div>
@@ -128,8 +133,10 @@ get_header();
                             <label for="back_light">Back Light:</label>
                             <div class="form-group-flex">
                                 <input type="text" name="back_light" id="back_light" value="" />
-                                <input type="button" id="back_light_button" class="button upload-image-button" value="Upload Image" />
-                                <input type="button" id="remove_back_light_button" class="button remove-image-button" value="Remove Image" style="display: none; ?>;" />
+                                <input type="button" id="back_light_button" class="button upload-image-button"
+                                    value="Upload Image" />
+                                <input type="button" id="remove_back_light_button" class="button remove-image-button"
+                                    value="Remove Image" style="display: none; ?>;" />
                             </div>
                             <img src="" style="max-width: 300px; display: none;" />
                         </div>
@@ -138,8 +145,10 @@ get_header();
                             <label for="back_dark">Back Dark:</label>
                             <div class="form-group-flex">
                                 <input type="text" name="back_dark" id="back_dark" value="" />
-                                <input type="button" id="back_dark_button" class="button upload-image-button" value="Upload Image" />
-                                <input type="button" id="remove_back_dark_button" class="button remove-image-button" value="Remove Image" style="display: none; ?>;" />
+                                <input type="button" id="back_dark_button" class="button upload-image-button"
+                                    value="Upload Image" />
+                                <input type="button" id="remove_back_dark_button" class="button remove-image-button"
+                                    value="Remove Image" style="display: none; ?>;" />
                             </div>
                             <img src="" style="max-width: 300px; display: none;" />
                         </div>
@@ -174,8 +183,10 @@ get_header();
                             <label for="logo">Logo:</label>
                             <div class="form-group-flex">
                                 <input type="text" name="logo" id="logo" value="" />
-                                <input type="button" id="logo_button" class="button upload-image-button" value="Upload Image" />
-                                <input type="button" id="remove_logo_button" class="button remove-image-button" value="Remove Image" style="display: none; ?>;" />
+                                <input type="button" id="logo_button" class="button upload-image-button"
+                                    value="Upload Image" />
+                                <input type="button" id="remove_logo_button" class="button remove-image-button"
+                                    value="Remove Image" style="display: none; ?>;" />
                             </div>
                             <img src="" style="max-width: 300px; display: none;" />
                         </div>

@@ -925,8 +925,8 @@ function create_order(WP_REST_Request $request)
 
     error_log(print_r($order_data, true));
 
-    $order_number = str_replace(' ', '', sanitize_text_field($order_data['order_number']));
-    $order_id = str_replace(' ', '', sanitize_text_field($order_data['order_id']));
+    $order_number = isset($order_data['order_number']) ? str_replace(' ', '', sanitize_text_field($order_data['order_number'])) : '';
+    $order_id = isset($order_data['order_id']) ? str_replace(' ', '', sanitize_text_field($order_data['order_id'])) : '';
 
     $shipping_method_id = '';
     if (!empty($order_data['shipping_lines']) && is_array($order_data['shipping_lines'])) {
@@ -960,12 +960,13 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'order_id', $order_id);
     update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $shipping_method_id);
-    update_post_meta($post_id, 'items', $order_data['items']);
-    update_post_meta($post_id, 'billing', $order_data['billing']);
-    update_post_meta($post_id, 'shipping', $order_data['shipping']);
-    update_post_meta($post_id, 'payment_method', $order_data['payment_method']);
-    update_post_meta($post_id, 'payment_method_title', $order_data['payment_method_title']);
-    update_post_meta($post_id, 'site_url', $order_data['site_url']);
+    update_post_meta($post_id, 'items', isset($order_data['items']) ? $order_data['items'] : []);
+    update_post_meta($post_id, 'billing', $order_data['billing'] ? $order_data['billing'] : []);
+    update_post_meta($post_id, 'shipping', $order_data['shipping'] ? $order_data['shipping'] : []);
+    update_post_meta($post_id, 'payment_method', $order_data['payment_method'] ? $order_data['payment_method'] : []);
+    update_post_meta($post_id, 'payment_method_title', $order_data['payment_method_title'] ? $order_data['payment_method_title'] : []);
+    update_post_meta($post_id, 'site_url', $order_data['site_url'] ? $order_data['site_url'] : []);
+    do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
 
     // Return the ID of the new post
     return new WP_REST_Response($post_id, 200);
