@@ -43,9 +43,11 @@ $header_nav_menu = wp_nav_menu([
 		</div>
 
 		<?php if ($header_nav_menu): ?>
-			<nav class="site-navigation" role="navigation">
-				<?php echo $header_nav_menu; ?>
-			</nav>
+			<?php if (!ml_current_user_contributor()): ?>
+				<nav class="site-navigation" role="navigation">
+					<?php echo $header_nav_menu; ?>
+				</nav>
+			<?php endif; ?>
 		<?php endif; ?>
 	</header>
 

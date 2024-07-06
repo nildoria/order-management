@@ -46,7 +46,7 @@ html {
  */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Heebo", Roboto,
+  font-family: -apple-system, "Heebo", BlinkMacSystemFont, Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   font-size: 1rem;
@@ -373,7 +373,7 @@ select,
 textarea {
   width: 100%;
   border: solid 1px #ccc;
-  border-radius: 3px;
+  border-radius: 7px;
   padding: 0.5rem 1rem;
   transition: all 0.3s;
 }
@@ -446,17 +446,23 @@ button:-moz-focusring,
 button,
 [type="submit"],
 [type="button"] {
-  /* display: inline-block; */
-  font-weight: 400;
+  display: inline-block;
+  background-color: #66de93;
   color: #1a1a1a;
+  font-size: 16px;
+  border-radius: 11px;
+  -webkit-border-radius: 11px;
+  -moz-border-radius: 11px;
+  -ms-border-radius: 11px;
+  -o-border-radius: 11px;
+  width: auto;
+  padding: 5px 15px;
+  text-decoration: none;
+  outline: none;
+  border: 0 solid;
   text-align: center;
   white-space: nowrap;
   user-select: none;
-  background-color: transparent;
-  border: 0px solid transparent;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border-radius: 3px;
   transition: all 0.3s;
 }
 button:focus,

@@ -1085,6 +1085,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<th class="head"><strong>Quantity</strong></th>';
     endif;
     echo '<th class="head"><strong>Graphics</strong></th>';
+    echo '<th class="head mockup-head" colspan=""><strong>Mockups</strong></th>';
     echo '</tr></thead><tbody>';
 
     foreach ($order->line_items as $item) {
@@ -1092,12 +1093,12 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         $item_id = esc_attr($item->id);
         $product_id = esc_attr($item->product_id);
 
-        echo '<tr class="alt" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
+        echo '<tr class="om__orderRow" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
         echo '<td class="item_product_column">';
         if (!ml_current_user_contributor()):
-            echo '<span class="om_duplicate_item"><img src="' . get_template_directory_uri() . '/assets/images/copy.png" alt="Copy" /></span>';
-            echo '<span class="om_delete_item"><img src="' . get_template_directory_uri() . '/assets/images/delete.png" alt="Delete" /></span>';
-            echo '<span class="om__editItemMeta" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></span>';
+            echo '<span class="om__editItemMeta" title="Edit" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+            echo '<span class="om_duplicate_item" title="Duplicate"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="duplicate-icon" d="M10.5003 3.49996V1.74996C10.5003 1.59525 10.4389 1.44688 10.3295 1.33748C10.2201 1.22808 10.0717 1.16663 9.91699 1.16663H1.75033C1.59562 1.16663 1.44724 1.22808 1.33785 1.33748C1.22845 1.44688 1.16699 1.59525 1.16699 1.74996V9.91663C1.16699 10.0713 1.22845 10.2197 1.33785 10.3291C1.44724 10.4385 1.59562 10.5 1.75033 10.5H3.50033V12.25C3.50033 12.4047 3.56178 12.553 3.67118 12.6624C3.78058 12.7718 3.92895 12.8333 4.08366 12.8333H12.2503C12.405 12.8333 12.5534 12.7718 12.6628 12.6624C12.7722 12.553 12.8337 12.4047 12.8337 12.25V4.08329C12.8337 3.92858 12.7722 3.78021 12.6628 3.67081C12.5534 3.56142 12.405 3.49996 12.2503 3.49996H10.5003ZM2.33366 9.33329V2.33329H9.33366V9.33329H2.33366ZM11.667 11.6666H4.66699V10.5H9.91699C10.0717 10.5 10.2201 10.4385 10.3295 10.3291C10.4389 10.2197 10.5003 10.0713 10.5003 9.91663V4.66663H11.667V11.6666Z" fill="#1A1A1A"/></svg></span>';
+            echo '<span class="om_delete_item" title="Delete"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></span>';
         endif;
         if (isset($item->id)) {
             echo '<input type="hidden" name="item_id" value="' . esc_attr($item_id) . '">';
@@ -1113,7 +1114,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_artwork_id2", "_allaround_art_pos_key"])) {
                 continue;
             }
-            echo '<li data-meta_key="' . esc_html($meta->key) . '">' . esc_html($meta->key) . ': ' . esc_html(strip_tags($meta->value)) . '</li>';
+            echo '<li data-meta_key="' . esc_html($meta->key) . '">' . esc_html($meta->key) . ': <strong>' . esc_html(strip_tags($meta->value)) . '</strong></li>';
         }
         echo '</ul>';
         echo '</span>';
@@ -1171,14 +1172,16 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '</td>';
         if (!ml_current_user_contributor()):
             echo '<td class="item_quantity_column">';
+            echo '<span class="om__quantityNumbers">';
             echo '<span class="om__itemQuantity">' . esc_attr($item->quantity) . '</span>x';
             echo '<span class="om__itemRate">' . esc_attr(number_format($item->price, 2) . $currency_symbol) . '</span> = ';
             echo '<span class="om__itemCostTotal">' . esc_attr(number_format($item->total, 2) . $currency_symbol) . '</span>';
+            echo '</span>';
             echo '<span class="om_itemQuantPriceEdit">';
             echo '<input type="number" class="item-quantity-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->quantity) . '" />';
             echo '<input type="number" class="item-cost-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->price) . '" />';
             echo '</span>';
-            echo '</td>';
+            echo '</span>';
         endif;
         echo '<td class="item_graphics_column">';
         $artworkFound = false;
@@ -1193,9 +1196,10 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                     $class_name = 'file-format-unknown';
                 }
                 $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                $value = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></label>' . $value;
-                $value = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="' . $clean_key . '" style="display:none" />' . $value;
-                $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $value . '</div>';
+                $artworkEdit = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
+                $artworkDelete = '<label class="om__DeleteArtwork" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></label>';
+                $artworkFileupload = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="' . $clean_key . '" style="display:none" />';
+                $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $artworkDelete . $artworkEdit . $artworkFileupload . $value . '</div>';
                 echo $value;
                 $artworkFound = true;
             }
@@ -1204,24 +1208,25 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         if (!$artworkFound) {
             echo '<div class="uploaded_graphics">';
             echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
-            echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><img src="' . get_template_directory_uri() . '/assets/images/pen.png" alt="Edit" /></label>';
+            echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
             echo '<span class="no_artwork_text">No Artwork Attached</span>';
             echo '</div>';
         }
         echo '</td>';
-
         echo '</tr>';
     }
     echo '</tbody><tfoot>';
     if (!ml_current_user_contributor()):
         echo '<tr>';
-        echo '<td colspan="1"><span>Items Subtotal:</span><br>';
+        echo '<td class="subtotals_titles" colspan="1"><span>Items Subtotal:</span><br>';
         echo '<span>Shipping:</span><br>';
-        echo '<span>Order Total:</span></td>';
+        echo '<span class="order_total_title">Order Total:</span></td>';
         echo '<td class="totals_column">';
         echo '<span class="om__items_subtotal">' . esc_attr(number_format($items_subtotal, 2) . ' ' . $currency_symbol) . '</span><br>';
         echo '<span class="om__shipping_total">' . esc_attr(number_format($shipping_total, 2) . ' ' . $currency_symbol) . '</span><br>';
         echo '<span class="om__orderTotal">' . esc_attr(number_format($order->total, 2) . ' ' . $currency_symbol) . '</span>';
+        echo '<td class="tfoot_empty_column">';
+        echo '</td>';
         echo '</td>';
         echo '</tr>';
     endif;

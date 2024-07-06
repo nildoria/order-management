@@ -28,7 +28,7 @@ get_header();
             $first_name = get_post_meta($client_id, 'first_name', true);
             $last_name = get_post_meta($client_id, 'last_name', true);
             $email = get_post_meta($client_id, 'email', true);
-            $client_name = $first_name . ' ' . $last_name . ' (' . $email . ')';
+            $client_name = $first_name . ' ' . $last_name;
             $client_url = get_permalink($client_id);
         }
         ?>
@@ -39,94 +39,109 @@ get_header();
                 <?php echo '<input type="hidden" id="post_id" value="' . esc_attr($current_id) . '">'; ?>
 
                 <div id="order_mngmnt_headings" class="order_mngmnt_headings">
-                    <div class="om_headin_titles">
+                    <div class="om__summeryContainer">
+                        <h4><?php echo esc_html__('Summary', 'hello-elementor'); ?></h4>
+                        <div class="om_headin_titles">
+                            <div class="om__orderSummeryOne">
+                                <div class="om__orderSummeryItem">
+                                <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?><span><?php echo $order_number; ?></span></h6>
+                                </div>
+                                <div class="om__orderSummeryItem">
+                                <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?><span><?php echo $order_status; ?></span></h6>
+                                </div>
+                                <div class="om__orderSummeryItem">
+                                <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?><span> <a href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a></span></h6>
+                                </div>
+                            </div>
+                            <div class="om__orderSummeryTwo">
+                                <div class="shipping_method_update_box">
+                                    <div class="shipping_method_title">
+                                        <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
+                                    </div>
+                                    <div class="shipping_method_value">
+                                        <?php if (!ml_current_user_contributor()): ?>
+                                        <form id="shipping-method-form">
+                                            <select id="shipping-method-list" name="shipping_method">
+                                                <option value="">Select Shipping Option</option>
+                                                <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
+                                                    שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
+                                                <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
+                                                <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                                            </select>
+                                            <input class="om_shipping_submit" type="submit" value="Update">
+                                        </form>
+                                        <?php else: ?>
+                                            <select id="shipping-method-list" class="non-admin-shipping-list" name="shipping_method">
+                                                <option value="">Select Shipping Option</option>
+                                                <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
+                                                    שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
+                                                <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
+                                                <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                                            </select>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="order_type_update_box">
+                                    <div class="order_type_title">
+                                        <h6><?php echo esc_html__('Order Type:', 'hello-elementor'); ?></h6>
+                                    </div>
+                                    <div class="order_type_value">
+                                        <?php if (!ml_current_user_contributor()): ?>
+                                        <form id="order_type-form">
+                                            <input type="hidden" name="post_id" value="<?php echo $current_id; ?>">
+                                            <select id="order_type" name="order_type">
+                                                <option value="">Order Type</option>
+                                                <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
+                                                <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
+                                            </select>
+                                            <input class="om_order_type_submit" type="submit" value="Update">
+                                        </form>
+                                        <?php else: ?>
+                                            <select id="order_type" class="non-admin-shipping-list" name="order_type">
+                                                <option value="">Order Type</option>
+                                                <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
+                                                <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
+                                            </select>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="om__ordernoteContainer">
+                        <h4><?php echo esc_html__('Order Note', 'hello-elementor'); ?></h4>
+                        <div class="om_displayOrderNotesGrid">
+                            <div class="om_addOrderNote<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_addNote' : ''; ?>">
+                                Add Note +</div>
+                            <div class="om__displayOrderComment<?php echo empty($order_manage_general_comment) ? ' om_no_notes' : ''; ?>">
+                                <?php if ($order_manage_general_comment): ?>
+                                    <div class="om__orderGeneralComment_text">
+                                        <p><?php echo $order_manage_general_comment; ?></p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         
-                        <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?> <?php echo $order_number; ?></h6>
-                        <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?> <?php echo $order_status; ?></h6>
-                        <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?> <a href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a></h6>
-
-                        <div class="shipping_method_update_box">
-                            <div class="shipping_method_title">
-                                <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
+                            <div class="om__orderNoteFiles_container<?php echo empty($order_extra_attachments) ? ' om_no_notes' : ''; ?>">
+                                <h5><?php echo esc_html__('Attachments!', 'hello-elementor'); ?></h5>
+                                <div class="om__orderNoteFiles">
+                                    <?php if (!empty($order_extra_attachments)): ?>
+                                        <?php foreach ($order_extra_attachments as $attachment): ?>
+                                            <a href="<?php echo esc_url($attachment['url']); ?>"
+                                                target="_blank"><?php echo esc_html($attachment['name']); ?></a>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <div class="shipping_method_value">
-                                <?php if (!ml_current_user_contributor()): ?>
-                                <form id="shipping-method-form">
-                                    <select id="shipping-method-list" name="shipping_method">
-                                        <option value="">Select Shipping Option</option>
-                                        <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
-                                            שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
-                                        <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
-                                        <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
-                                    </select>
-                                    <input class="om_shipping_submit" type="submit" value="Update">
-                                </form>
-                                <?php else: ?>
-                                    <select id="shipping-method-list" class="non-admin-shipping-list" name="shipping_method">
-                                        <option value="">Select Shipping Option</option>
-                                        <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
-                                            שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
-                                        <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
-                                        <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
-                                    </select>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="order_type_update_box">
-                            <div class="order_type_title">
-                                <h6><?php echo esc_html__('Order Type:', 'hello-elementor'); ?></h6>
-                            </div>
-                            <div class="order_type_value">
-                                <?php if (!ml_current_user_contributor()): ?>
-                                <form id="order_type-form">
-                                    <input type="hidden" name="post_id" value="<?php echo $current_id; ?>">
-                                    <select id="order_type" name="order_type">
-                                        <option value="">Select Order Type</option>
-                                        <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
-                                        <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
-                                    </select>
-                                    <input class="om_order_type_submit" type="submit" value="Update">
-                                </form>
-                                <?php else: ?>
-                                    <select id="order_type" class="non-admin-shipping-list" name="order_type">
-                                        <option value="">Select Order Type</option>
-                                        <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
-                                        <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
-                                    </select>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                    <?php if (!ml_current_user_contributor()): ?>
-                    <div class="om_headin_cta_buttons">
-                        <button type="button" class="allarnd--regular-button ml_add_loading add_order_heading_btn"><a href="/add-order/">Add Order</a></button>
-                    </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="om_displayOrderNotesGrid">
-                    <div class="om_addOrderNote<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_addNote' : ''; ?>">Add Note +</div>
-                    <div class="om__displayOrderComment<?php echo empty($order_manage_general_comment) ? ' om_no_notes' : ''; ?>">
-                        <h4><?php echo esc_html__('Order Note!', 'hello-elementor'); ?></h4>
-                        <?php if ($order_manage_general_comment): ?>
-                        <div class="om__orderGeneralComment_text">
-                            <p><?php echo $order_manage_general_comment; ?></p>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <div class="om__orderNoteFiles_container<?php echo empty($order_extra_attachments) ? ' om_no_notes' : ''; ?>">
-                        <h4><?php echo esc_html__('Attachments!', 'hello-elementor'); ?></h4>
-                        <div class="om__orderNoteFiles">
-                            <?php if (!empty($order_extra_attachments)): ?>
-                                <?php foreach ($order_extra_attachments as $attachment): ?>
-                                    <a href="<?php echo esc_url($attachment['url']); ?>"
-                                        target="_blank"><?php echo esc_html($attachment['name']); ?></a><br>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php// if (!ml_current_user_contributor()): ?>
+                    <!-- <div class="om_headin_cta_buttons">
+                        <button type="button" class="allarnd--regular-button ml_add_loading add_order_heading_btn"><a href="/add-order/">Add
+                                Order</a></button>
+                    </div> -->
+                <?php// endif; ?>
 
                 <div id="order_management_table_container" class="order_management_table_container">
                     <div class="om_table_wraper">
