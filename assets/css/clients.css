@@ -141,7 +141,7 @@ td.td_index {
   padding: 40px 0;
 }
 
-.om_order_type_submit {
+.om__summeryContainer .om_order_type_submit {
   border-radius: 7px;
   padding: 0;
   width: 35px;
@@ -152,13 +152,10 @@ td.td_index {
   background-repeat: no-repeat;
   text-indent: -9999999px;
   background-position: center center;
+  background-color: transparent;
 }
-
 .order_type_update_box {
-  display: flex;
-  flex-direction: row;
-  gap: 5px;
-  margin-top: 10px;
+  flex: 0 0 30%;
 }
 
 form#order_type-form {
@@ -169,6 +166,8 @@ form#order_type-form {
 select#order_type {
   padding-top: 5px;
   padding-bottom: 5px;
+  padding-left: 5px;
+  border-radius: 7px;
 }
 .allaround--client-actions {
   display: flex;

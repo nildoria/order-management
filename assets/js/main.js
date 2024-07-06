@@ -1427,7 +1427,7 @@
             $(".om__orderNoteFiles").remove(); // Remove existing attachments
             let attachmentsHtml = '<div class="om__orderNoteFiles">';
             response.data.attachments.forEach(function (attachment) {
-              attachmentsHtml += `<a href="${attachment.url}" target="_blank">${attachment.name}</a><br>`;
+              attachmentsHtml += `<a href="${attachment.url}" target="_blank">${attachment.name}</a>`;
             });
             attachmentsHtml += "</div>";
             $(".om__orderNoteFiles_container").removeClass("om_no_notes");
@@ -1543,13 +1543,11 @@ document.addEventListener("DOMContentLoaded", function () {
               </div>
             </div>
             <input type="hidden" class="hidden_mockup_url" name="mockup-image-v${mockupVersion}" value="">
-            <div class="mockup-image">Loading mockup images...</div>
+            <div class="mockup-image mockupUUID_${orderId}_${productId}_${mockupVersion}">Loading mockup images...</div>
+            <div class="this-mockup-version"><span>V${mockupVersion}</span></div>
             <input class="file-input__input" name="file-input[${productId}]" id="file-input-${productId}-v${mockupVersion}" data-version="V${mockupVersion}" type="file" placeholder="Upload Mockup" multiple>
             <label class="file-input__label" for="file-input-${productId}-v${mockupVersion}">
-              <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                <path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>
-              </svg>
-              <span>Upload file</span>
+              <span class="dashicons dashicons-plus-alt2"></span>
             </label>
           `;
             thisTr.appendChild(mockupTd);
@@ -1609,11 +1607,35 @@ document.addEventListener("DOMContentLoaded", function () {
                   `<a href="${file}"><img src="${file}" alt="Mockup Image"  class="om_mockup-thumbnail"></a>`
               )
               .join("");
+
+            // Add <span>Gallery</span> if there is more than one file
+            if (fileList.length > 1) {
+              let gallerySpan = document.createElement("span");
+              gallerySpan.className = "mock-gallery-span";
+              gallerySpan.innerHTML = `<span class="dashicons dashicons-format-gallery"></span>`;
+              column.prepend(gallerySpan);
+
+              // Initialize Slick Carousel on the mockupImageContainer
+              const uniqueClass = `mockupUUID_${orderId}_${productId}_${version}`;
+              // mockupImageContainer.classList.add(uniqueClass);
+
+              // Ensure the carousel initialization is done after the DOM update
+              setTimeout(() => {
+                jQuery(`.${uniqueClass}`).slick({
+                  infinite: true,
+                  slidesToShow: 1,
+                  slidesToScroll: 1,
+                  arrows: false,
+                  dots: true,
+                  adaptiveHeight: true,
+                });
+              }, 100);
+            }
             // Pass the newly added images to the tooltip function
             const newImages = mockupImageContainer.querySelectorAll(
               ".om_mockup-thumbnail"
             );
-            attachTooltipToProductThumbnails(newImages);
+            attachTooltipToProductThumbnails(newImages, productId, version);
           }
           // Removing the spinner after the images are loaded
           column.querySelectorAll(".lds-spinner-wrap").forEach((wrap) => {
@@ -1642,7 +1664,7 @@ document.addEventListener("DOMContentLoaded", function () {
       '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' +
       nextVersion +
       '" value="">' +
-      '<div class="mockup-image">Select Mockup Image JS</div>' +
+      '<div class="mockup-image"></div>' +
       '<input class="file-input__input" name="file-input[' +
       productId +
       ']" id="file-input-' +
@@ -1652,15 +1674,15 @@ document.addEventListener("DOMContentLoaded", function () {
       '" data-version="V' +
       nextVersion +
       '" type="file" placeholder="Upload Mockup" multiple >' +
-      '<label class="file-input__label" for="file-input-' +
+      '<label class="file-input__label om__newMockupUpBtn" for="file-input-' +
       productId +
       "-v" +
       nextVersion +
       '">' +
-      '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
-      '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>' +
+      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<g clip-path="url(#clip0_2744_3844)"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.99967 0.833374C8.14561 0.833374 8.28434 0.897154 8.37927 1.00798L10.3793 3.34131C10.559 3.55097 10.5347 3.86663 10.3251 4.04633C10.1154 4.22605 9.79974 4.20177 9.62007 3.9921L8.49967 2.685V10C8.49967 10.2762 8.27581 10.5 7.99967 10.5C7.72354 10.5 7.49967 10.2762 7.49967 10V2.685L6.3793 3.9921C6.19959 4.20177 5.88394 4.22605 5.67428 4.04633C5.46461 3.86663 5.44033 3.55097 5.62005 3.34131L7.62007 1.00798C7.71501 0.897154 7.85374 0.833374 7.99967 0.833374ZM4.66356 5.50135C4.93969 5.49981 5.16479 5.72242 5.16633 5.99856C5.16787 6.27469 4.94526 6.49979 4.66913 6.50133C3.94013 6.50539 3.42341 6.52432 3.03124 6.59636C2.65337 6.66577 2.43465 6.77724 2.27235 6.93951C2.08784 7.12404 1.96754 7.38311 1.90177 7.87224C1.83407 8.37584 1.83301 9.04324 1.83301 10.0002V10.6668C1.83301 11.6238 1.83407 12.2912 1.90177 12.7948C1.96754 13.284 2.08784 13.543 2.27235 13.7275C2.45685 13.912 2.7159 14.0323 3.20509 14.0981C3.70865 14.1658 4.37606 14.1668 5.33301 14.1668H10.6663C11.6233 14.1668 12.2907 14.1658 12.7943 14.0981C13.2835 14.0323 13.5425 13.912 13.727 13.7275C13.9115 13.543 14.0318 13.284 14.0976 12.7948C14.1653 12.2912 14.1663 11.6238 14.1663 10.6668V10.0002C14.1663 9.04324 14.1653 8.37584 14.0976 7.87224C14.0318 7.38311 13.9115 7.12404 13.727 6.93951C13.5647 6.77724 13.346 6.66577 12.9681 6.59636C12.5759 6.52432 12.0592 6.50539 11.3302 6.50133C11.0541 6.49979 10.8315 6.27469 10.833 5.99856C10.8345 5.72242 11.0597 5.49981 11.3358 5.50135C12.0568 5.50536 12.6577 5.52262 13.1487 5.61281C13.6541 5.70563 14.0841 5.88246 14.4341 6.23241C14.8354 6.63369 15.008 7.13897 15.0887 7.73904C15.1663 8.31697 15.1663 9.05191 15.1663 9.96357V10.7034C15.1663 11.6152 15.1663 12.35 15.0887 12.928C15.008 13.5281 14.8354 14.0333 14.4341 14.4346C14.0328 14.8359 13.5276 15.0085 12.9275 15.0892C12.3495 15.1669 11.6147 15.1668 10.7029 15.1668H5.29643C4.3847 15.1668 3.64982 15.1669 3.07184 15.0892C2.47177 15.0085 1.96652 14.8359 1.56524 14.4346C1.16396 14.0333 0.991368 13.5281 0.910688 12.928C0.832982 12.35 0.832995 11.6152 0.833008 10.7034V9.96357C0.832995 9.05184 0.832982 8.31697 0.910688 7.73904C0.991368 7.13897 1.16396 6.63369 1.56524 6.23241C1.91519 5.88246 2.34524 5.70563 2.85057 5.61281C3.34161 5.52261 3.94254 5.50536 4.66356 5.50135Z" fill="#1A1A1A"/></g><defs><clipPath><rect width="16" height="16" fill="white"/></clipPath></defs>' +
       "</svg>" +
-      "<span>Upload file</span></label>";
+      "<span>Upload</span></label>";
 
     row.appendChild(newMockupTd);
   }
@@ -1714,6 +1736,7 @@ document.addEventListener("DOMContentLoaded", function () {
       'input[type="hidden"].hidden_mockup_url'
     );
     let spinner = mockupColumn.querySelector(".lds-spinner-wrap");
+    let uploadButton = mockupColumn.querySelector(".file-input__label");
     let mockupImageContainer = mockupColumn.querySelector(".mockup-image");
     const tableMain = mockupColumn.closest("table#tableMain");
     const tableBody = mockupColumn.closest("table#tableMain > tbody");
@@ -1738,8 +1761,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return response.json();
       })
       .then((responses) => {
-        console.log("Server responses:", responses);
-
         tableBody.style.pointerEvents = "all";
 
         responses.forEach((data, index) => {
@@ -1760,19 +1781,36 @@ document.addEventListener("DOMContentLoaded", function () {
             mockupImageContainer.appendChild(newAnchor);
 
             // Apply the tooltip to the newly added image
-            attachTooltipToProductThumbnails([newAnchor.querySelector("img")]);
+            attachTooltipToProductThumbnails(
+              [newAnchor.querySelector("img")],
+              productId,
+              version
+            );
           }
         });
 
         // Check if a new mockups version column should be added
         let nextVersion = parseInt(version.replace("V", "")) + 1;
-        addNewMockupHeader(nextVersion);
+        // addNewMockupHeader(nextVersion);
         addNewMockupColumn(input, nextVersion);
+
+        // just bellow of mockupImageContainer add <div class="this-mockup-version"><span>V2</span></div> with this version
+        let thisMockupVersion = document.createElement("div");
+        thisMockupVersion.className = "this-mockup-version";
+        thisMockupVersion.innerHTML = `<span>${version}</span>`;
+        mockupImageContainer.insertAdjacentElement(
+          "afterend",
+          thisMockupVersion
+        );
 
         // Check if delete button exists, if not create it
         if (!mockupColumn.querySelector("#om_delete_mockup")) {
           createDeleteButton(mockupColumn, version, productId);
         }
+
+        uploadButton.classList.remove("om__newMockupUpBtn");
+        uploadButton.style.marginRight = "4px";
+        uploadButton.innerHTML = `<span class="dashicons dashicons-plus-alt2"></span>`;
 
         tableMain.scrollLeft = tableMain.scrollWidth;
 
@@ -1838,8 +1876,8 @@ document.addEventListener("DOMContentLoaded", function () {
     deleteButton.id = "om_delete_mockup";
     deleteButton.setAttribute("data-order-id", allaround_vars.order_id);
     deleteButton.setAttribute("data-version", version);
-    deleteButton.textContent = "Delete Mockup";
-    mockupColumn.insertBefore(deleteButton, mockupColumn.firstChild);
+    deleteButton.textContent = `Delete`;
+    mockupColumn.append(deleteButton, mockupColumn.firstChild);
   }
 
   function addNewMockupHeader(nextVersion) {
@@ -1875,7 +1913,7 @@ document.addEventListener("DOMContentLoaded", function () {
       '<input type="hidden" class="hidden_mockup_url" name="mockup-image-v' +
       nextVersion +
       '" value="">' +
-      '<div class="mockup-image">Select Mockup Image JS</div>' +
+      '<div class="mockup-image"></div>' +
       '<input class="file-input__input" name="file-input[' +
       productId +
       ']" id="file-input-' +
@@ -1885,15 +1923,15 @@ document.addEventListener("DOMContentLoaded", function () {
       '" data-version="V' +
       nextVersion +
       '" type="file" placeholder="Upload Mockup" multiple >' +
-      '<label class="file-input__label" for="file-input-' +
+      '<label class="file-input__label om__newMockupUpBtn" for="file-input-' +
       productId +
       "-v" +
       nextVersion +
       '">' +
-      '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
-      '<path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>' +
+      '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<g clip-path="url(#clip0_2744_3844)"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.99967 0.833374C8.14561 0.833374 8.28434 0.897154 8.37927 1.00798L10.3793 3.34131C10.559 3.55097 10.5347 3.86663 10.3251 4.04633C10.1154 4.22605 9.79974 4.20177 9.62007 3.9921L8.49967 2.685V10C8.49967 10.2762 8.27581 10.5 7.99967 10.5C7.72354 10.5 7.49967 10.2762 7.49967 10V2.685L6.3793 3.9921C6.19959 4.20177 5.88394 4.22605 5.67428 4.04633C5.46461 3.86663 5.44033 3.55097 5.62005 3.34131L7.62007 1.00798C7.71501 0.897154 7.85374 0.833374 7.99967 0.833374ZM4.66356 5.50135C4.93969 5.49981 5.16479 5.72242 5.16633 5.99856C5.16787 6.27469 4.94526 6.49979 4.66913 6.50133C3.94013 6.50539 3.42341 6.52432 3.03124 6.59636C2.65337 6.66577 2.43465 6.77724 2.27235 6.93951C2.08784 7.12404 1.96754 7.38311 1.90177 7.87224C1.83407 8.37584 1.83301 9.04324 1.83301 10.0002V10.6668C1.83301 11.6238 1.83407 12.2912 1.90177 12.7948C1.96754 13.284 2.08784 13.543 2.27235 13.7275C2.45685 13.912 2.7159 14.0323 3.20509 14.0981C3.70865 14.1658 4.37606 14.1668 5.33301 14.1668H10.6663C11.6233 14.1668 12.2907 14.1658 12.7943 14.0981C13.2835 14.0323 13.5425 13.912 13.727 13.7275C13.9115 13.543 14.0318 13.284 14.0976 12.7948C14.1653 12.2912 14.1663 11.6238 14.1663 10.6668V10.0002C14.1663 9.04324 14.1653 8.37584 14.0976 7.87224C14.0318 7.38311 13.9115 7.12404 13.727 6.93951C13.5647 6.77724 13.346 6.66577 12.9681 6.59636C12.5759 6.52432 12.0592 6.50539 11.3302 6.50133C11.0541 6.49979 10.8315 6.27469 10.833 5.99856C10.8345 5.72242 11.0597 5.49981 11.3358 5.50135C12.0568 5.50536 12.6577 5.52262 13.1487 5.61281C13.6541 5.70563 14.0841 5.88246 14.4341 6.23241C14.8354 6.63369 15.008 7.13897 15.0887 7.73904C15.1663 8.31697 15.1663 9.05191 15.1663 9.96357V10.7034C15.1663 11.6152 15.1663 12.35 15.0887 12.928C15.008 13.5281 14.8354 14.0333 14.4341 14.4346C14.0328 14.8359 13.5276 15.0085 12.9275 15.0892C12.3495 15.1669 11.6147 15.1668 10.7029 15.1668H5.29643C4.3847 15.1668 3.64982 15.1669 3.07184 15.0892C2.47177 15.0085 1.96652 14.8359 1.56524 14.4346C1.16396 14.0333 0.991368 13.5281 0.910688 12.928C0.832982 12.35 0.832995 11.6152 0.833008 10.7034V9.96357C0.832995 9.05184 0.832982 8.31697 0.910688 7.73904C0.991368 7.13897 1.16396 6.63369 1.56524 6.23241C1.91519 5.88246 2.34524 5.70563 2.85057 5.61281C3.34161 5.52261 3.94254 5.50536 4.66356 5.50135Z" fill="#1A1A1A"/></g><defs><clipPath><rect width="16" height="16" fill="white"/></clipPath></defs>' +
       "</svg>" +
-      "<span>Upload file</span></label>";
+      "<span>Upload</span></label>";
 
     row.appendChild(newMockupTd);
   }
@@ -1911,7 +1949,8 @@ document.addEventListener("DOMContentLoaded", function () {
     return tooltipSpan;
   }
 
-  function attachTooltipToProductThumbnails(images) {
+  function attachTooltipToProductThumbnails(images, productId, version) {
+    orderId = allaround_vars.order_id;
     // let images = document.querySelectorAll(".mockup-image img");
 
     images.forEach(function (image) {
@@ -1938,23 +1977,29 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       let imageAnchor = image.closest("a");
-      // Initialize Magnific Popup on click
-      jQuery(imageAnchor).magnificPopup({
-        type: "image",
-        closeOnContentClick: true,
-        closeBtnInside: true,
-        fixedContentPos: true,
-        mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
-        image: {
-          verticalFit: true,
-        },
-        zoom: {
-          enabled: true,
-          duration: 300, // don't forget to change the duration also in CSS
-        },
-        closeMarkup:
-          '<button title="%title%" type="button" class="mfp-close">×</button>',
-      });
+      // Add a common class to group image anchors
+      imageAnchor.classList.add("mockupUUID_" + orderId + productId + version);
+    });
+
+    // Initialize Magnific Popup for the gallery
+    jQuery(".mockupUUID_" + orderId + productId + version).magnificPopup({
+      type: "image",
+      closeOnContentClick: true,
+      closeBtnInside: true,
+      fixedContentPos: true,
+      mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
+      gallery: {
+        enabled: true, // Enable gallery mode
+      },
+      image: {
+        verticalFit: true,
+      },
+      zoom: {
+        enabled: true,
+        duration: 300, // don't forget to change the duration also in CSS
+      },
+      closeMarkup:
+        '<button title="%title%" type="button" class="mfp-close">×</button>',
     });
   }
 
@@ -2022,8 +2067,6 @@ document.addEventListener("DOMContentLoaded", function () {
                   currentVersion + 1
                 );
               });
-
-              console.log("Has higher version:", hasHigherVersion);
 
               // Update version numbers for subsequent columns
               let subsequentTds = Array.from(
@@ -2127,21 +2170,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Get the thead element and the first row in the thead
     let thead = table.getElementsByTagName("thead")[0];
-    if (thead.length === 0) return;
+    if (!thead) return;
     let headerRow = thead.getElementsByTagName("tr")[0];
-    if (headerRow.length === 0) return;
+    if (!headerRow) return;
 
-    // Remove any previously added dynamic th elements
-    while (headerRow.children.length > 3) {
-      headerRow.removeChild(headerRow.lastChild);
-    }
+    // Find the .mockup-head th element
+    let mockupHead = headerRow.querySelector(".mockup-head");
+    if (!mockupHead) return;
 
-    // Create the appropriate number of th elements
-    for (let i = 0; i < maxMockupColumns; i++) {
-      let th = document.createElement("th");
-      th.className = "head";
-      th.innerHTML = "<strong>Mockups V" + (i + 1) + "</strong>";
-      headerRow.appendChild(th);
-    }
+    // Find the .mockup-head th element
+    let emptyTfootTd = table.querySelector(".tfoot_empty_column");
+    if (!mockupHead) return;
+
+    // Set the colspan attribute
+    mockupHead.setAttribute("colspan", maxMockupColumns);
+    emptyTfootTd.setAttribute("colspan", maxMockupColumns + 1);
   }
 });
