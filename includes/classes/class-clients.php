@@ -594,7 +594,7 @@ class AllAroundClientsDB
         ];
         ?>
         <p>
-            <label for="client_type">client_type:</label><br>
+            <label for="client_type">Client Type:</label><br>
             <select name="client_type" id="client_type" required>
                 <option value="personal" <?php selected($fields['client_type'], 'personal'); ?>>Personal</option>
                 <option value="company" <?php selected($fields['client_type'], 'company'); ?>>Company</option>
@@ -608,6 +608,10 @@ class AllAroundClientsDB
         <p>
             <label for="last_name">Last Name:</label><br>
             <input type="text" name="last_name" id="last_name" value="<?php echo esc_attr($fields['last_name']); ?>" required />
+        </p>
+        <p>
+            <label for="invoice">Invoice Name:</label><br>
+            <input type="text" name="invoice" id="invoice" value="<?php echo esc_attr($fields['invoice']); ?>" />
         </p>
         <p>
             <label for="email">Email:</label><br>
@@ -717,10 +721,6 @@ class AllAroundClientsDB
                 <label for="mini_header">Mini Header:</label><br>
                 <input type="text" name="mini_header" id="mini_header"
                     value="<?php echo esc_attr($fields['mini_header']); ?>" />
-            </p>
-            <p>
-                <label for="invoice">Invoice Name:</label><br>
-                <input type="text" name="invoice" id="invoice" value="<?php echo esc_attr($fields['invoice']); ?>" />
             </p>
             <p>
                 <label for="logo">Logo:</label><br>
