@@ -1,0 +1,571 @@
+jQuery(document).ready(function ($) {
+  function getGroupedItemRate(quantity, steps, regularPrice) {
+    let rate = regularPrice; // Start with regular price
+    for (let i = 0; i < steps.length; i++) {
+      if (quantity <= parseInt(steps[i].quantity)) {
+        rate = steps[i].amount;
+        break;
+      }
+    }
+    if (rate == 0) {
+      rate = regularPrice;
+    }
+    return rate;
+  }
+
+  function updateGroupProductPrice(modal) {
+    const wrapper = modal.find(".product-grouped-product-wraper");
+    let steps;
+    try {
+      steps = JSON.parse(wrapper.attr("data-steps"));
+    } catch (e) {
+      console.error("Invalid JSON in data-steps:", wrapper.attr("data-steps"));
+      return;
+    }
+    const regularPrice = parseFloat(wrapper.attr("data-regular_price"));
+
+    let totalUnits = 0;
+    modal.find(".group-product-input").each(function () {
+      const qty = parseInt($(this).val()) || 0;
+      totalUnits += qty;
+    });
+
+    if (totalUnits === 0) {
+      modal.find(".grouped_product_add_to_cart").attr("disabled", true);
+    } else {
+      modal.find(".grouped_product_add_to_cart").attr("disabled", false);
+    }
+
+    const unitRate = getGroupedItemRate(totalUnits, steps, regularPrice);
+    const subTotalPrice = unitRate * totalUnits;
+
+    modal.find(".group_unite_price").text(unitRate);
+    modal.find(".item_unit_rate").val(unitRate);
+    modal.find(".total_units").text(totalUnits);
+    modal.find(".item_total_units").val(totalUnits);
+    modal.find(".item-total-number").text(subTotalPrice);
+    modal.find(".item_total_price").val(subTotalPrice);
+  }
+
+  $(".group-product-input").on("input", function () {
+    let value = $(this).val().replace(/\D/g, ""); // Only numbers
+    if (value.length > 3) {
+      value = value.slice(0, 3); // Limit to 3 characters
+    }
+    $(this).val(value);
+
+    const modal = $(this).closest(".product-details-modal");
+    updateGroupProductPrice(modal);
+  });
+
+  // Initialize calculations on page load
+  $(".grouped-product").each(function () {
+    updateGroupProductPrice($(this));
+  });
+
+  // Function to get the item rate based on quantity
+  function getItemRate(quantity, steps) {
+    let rate = steps[0].amount;
+    for (let i = 0; i < steps.length; i++) {
+      if (
+        i === steps.length - 1 ||
+        quantity < parseInt(steps[i + 1].quantity)
+      ) {
+        rate = steps[i].amount;
+        break;
+      }
+    }
+    return rate;
+  }
+
+  // Event listener for quantity input change
+  $(".custom-quantity").on("input", function () {
+    let quantityStr = $(this).val().replace(/\D/g, ""); // Only numbers
+    if (quantityStr.length > 6) {
+      quantityStr = quantityStr.slice(0, 6); // Limit to 6 characters
+    }
+    if (quantityStr === "" || quantityStr === "0") {
+      quantityStr = "1";
+    }
+    let quantity = parseInt(quantityStr);
+
+    if (quantity > 0) {
+      $(this)
+        .closest(".product-details-modal")
+        .find(".single_add_to_cart_button")
+        .attr("disabled", false);
+    }
+
+    let steps = $(this).data("steps"); // Get steps from data attribute
+
+    if (typeof steps === "string") {
+      steps = JSON.parse(steps);
+    }
+
+    let rate = getItemRate(quantity, steps);
+    let total = rate * quantity;
+
+    $(this).val(quantityStr); // Update the input value
+    $(this)
+      .closest(".product-details-modal")
+      .find(".price-item span.item-rate-number")
+      .text(rate);
+    $(this)
+      .closest(".product-details-modal")
+      .find(".price-total span.item-total-number")
+      .text(total);
+    $(this)
+      .closest(".product-details-modal")
+      .find(".item_total_price")
+      .val(total);
+  });
+
+  // Prevent invalid input characters
+  $(".custom-quantity, .group-product-input").on("keypress", function (e) {
+    let charCode = e.which ? e.which : e.keyCode;
+    if (charCode < 48 || charCode > 57) {
+      return false;
+    }
+  });
+
+  // Initial calculation for each custom-quantity input
+  $(".custom-quantity").each(function () {
+    $(this).trigger("input");
+  });
+
+  // Initialize Magnific Popup on item click
+  $(".item-wrap").on("click", function () {
+    let modalId = $(this).data("modal-id");
+    $.magnificPopup.open({
+      items: {
+        src: "#" + modalId,
+        type: "inline",
+      },
+      closeBtnInside: true,
+      fixedContentPos: true,
+      mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
+      zoom: {
+        enabled: true,
+        duration: 300, // don't forget to change the duration also in CSS
+      },
+    });
+  });
+
+  // Initialize Select2 on the category dropdown
+  $("#category-select").select2();
+
+  // Function to reset input fields in the modal
+  function resetModalFields(modal) {
+    modal.find("input[type='text']").val("");
+    modal.find("input[type='file']").val("");
+    modal.find(".item_unit_rate").val("");
+    modal.find("input[type='radio']").prop("checked", false);
+    modal
+      .find(
+        ".item-total-number, .item-rate-number, .total_units, .group_unite_price"
+      )
+      .text("0");
+    modal
+      .find(".item_total_price, .item_total_units, .item_unit_rate")
+      .val("0");
+    modal.find(".single_add_to_cart_button").attr("disabled", true);
+    modal.find(".grouped_product_add_to_cart").attr("disabled", true);
+  }
+
+  // Handle Add to Cart button click
+  $(".single_add_to_cart_button").on("click", function (e) {
+    e.preventDefault();
+    const modal = $(this).closest(".product-details-modal");
+    const productId = modal.data("product_id");
+    const productName = modal.find(".modal-title").text();
+    const productThumbnail = modal.find(".product-thumb").val();
+    const quantity = modal.find(".custom-quantity").val();
+    const selectedColor = modal
+      .find("input[name='custom_color']:checked")
+      .val();
+    const subTotalPrice = modal.find(".item_total_price").val();
+    const artworkUrl = modal.find(".uploaded_file_path").val();
+    const instructionNote = modal.find(".new_product_instruction_note").val();
+    var artworkHTML = "";
+    modal.find(".uploaded_artwork").each(function () {
+      artworkHTML += $(this).prop("outerHTML");
+    });
+
+    if (isNaN(parseFloat(subTotalPrice))) {
+      console.error("Total Price is NaN");
+      return;
+    }
+
+    // Remove existing cart items with the same product ID
+    $(".content-cart ul li")
+      .filter(function () {
+        return $(this).data("product-id") === productId;
+      })
+      .remove();
+
+    // Add product details to cart
+    var cartItem = `
+    <li class="single-cart-item" data-product-id="${productId}">
+        <button class="remove-cart-item">×</button>
+        <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
+        <span class="cart-item-contents">
+        <span class="product-name">${productName}</span>
+        <span class="product-quantity">Quantity: ${quantity}</span>
+        <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
+        <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
+  `;
+    if (selectedColor) {
+      cartItem += `<span class="product-color">Color: ${selectedColor}</span>`;
+    }
+    if (instructionNote) {
+      cartItem += `<span class="product-instruction-note">Instruction Note: ${instructionNote}</span>`;
+    }
+    if (artworkUrl) {
+      cartItem += `<span class="product-artwork">Artworks: ${artworkHTML}</span>`;
+      cartItem += `<input type="hidden" name="product-artworks-incart" class="product-artworks-incart" value='${artworkUrl}'>`;
+    }
+    cartItem += `</span>`;
+    cartItem += `</li>`;
+
+    $(".content-cart ul").append(cartItem);
+
+    $(this)
+      .closest(".product-details-modal")
+      .find(".uploaded_artwork")
+      .remove();
+    $(this)
+      .closest(".product-details-modal")
+      .find(".new_product_artwork")
+      .show();
+
+    // Update cart total
+    updateCartTotal();
+
+    // Reset input fields
+    resetModalFields(modal);
+
+    // Close the modal
+    $.magnificPopup.close();
+  });
+
+  // Handle Add to Cart button click for grouped products
+  $(".grouped_product_add_to_cart").on("click", function (e) {
+    e.preventDefault();
+    const modal = $(this).closest(".product-details-modal");
+    const productId = modal.data("product_id");
+    const productName = modal.find(".modal-title").text();
+    const productThumbnail = modal.find(".product-thumb").val();
+    const artworkUrl = modal.find(".uploaded_file_path").val();
+    const instructionNote = modal.find(".new_product_instruction_note").val();
+    var artworkHTML = "";
+    modal.find(".uploaded_artwork").each(function () {
+      artworkHTML += $(this).prop("outerHTML");
+    });
+
+    // Remove existing cart items with the same product ID
+    $(".content-cart ul li")
+      .filter(function () {
+        return $(this).data("product-id") === productId;
+      })
+      .remove();
+
+    modal.find(".group-product-input").each(function () {
+      const quantity = $(this).val();
+      const color = $(this).data("color");
+      const size = $(this).data("size");
+
+      if (quantity && quantity !== "0") {
+        const itemUniteRate = modal.find(".item_unit_rate").val();
+        const subTotalPrice = itemUniteRate * quantity;
+
+        // Add product details to cart
+        var cartItem = `
+          <li class="single-cart-item" data-product-id="${productId}">
+            <button class="remove-cart-item">×</button>
+            <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
+            <span class="cart-item-contents">
+            <span class="product-name">${productName}</span>
+            <span class="product-quantity">Quantity: ${quantity}</span>
+            <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
+            <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
+        `;
+        if (color) {
+          cartItem += `<span class="product-color">Color: ${color}</span>`;
+        }
+        if (size) {
+          cartItem += `<span class="product-size">Size: ${size}</span>`;
+        }
+        if (instructionNote) {
+          cartItem += `<span class="product-instruction-note">Instruction Note: ${instructionNote}</span>`;
+        }
+        if (artworkUrl) {
+          cartItem += `<span class="product-artwork">Artworks: ${artworkHTML}</span>`;
+          cartItem += `<input type="hidden" name="product-artworks-incart" class="product-artworks-incart" value='${artworkUrl}'>`;
+        }
+        cartItem += `</span>`;
+        cartItem += `</li>`;
+
+        $(".content-cart ul").append(cartItem);
+      }
+    });
+
+    // Update cart total
+    updateCartTotal();
+
+    // Reset input fields
+    resetModalFields(modal);
+
+    // Close the modal
+    $.magnificPopup.close();
+  });
+
+  function updateCartTotal() {
+    let total = 0;
+    $(".content-cart ul li").each(function () {
+      total += parseFloat($(this).find(".product-total-price-incart").val());
+    });
+    $(".content-cart .cart-total-number").text(total.toFixed(2));
+    if (total !== 0) {
+      $(".content-cart .checkout").attr("disabled", false);
+    }
+  }
+
+  // Function to remove a cart item
+  $(document).on("click", ".remove-cart-item", function () {
+    $(this).closest("li.single-cart-item").remove();
+    updateCartTotal();
+  });
+
+  // Category and search filter function
+  function filterProducts() {
+    const selectedCategory = $("#category-select").val();
+    const searchTerm = $("#product-search").val().toLowerCase();
+    const items = $(".items-wrapper .item");
+
+    items.each(function () {
+      const item = $(this);
+      const itemCategory = item.data("category");
+      const itemName = item.find(".title").text().toLowerCase();
+
+      const categoryMatch =
+        selectedCategory === "all" || itemCategory.includes(selectedCategory);
+      const searchMatch =
+        searchTerm.length < 3 || itemName.includes(searchTerm);
+
+      if (categoryMatch && searchMatch) {
+        item.show();
+      } else {
+        item.hide();
+      }
+    });
+  }
+
+  $("#category-select").on("change", function () {
+    $("#product-search").val(""); // Reset search field
+    filterProducts();
+  });
+
+  $("#product-search").on("input", function () {
+    $("#select2-category-select-container").text("All Categories");
+    $("#category-select").val("all"); // Reset category select to default
+    filterProducts();
+  });
+
+  // ********** Add New Item to the Existing Order **********//
+  $(".new_product_artwork").on("change", function (event) {
+    let $this = $(this);
+    let files = event.target.files;
+    let uploadedFiles = [];
+
+    if (files.length > 0) {
+      $this
+        .closest(".product-details-modal")
+        .find('button[name="add-to-cart"]')
+        .addClass("ml_loading")
+        .prop("disabled", true);
+      let formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("files[]", files[i]);
+      }
+
+      fetch("/wp-content/themes/manage-order/includes/php/artwork-upload.php", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            // Store the file paths in an array
+            uploadedFiles = data.file_paths;
+            $this
+              .siblings(".uploaded_file_path")
+              .val(JSON.stringify(uploadedFiles));
+            // add a span with a ling to the uploaded file and hide .new_product_artwork input
+            let uploadedFilesHtml = "";
+            uploadedFiles.forEach((file, index) => {
+              uploadedFilesHtml += `<span class="uploaded_artwork"><a href="${file}" target="_blank">Attachment ${
+                index + 1
+              }</a></span>`;
+            });
+            $this.closest(".form-group").append(uploadedFilesHtml);
+            $this.hide();
+
+            console.log("Files uploaded successfully:", data.file_paths);
+          } else {
+            alert("Failed to upload files: " + data.message);
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("Error: " + error.message);
+        })
+        .finally(() => {
+          $this.val("");
+          $this
+            .closest(".product-details-modal")
+            .find('button[name="add-to-cart"]')
+            .removeClass("ml_loading")
+            .prop("disabled", false);
+        });
+    }
+  });
+
+  // Handle checkout button click
+  $(".checkout").on("click", function (e) {
+    e.preventDefault();
+
+    // Collect billing and shipping information
+    const billing = {
+      first_name: $("#billing_first_name").val(),
+      last_name: $("#billing_last_name").val(),
+      address_1: $("#billing_address_1").val(),
+      company: $("#billing_company").val(),
+      city: $("#billing_city").val(),
+      country: $("#billing_country").val() || "Israel",
+      email: $("#billing_email").val(),
+      phone: $("#billing_phone").val(),
+    };
+
+    // Collect cart items
+    const lineItems = [];
+    $(".content-cart ul li.single-cart-item").each(function () {
+      const item = $(this);
+      const productId = item.data("product-id");
+      const productName = item.find(".product-name").text();
+      const quantity = item
+        .find(".product-quantity")
+        .text()
+        .replace("Quantity: ", "");
+      const subtotal = item
+        .find(".product-total-price")
+        .text()
+        .replace("₪", "");
+      const color = item.find(".product-color").text().replace("Color: ", "");
+      const size = item.find(".product-size").text().replace("Size: ", "");
+      const artworks = item.find(".product-artworks-incart").val();
+      const instructionNote = item
+        .find(".product-instruction-note")
+        .text()
+        .replace("Instruction Note: ", "");
+
+      const metaData = [];
+      if (color) metaData.push({ key: "Color", value: color });
+      if (size) metaData.push({ key: "Size", value: size });
+      if (artworks) metaData.push({ key: "Attachment", value: artworks });
+      if (instructionNote)
+        metaData.push({ key: "Instruction Note", value: instructionNote });
+
+      lineItems.push({
+        product_id: productId,
+        name: productName,
+        quantity: quantity,
+        total: subtotal,
+        meta_data: metaData,
+      });
+    });
+
+    // Collect shipping method information
+    const shippingMethod = $("#shipping_method").val();
+    const shippingMethodTitle = $("#shipping_method option:selected").text();
+
+    const orderData = {
+      action: "create_order_from_form",
+      security: alarnd_create_order_vars.nonce,
+      first_name: billing.first_name,
+      last_name: billing.last_name,
+      address_1: billing.address_1,
+      company: billing.company,
+      city: billing.city,
+      country: billing.country,
+      email: billing.email,
+      phone: billing.phone,
+      shipping_method: shippingMethod,
+      shipping_method_title: shippingMethodTitle,
+      line_items: JSON.stringify(lineItems),
+    };
+
+    $.post({
+      url: alarnd_create_order_vars.ajax_url,
+      data: orderData,
+      success: function (response) {
+        if (response.success) {
+          // Create the order post
+          createOrderPost(response.data);
+          alert(
+            "Order created successfully. Order ID: " + response.data.order_id
+          );
+          // Clear the cart
+          $(".content-cart ul").empty();
+          $(".cart-total-number").text("0");
+          $(".checkout").attr("disabled", true);
+        } else {
+          alert("Error creating order: " + response.data);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("AJAX Error:", error);
+        alert("An error occurred while creating the order. Please try again.");
+      },
+    });
+  });
+
+  function createOrderPost(orderData) {
+    $.ajax({
+      url: `${alarnd_create_order_vars.redirecturl}/wp-json/manage-order/v1/create`,
+      method: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(orderData),
+      success: function (response) {
+        alert("Order post created successfully. Post ID: " + response);
+        location.reload();
+      },
+      error: function (xhr, status, error) {
+        alert("Error creating order post: " + error);
+      },
+    });
+  }
+
+  window.deleteProductTransient = function () {
+    if (confirm("Are you sure you want to delete the product transient?")) {
+      $.ajax({
+        url: alarnd_create_order_vars.ajax_url,
+        method: "POST",
+        data: {
+          action: "delete_product_transient",
+          nonce: alarnd_create_order_vars.nonce,
+        },
+        success: function (response) {
+          if (response.success) {
+            alert("Product transient deleted.");
+            location.reload();
+          } else {
+            alert("Failed to delete product transient.");
+          }
+        },
+        error: function () {
+          alert("An error occurred.");
+        },
+      });
+    }
+  };
+});

@@ -9,8 +9,6 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-require_once get_template_directory() . '/includes/classes/class-clients.php';
-
 define('HELLO_ELEMENTOR_VERSION', '2.4.2');
 
 if (!isset($content_width)) {
@@ -1437,12 +1435,12 @@ function ml_current_user_contributor()
 /**
  * Handle form submission to create an order
  */
-add_action('wp_ajax_create_order', 'create_order_from_form');
-add_action('wp_ajax_nopriv_create_order', 'create_order_from_form');
+add_action('wp_ajax_create_order_from_form', 'create_order_from_form');
+add_action('wp_ajax_nopriv_create_order_from_form', 'create_order_from_form');
 
 function create_order_from_form()
 {
-    check_ajax_referer('order_management_nonce', 'security');
+    check_ajax_referer('create_order_nonce', 'security');
 
     // Get the current site URL
     $site_url = site_url();
@@ -1811,3 +1809,10 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     return ob_get_clean();
 }
+
+
+
+
+
+require_once get_template_directory() . '/includes/classes/class-clients.php';
+require_once get_template_directory() . '/includes/classes/class-create-order.php';

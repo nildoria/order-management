@@ -1059,7 +1059,6 @@
   if (!mainTable) {
     console.log("Main table not found");
     // ********** Add New Order **********//
-    let products = [];
 
     $("#selectedProductDisplay").on("click", function () {
       if (!$(this).data("loaded")) {
@@ -1102,6 +1101,7 @@
         });
     }
 
+    let products = [];
     // Handle adding product to line items
     $("#addProductButton").on("click", function () {
       const productId = $("#new_product_id").val();

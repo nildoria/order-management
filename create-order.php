@@ -4,154 +4,273 @@
  */
 
 get_header();
+$createOrder = new AllAroundCreateOrder();
+$products = $createOrder->fetch_products_data();
+
+// Collect all categories from the products
+$all_categories = [];
+foreach ($products as $product) {
+    if (is_array($product['categories'])) {
+        foreach ($product['categories'] as $category) {
+            if (!isset($all_categories[$category['slug']])) {
+                $all_categories[$category['slug']] = $category['name'];
+            }
+        }
+    }
+}
 ?>
-<main class="site-main" role="main">
-
-    <div id="create-order-form">
-        <h2>Create New Order</h2>
-        <form id="orderForm" method="post">
-            <?php wp_nonce_field('create_order', 'create_order_nonce'); ?>
-
-            <div class="om_create_order_box">
-
-                <div class="om_create__product_details">
-                    <div class="om_create__product_details_title">
-                        <h4><?php echo esc_html__('Product Details:', 'hello-elementor'); ?></h4>
+<main id="om__createOrderPage" class="site-main" role="main">
+    <div id="create-order-page">
+        <div class="content-product">
+            <div class="top-panel">
+                <div class="search-bar">
+                    <div class="search-box">
+                        <input type="text" name="search" id="product-search" placeholder="Search product by typing">
+                        <span class="dashicons dashicons-search"></span>
                     </div>
-                    <div class="form-group product-list-container">
-                        <label for="fetchAddProductList">Select Products:</label>
-                        <div id="selectedProductDisplay">Select Product...</div>
-                        <ul id="productDropdown" class="product-dropdown"></ul>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="new_product_id">Product ID</label>
-                        <input type="text" id="new_product_id" value="" placeholder="Enter Product ID" readonly />
-                    </div>
-                    <br>
-
-                    <div class="grid-container">
-                        <div class="form-group">
-                            <label for="new_product_quantity">Quantity</label>
-                            <input type="number" id="new_product_quantity" value="1" placeholder="Enter Quantity" />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="new_product_color">Color</label>
-                            <select id="new_product_color">
-                                <option value="">Select Color</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid-container" id="size-color-container">
-                        <div class="form-group om_default_hidden">
-                            <label for="new_product_size">Size</label>
-                            <select id="new_product_size"></select>
-                        </div>
-                        <div class="form-group om_default_hidden">
-                            <label for="new_product_art_pos">Art Position</label>
-                            <select id="new_product_art_pos">
-                                <option value="">Select Art Position</option>
-                            </select>
-                        </div>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="new_product_artwork">Artwork</label>
-                        <input type="file" id="new_product_artwork" name="artwork" multiple />
-                        <input type="hidden" id="uploaded_file_path" name="uploaded_file_path">
-                    </div>
-                    <br>
-
-
-                    <label for="new_product_instruction_note">Instruction Note:</label>
-                    <textarea id="new_product_instruction_note"></textarea>
-                    <br>
-                    <br>
-
-                    <div class="shipping_method_update_box">
-                        <div class="shipping_method_title">
-                            <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
-                        </div>
-                        <div class="shipping_method_value">
-                            <select id="shipping-method-list" name="shipping_method">
-                                <option value="">Select Shipping Option</option>
-                                <option value="flat_rate">
-                                    שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
-                                <option value="free_shipping">משלוח
-                                    חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
-                                <option value="local_pickup">
-                                    איסוף
-                                    עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductButton"
-                        disabled>Add Product</button>
-                    <br>
-
-                    <div id="line_items_added_om"></div>
-
-                    <input type="hidden" id="line_items" name="line_items">
                 </div>
-
-                <div class="om_create__customer_details">
-                    <div class="om_customer__details_title">
-                        <h4><?php echo esc_html__('Customer Details:', 'hello-elementor'); ?></h4>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="firstName">First Name:</label>
-                        <input type="text" id="firstName" name="first_name" required>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="lastName">Last Name:</label>
-                        <input type="text" id="lastName" name="last_name" required>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="company">Company:</label>
-                        <input type="text" id="company" name="company" required>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="address">Address:</label>
-                        <input type="text" id="address" name="address_1" required>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="city">City:</label>
-                        <input type="text" id="city" name="city" required>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="email">Email:</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <br>
-
-                    <div class="form-group">
-                        <label for="phone">Phone:</label>
-                        <input type="tel" id="phone" name="phone" required>
-                    </div>
-                    <br>
+                <div class="category">
+                    <select id="category-select" style="width: 100%;">
+                        <option value="all">All Categories</option>
+                        <?php foreach ($all_categories as $slug => $name): ?>
+                            <option value="<?php echo esc_attr($slug); ?>"><?php echo esc_html($name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
+            <div class="items-wrapper grid">
+                <?php if (is_array($products) && !empty($products)): ?>
+                    <?php foreach ($products as $product): ?>
+                        <?php if (is_array($product)): ?>
+                            <?php
+                            $custom_quantity_product = $product['is_custom_quantity'] === true;
+                            $grouped_product = $product['is_group_quantity'] === true;
+                            $is_grouped_class = $grouped_product ? ' grouped-product' : '';
+                            if ($grouped_product) {
+                                $size_number = is_array($product['sizes']) ? count($product['sizes']) : "";
+                                $size_modal_width = ($size_number * 70) + 130;
+                            }
 
-            <button id="om--create-new-order" class="allarnd--regular-button ml_add_loading" type="submit">Create
-                Order</button>
-        </form>
+                            // Collect product category slugs
+                            $categories = array_map(function ($cat) {
+                                return $cat['slug']; }, $product['categories']);
+                            $categories = implode(' ', $categories);
+                            ?>
+
+                            <div class="item <?php echo esc_attr($categories); ?>" data-category="<?php echo esc_attr($categories); ?>">
+                                <div class="item-wrap"
+                                    data-modal-id="product-details-modal-<?php echo esc_html($product['id']); ?>">
+                                    <div class="img">
+                                        <img src="<?php echo esc_url($product['image']); ?>"
+                                            alt="<?php echo esc_attr($product['name']); ?>">
+                                    </div>
+                                    <div class="item-content">
+                                        <h6 class="title"><?php echo esc_html($product['name']); ?></h6>
+                                        <?php
+                                        if (isset($product['quantity_steps']) && is_array($product['quantity_steps'])) {
+                                            $range_to_amount = number_format($product['price'], 2);
+                                            $range_from_amount = number_format($product['quantity_steps'][count($product['quantity_steps']) - 1]['amount'], 2);
+                                            echo '<span class="product-price">' . esc_html($range_from_amount) . '₪ - ' . esc_html($range_to_amount) . '₪</span>';
+                                        } else {
+                                            echo '<span class="product-price">' . esc_html($product['price']) . '₪</span>';
+                                        }
+                                        ?>
+                                        <button class="item-select-quantity">Select Quantity</button>
+                                    </div>
+                                </div>
+                                <div id="product-details-modal-<?php echo esc_html($product['id']) ?>"
+                                    class="mfp-hide product-details-modal <?php echo $is_grouped_class ?>" data-product_id="<?php echo esc_html($product['id']) ?>">
+                                    <input type="hidden" name="product-thumb" class="product-thumb" value="<?php echo esc_url($product['thumbnail']); ?>">
+                                    <h4 class="modal-title"><?php echo esc_html($product['name']); ?></h4>
+                                    <?php if ($custom_quantity_product): ?>
+                                        <div class="product-custom-quantity-wraper">
+                                            <?php if (is_array($product['colors']) && $product['colors'] !== false): ?>
+                                                <div class="form-group">
+                                                    <label for="new_product_color">Select a Color</label>
+                                                    <div class="custom-colors-wrapper">
+                                                        <?php $index = 0;
+                                                        foreach ($product['colors'] as $color): ?>
+                                                            <span class="alarnd--single-var-info">
+                                                                <input type="radio" id="custom_color-<?php echo $product['id'] . $index; ?>"
+                                                                    name="custom_color" value="<?php echo htmlspecialchars($color['color']); ?>"
+                                                                    <?php if ($index == 0)
+                                                                        echo 'checked="checked"'; ?>>
+                                                                <label
+                                                                    for="custom_color-<?php echo $product['id'] . $index; ?>"><?php echo htmlspecialchars($color['color']); ?></label>
+                                                            </span>
+                                                            <?php $index++; endforeach; ?>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                            <?php if (is_array($product['quantity_steps']) && $product['quantity_steps']): ?>
+                                                <div class="form-group">
+                                                    <label for="custom-quantity">Quantity</label>
+                                                    <div class="quantity-wrapper">
+                                                        <input type="text" name="custom-quantity" class="custom-quantity" value="1"
+                                                            data-steps='<?php echo json_encode($product['quantity_steps']); ?>'>
+                                                        <div class="price-total">
+                                                            <span class="item-total-number">0</span>₪
+                                                            <input type="hidden" class="item_total_price" name="item_total_price">
+                                                        </div>
+                                                        <div class="price-item">
+                                                            <span
+                                                                class="item-rate-number">0</span><span><?php echo esc_html__(' per unit', 'hello-elementor'); ?></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                            <div class="form-group">
+                                                <label for="new_product_artwork">Upload Artwork</label>
+                                                <input type="file" class="new_product_artwork" name="artwork" multiple />
+                                                <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="new_product_instruction_note">Instruction Note</label>
+                                                <input type="text" class="new_product_instruction_note" value=""
+                                                    placeholder="Enter Instruction Note" />
+                                            </div>
+                                            <button name="add-to-cart" value="<?php echo esc_html($product['id']) ?>"
+                                                class="single_add_to_cart_button ml_add_loading button alt "
+                                                ><?php echo esc_html__('Add to cart', 'hello-elementor'); ?></button>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if ($grouped_product): ?>
+                                        <div class="product-grouped-product-wraper" style="width: <?php echo esc_attr($size_modal_width) ?>px" data-regular_price='<?php echo esc_attr($product['price']); ?>' data-steps='<?php echo json_encode($product['quantity_steps']); ?>'>
+                                            <div class="alarnd--select-options-cart-wrap">
+                                                <div class="alarnd--select-options">
+                                                    <div class="alarnd--select-opt-wrapper">
+                                                        <div class="alarnd--select-opt-header">
+                                                            <?php foreach ($product['sizes'] as $size): ?>
+                                                                <span><?php echo esc_html($size); ?></span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                        <div class="alarnd--select-qty-body">
+                                                            <?php foreach ($product['colors'] as $color_index => $color): ?>
+                                                                <div class="alarn--opt-single-row">
+                                                                    <?php foreach ($product['sizes'] as $size): ?>
+                                                                        <?php
+                                                                        // Check if the current size is in the omit_sizes array for this color
+                                                                        $omit_size = false;
+                                                                        if (is_array($color['omit_sizes'])) {
+                                                                            foreach ($color['omit_sizes'] as $omit_size_data) {
+                                                                                if ($omit_size_data['value'] === $size) {
+                                                                                    $omit_size = true;
+                                                                                    break;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        ?>
+                                                                        <div class="tshirt-qty-input-field<?php echo $omit_size ? ' omit-size' : ''; ?>">
+                                                                            <input type="text" autocomplete="off"
+                                                                                name="alarnd__color_qty[<?php echo $color_index; ?>][<?php echo $size; ?>]"
+                                                                                class="group-product-input"
+                                                                                data-color="<?php echo htmlspecialchars($color['title']); ?>"
+                                                                                data-size="<?php echo htmlspecialchars($size); ?>"
+                                                                                <?php echo $omit_size ? 'disabled' : ''; ?> <?php echo $omit_size ? 'placeholder="N/A"' : ''; ?>>
+                                                                        </div>
+                                                                    <?php endforeach; ?>
+                                                                    <div class="alarnd--opt-color">
+                                                                        <span style="background-color: <?php echo htmlspecialchars($color['color_hex_code']); ?>;"><?php echo htmlspecialchars($color['title']); ?></span>
+                                                                    </div>
+                                                                </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="grouped-modal-actions">
+                                            <div class="alarnd--price-by-shirt">
+                                                <p class="alarnd--group-price">
+                                                    <span class="group_unite_price">0</span>₪ / <?php echo esc_html__('Unit', 'hello-elementor'); ?>
+                                                    <input type="hidden" class="item_unit_rate" name="item_unit_rate">
+                                                </p>
+                                                <p class="total-units">
+                                                    <?php echo esc_html__('Total Units: ', 'hello-elementor'); ?><span class="total_units">0</span>
+                                                    <input type="hidden" class="item_total_units" name="item_total_units">
+                                                </p>
+                                                <div class="price-total">
+                                                    <?php echo esc_html__('Total: ', 'hello-elementor'); ?><span class="item-total-number">0</span>₪
+                                                    <input type="hidden" class="item_total_price" name="item_total_price">
+                                                </div>
+                                                <button name="add-to-cart" value="<?php echo esc_html($product['id']) ?>"
+                                                class="grouped_product_add_to_cart ml_add_loading button alt "><?php echo esc_html__('Add to cart', 'hello-elementor'); ?></button>
+                                            </div>
+                                            <div class="grouped-product-meta-data">
+                                                <div class="form-group">
+                                                    <label for="new_product_artwork">Upload Artwork</label>
+                                                    <input type="file" class="new_product_artwork" name="artwork" multiple />
+                                                    <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="new_product_instruction_note">Instruction Note</label>
+                                                    <input type="text" class="new_product_instruction_note" value=""
+                                                        placeholder="Enter Instruction Note" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p>No products found.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div class="content-cart-user-wraper">
+            <!-- Billing Information Form -->
+            <div class="billing-form">
+                <h5>Client Information</h5>
+                <label for="billing_first_name">First Name:</label>
+                <input type="text" id="billing_first_name" name="billing_first_name" required>
+                <label for="billing_last_name">Last Name:</label>
+                <input type="text" id="billing_last_name" name="billing_last_name" required>
+                <label for="billing_address_1">Address:</label>
+                <input type="text" id="billing_address_1" name="billing_address_1" required>
+                <label for="billing_company">Company:</label>
+                <input type="text" id="billing_company" name="billing_company">
+                <label for="billing_city">City:</label>
+                <input type="text" id="billing_city" name="billing_city" required>
+                <label for="billing_country" style="display: none;">Country:</label>
+                <input type="hidden" id="billing_country" name="billing_country" value="Israel">
+                <label for="billing_email">Email:</label>
+                <input type="email" id="billing_email" name="billing_email" required>
+                <label for="billing_phone">Phone:</label>
+                <input type="text" id="billing_phone" name="billing_phone" required>
+            </div>
+
+            <!-- Shipping Method Select (optional) -->
+            <div class="shipping-method">
+                <label for="shipping_method">Select Shipping Method:</label>
+                <select id="shipping_method" name="shipping_method">
+                    <option value="">Select Shipping Option</option>
+                    <option value="flat_rate">
+                        שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
+                    <option value="free_shipping">משלוח
+                        חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
+                    <option value="local_pickup">
+                        איסוף
+                        עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                </select>
+            </div>
+
+            <div class="content-cart">
+                <h2>Cart</h2>
+                <ul>
+                    <!-- Cart items will be added here -->
+                </ul>
+                <div class="cart-total">
+                    <span>Total: <span class="cart-total-number">0</span>₪</span>
+                </div>
+                <button class="checkout" disabled>Checkout</button>
+            </div>
+        </div>
     </div>
-
+    <pre>
+        <?php print_r($products); ?>
+    </pre>
 </main>
 <?php get_footer(); ?>

@@ -44,12 +44,6 @@ get_header();
                     <br>
 
                     <div class="form-group">
-                        <label for="street_number">Street Number:</label>
-                        <input type="text" id="street_number" name="street_number">
-                    </div>
-                    <br>
-
-                    <div class="form-group">
                         <label for="city">City:</label>
                         <input type="text" id="city" name="city">
                     </div>

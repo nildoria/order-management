@@ -572,7 +572,6 @@ class AllAroundClientsDB
             'subscribed' => !empty($subscribed) ? $subscribed : 'yes',
             'token' => get_post_meta($post->ID, 'token', true),
             'address_1' => get_post_meta($post->ID, 'address_1', true),
-            'street_number' => get_post_meta($post->ID, 'street_number', true),
             'city' => get_post_meta($post->ID, 'city', true),
             'dark_logo' => get_post_meta($post->ID, 'dark_logo', true),
             'lighter_logo' => get_post_meta($post->ID, 'lighter_logo', true),
@@ -634,13 +633,8 @@ class AllAroundClientsDB
         <p><b>Shipping details:</b></p>
         <hr>
         <p>
-            <label for="address_1">Street Name:</label><br>
+            <label for="address_1">Address:</label><br>
             <input type="text" name="address_1" id="address_1" value="<?php echo esc_attr($fields['address_1']); ?>" />
-        </p>
-        <p>
-            <label for="street_number">Street Number:</label><br>
-            <input type="text" name="street_number" id="street_number"
-                value="<?php echo esc_attr($fields['street_number']); ?>" />
         </p>
         <p>
             <label for="city">City:</label><br>
@@ -761,7 +755,6 @@ class AllAroundClientsDB
             'subscribed',
             'token',
             'address_1',
-            'street_number',
             'city',
             'dark_logo',
             'lighter_logo',
