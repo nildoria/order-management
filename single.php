@@ -189,8 +189,8 @@ get_header();
                             </div>
                             <div class="form-group">
                                 <label for="new_product_artwork">Artwork</label>
-                                <input type="file" id="new_product_artwork" name="artwork" multiple />
-                                <input type="hidden" id="uploaded_file_path" name="uploaded_file_path">
+                                <input type="file" class="new_product_artwork" name="artwork" multiple />
+                                <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
                             </div>
                             <div class="form-group">
                                 <label for="new_product_instruction_note">Instruction Note</label>

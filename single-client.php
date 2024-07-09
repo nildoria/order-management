@@ -26,7 +26,6 @@ if (!is_user_logged_in()) {
             'subscribed' => !empty($subscribed) ? $subscribed : 'yes',
             'token' => get_post_meta($client_id, 'token', true),
             'address_1' => get_post_meta($client_id, 'address_1', true),
-            'street_number' => get_post_meta($client_id, 'street_number', true),
             'city' => get_post_meta($client_id, 'city', true),
             'dark_logo' => get_post_meta($client_id, 'dark_logo', true),
             'lighter_logo' => get_post_meta($client_id, 'lighter_logo', true),
@@ -79,13 +78,6 @@ if (!is_user_logged_in()) {
                             <label for="address">Address:</label>
                             <input type="text" id="address" name="address_1"
                                 value="<?php echo esc_attr($fields['address_1']); ?>">
-                        </div>
-                        <br>
-
-                        <div class="form-group">
-                            <label for="address_number">Street Number:</label>
-                            <input type="text" id="address_number" name="address_number"
-                                value="<?php echo esc_attr($fields['street_number']); ?>">
                         </div>
                         <br>
 
