@@ -246,7 +246,7 @@ foreach ($products as $product) {
                     <input type="text" id="billing_last_name" name="billing_last_name" required>
                     <label for="billing_address_1">Address:</label>
                     <input type="text" id="billing_address_1" name="billing_address_1" required>
-                    <label for="billing_company">Company Name:</label>
+                    <label for="billing_company">Invoice Name:</label>
                     <input type="text" id="billing_company" name="billing_company">
                     <label for="billing_city">City:</label>
                     <input type="text" id="billing_city" name="billing_city" required>

@@ -206,6 +206,7 @@ class AllAroundCreateOrder
         $client = array(
             'first_name' => isset($client_meta['first_name'][0]) ? $client_meta['first_name'][0] : '',
             'last_name' => isset($client_meta['last_name'][0]) ? $client_meta['last_name'][0] : '',
+            'invoice' => isset($client_meta['invoice'][0]) ? $client_meta['invoice'][0] : '',
             'address_1' => isset($client_meta['address_1'][0]) ? $client_meta['address_1'][0] : '',
             'city' => isset($client_meta['city'][0]) ? $client_meta['city'][0] : '',
             'email' => isset($client_meta['email'][0]) ? $client_meta['email'][0] : '',

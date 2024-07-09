@@ -1,9 +1,9 @@
 jQuery(document).ready(function ($) {
   function getGroupedItemRate(quantity, steps, regularPrice) {
     let rate = regularPrice; // Start with regular price
-    for (let i = 0; i < steps.length; i++) {
-      if (quantity <= parseInt(steps[i].quantity)) {
-        rate = steps[i].amount;
+    for (const step of steps) {
+      if (quantity <= parseInt(step.quantity)) {
+        rate = step.amount;
         break;
       }
     }
@@ -563,7 +563,7 @@ jQuery(document).ready(function ($) {
       contentType: "application/json",
       data: JSON.stringify(orderData),
       success: function (response) {
-        alert("Order post created successfully. Post ID: " + response);
+        alert("Order post created successfully!");
         location.reload();
       },
       error: function (xhr, status, error) {
@@ -593,6 +593,7 @@ jQuery(document).ready(function ($) {
             // Populate billing form with client details
             $("#billing-form #billing_first_name").val(client.first_name);
             $("#billing-form #billing_last_name").val(client.last_name);
+            $("#billing-form #billing_company").val(client.invoice);
             $("#billing-form #billing_address_1").val(client.address_1);
             $("#billing-form #billing_city").val(client.city);
             $("#billing-form #billing_email").val(client.email);
