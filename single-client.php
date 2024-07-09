@@ -51,7 +51,7 @@ if (!is_user_logged_in()) {
 
                         <div class="form-group">
                             <label for="type">Type</label>
-                            <select name="type" id="client_type">
+                            <select name="client_type" id="client_type">
                                 <option value="personal" <?php selected($fields['client_type'], 'personal'); ?>>Personal
                                 </option>
                                 <option value="company" <?php selected($fields['client_type'], 'company'); ?>>Company
@@ -71,6 +71,12 @@ if (!is_user_logged_in()) {
                             <label for="lastName">Last Name:</label>
                             <input type="text" id="lastName" name="last_name"
                                 value="<?php echo esc_attr($fields['last_name']); ?>" required>
+                        </div>
+                        <br>
+                        <div class="form-group">
+                            <label for="invoice">Invoice Name:</label><br>
+                            <input type="text" name="invoice" id="invoice"
+                                value="<?php echo esc_attr($fields['invoice']); ?>" />
                         </div>
                         <br>
 
@@ -225,12 +231,6 @@ if (!is_user_logged_in()) {
                                 <label for="mini_header">Mini Header:</label><br>
                                 <input type="text" name="mini_header" id="mini_header"
                                     value="<?php echo esc_attr($fields['mini_header']); ?>" />
-                            </div>
-                            <br>
-                            <div class="form-group">
-                                <label for="invoice">Invoice Name:</label><br>
-                                <input type="text" name="invoice" id="invoice"
-                                    value="<?php echo esc_attr($fields['invoice']); ?>" />
                             </div>
                             <br>
                             <div class="form-group">

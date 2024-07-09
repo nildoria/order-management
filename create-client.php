@@ -36,7 +36,11 @@ get_header();
                         <input type="text" id="lastName" name="last_name" required>
                     </div>
                     <br>
-
+                    <div class="form-group">
+                        <label for="invoice">Invoice Name:</label><br>
+                        <input type="text" name="invoice" id="invoice" value="" />
+                    </div>
+                    <br>
                     <div class="form-group">
                         <label for="address">Address:</label>
                         <input type="text" id="address" name="address_1">
@@ -60,7 +64,6 @@ get_header();
                         <input type="tel" id="phone" name="phone" required>
                     </div>
                     <br>
-
                     <div class="form-group">
                         <label for="status">Status</label>
                         <select name="status" id="status">
@@ -166,11 +169,6 @@ get_header();
                         <div class="form-group">
                             <label for="mini_header">Mini Header:</label><br>
                             <input type="text" name="mini_header" id="mini_header" value="" />
-                        </div>
-                        <br>
-                        <div class="form-group">
-                            <label for="invoice">Invoice Name:</label><br>
-                            <input type="text" name="invoice" id="invoice" value="" />
                         </div>
                         <br>
                         <div class="form-group">

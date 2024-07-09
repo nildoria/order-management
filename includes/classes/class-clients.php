@@ -110,7 +110,8 @@ class AllAroundClientsDB
             'city',
             'status',
             'email',
-            'subscribed'
+            'subscribed',
+            'invoice'
         ];
 
         if ('company' === $client_type) {
@@ -122,7 +123,6 @@ class AllAroundClientsDB
                 'logo_type',
                 'mini_url',
                 'mini_header',
-                'invoice',
                 'logo'
             ];
 
@@ -253,8 +253,7 @@ class AllAroundClientsDB
 
     }
 
-    public function update_client_ajax()
-    {
+    public function update_client_ajax() {
         check_ajax_referer('client_nonce', 'nonce');
 
         $client_id = isset($_POST['client_id']) ? sanitize_text_field(absint($_POST['client_id'])) : 0;
@@ -309,7 +308,8 @@ class AllAroundClientsDB
             'city',
             'status',
             'email',
-            'subscribed'
+            'subscribed',
+            'invoice'
         ];
 
         if ('company' === $client_type) {
@@ -321,12 +321,14 @@ class AllAroundClientsDB
                 'logo_type',
                 'mini_url',
                 'mini_header',
-                'invoice',
                 'logo'
             ];
 
             $allowedFields = array_merge($allowedFields, $addition_fields);
         }
+
+        error_log( print_r( $client_type, true ) );
+        error_log( print_r( $allowedFields, true ) );
 
         // Filter the $_POST array to include only the allowed fields
         $filteredPostData = array_intersect_key($_POST, array_flip($allowedFields));
@@ -477,11 +479,18 @@ class AllAroundClientsDB
 
             if (isset($filteredPostData) && !empty($filteredPostData)) {
                 // error_log( print_r( $filteredPostData, true ) );
-                foreach ((array) $filteredPostData as $key => $value) {
-                    if ("client_type" === $key && "company" === $old_client_type) {
+                foreach( (array) $filteredPostData as $key => $value ) {
+                    if( "client_type" === $key && "company" === $old_client_type ) {
                         continue;
                     }
-                    $this->ml_update_postmeta($client_id, $key, $value);
+                    if( "company" === $key ) {
+                        $current_value = get_post_meta( $client_id, 'invoice', true );
+                        if ( $value !== $current_value ) {
+                            update_post_meta( $client_id, 'invoice', $value );
+                        }
+                    } else {
+                        $this->ml_update_postmeta( $client_id, $key, $value );
+                    }
                 }
             }
 
