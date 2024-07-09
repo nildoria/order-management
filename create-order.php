@@ -6,6 +6,7 @@
 get_header();
 $createOrder = new AllAroundCreateOrder();
 $products = $createOrder->fetch_products_data();
+$clients = $createOrder->fetch_clients_data();
 
 // Collect all categories from the products
 $all_categories = [];
@@ -221,30 +222,46 @@ foreach ($products as $product) {
             </div>
         </div>
         <div class="content-cart-user-wraper">
+            <!-- Client selection -->
+            <div class="content-client">
+                <h5>Select Client</h5>
+                <select id="client-select" style="width: 100%;">
+                    <option value="">Select a Client</option>
+                    <?php foreach ($clients as $client): ?>
+                        <option value="<?php echo esc_attr($client['id']); ?>">
+                            <?php echo esc_html($client['name']); ?> <a href="#"></a>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <span title="Edit" class="client_profile_URL"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </div>
+
             <!-- Billing Information Form -->
-            <div class="billing-form">
+            <div id="billing-form-modal" class="mfp-hide billing-form">
                 <h5>Client Information</h5>
-                <label for="billing_first_name">First Name:</label>
-                <input type="text" id="billing_first_name" name="billing_first_name" required>
-                <label for="billing_last_name">Last Name:</label>
-                <input type="text" id="billing_last_name" name="billing_last_name" required>
-                <label for="billing_address_1">Address:</label>
-                <input type="text" id="billing_address_1" name="billing_address_1" required>
-                <label for="billing_company">Company:</label>
-                <input type="text" id="billing_company" name="billing_company">
-                <label for="billing_city">City:</label>
-                <input type="text" id="billing_city" name="billing_city" required>
-                <label for="billing_country" style="display: none;">Country:</label>
-                <input type="hidden" id="billing_country" name="billing_country" value="Israel">
-                <label for="billing_email">Email:</label>
-                <input type="email" id="billing_email" name="billing_email" required>
-                <label for="billing_phone">Phone:</label>
-                <input type="text" id="billing_phone" name="billing_phone" required>
+                <form id="billing-form">
+                    <label for="billing_first_name">First Name:</label>
+                    <input type="text" id="billing_first_name" name="billing_first_name" required>
+                    <label for="billing_last_name">Last Name:</label>
+                    <input type="text" id="billing_last_name" name="billing_last_name" required>
+                    <label for="billing_address_1">Address:</label>
+                    <input type="text" id="billing_address_1" name="billing_address_1" required>
+                    <label for="billing_company">Company Name:</label>
+                    <input type="text" id="billing_company" name="billing_company">
+                    <label for="billing_city">City:</label>
+                    <input type="text" id="billing_city" name="billing_city" required>
+                    <label for="billing_country" style="display: none;">Country:</label>
+                    <input type="hidden" id="billing_country" name="billing_country" value="Israel">
+                    <label for="billing_email">Email:</label>
+                    <input type="email" id="billing_email" name="billing_email" required>
+                    <label for="billing_phone">Phone:</label>
+                    <input type="text" id="billing_phone" name="billing_phone" required>
+                </form>
+                <button type="button" id="update-billing"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
             </div>
 
             <!-- Shipping Method Select (optional) -->
             <div class="shipping-method">
-                <label for="shipping_method">Select Shipping Method:</label>
                 <select id="shipping_method" name="shipping_method">
                     <option value="">Select Shipping Option</option>
                     <option value="flat_rate">
@@ -262,10 +279,13 @@ foreach ($products as $product) {
                 <ul>
                     <!-- Cart items will be added here -->
                 </ul>
-                <div class="cart-total">
-                    <span>Total: <span class="cart-total-number">0</span>₪</span>
+                <div class="shipping-total">
+                    <span>Shipping: <span class="shipping-total-number">0.00</span>₪</span>
                 </div>
-                <button class="checkout" disabled>Checkout</button>
+                <div class="cart-total">
+                    <span>Total: <span class="cart-total-number">0.00</span>₪</span>
+                </div>
+                <button id="checkout" disabled>Checkout</button>
             </div>
         </div>
     </div>

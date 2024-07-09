@@ -151,9 +151,6 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  // Initialize Select2 on the category dropdown
-  $("#category-select").select2();
-
   // Function to reset input fields in the modal
   function resetModalFields(modal) {
     modal.find("input[type='text']").val("");
@@ -240,6 +237,7 @@ jQuery(document).ready(function ($) {
 
     // Update cart total
     updateCartTotal();
+    validateShipping();
 
     // Reset input fields
     resetModalFields(modal);
@@ -311,6 +309,7 @@ jQuery(document).ready(function ($) {
 
     // Update cart total
     updateCartTotal();
+    validateShipping();
 
     // Reset input fields
     resetModalFields(modal);
@@ -319,14 +318,35 @@ jQuery(document).ready(function ($) {
     $.magnificPopup.close();
   });
 
+  $("#shipping_method").on("change", function () {
+    if ($("#shipping_method").val() === "flat_rate") {
+      $(".content-cart .shipping-total-number").text("29.00");
+    } else {
+      $(".content-cart .shipping-total-number").text("0.00");
+    }
+    validateShipping();
+    updateCartTotal();
+  });
+
+  function validateShipping() {
+    if ("" === $("#shipping_method").val()) {
+      $(".content-cart #checkout").attr("disabled", true);
+    } else {
+      $(".content-cart #checkout").attr("disabled", false);
+    }
+  }
+
   function updateCartTotal() {
     let total = 0;
     $(".content-cart ul li").each(function () {
       total += parseFloat($(this).find(".product-total-price-incart").val());
     });
+    // add .content-cart .shipping-total-number text to total
+    total += parseFloat($(".content-cart .shipping-total-number").text());
+
     $(".content-cart .cart-total-number").text(total.toFixed(2));
     if (total !== 0) {
-      $(".content-cart .checkout").attr("disabled", false);
+      $(".content-cart #checkout").attr("disabled", false);
     }
   }
 
@@ -431,7 +451,7 @@ jQuery(document).ready(function ($) {
   });
 
   // Handle checkout button click
-  $(".checkout").on("click", function (e) {
+  $("#checkout").on("click", function (e) {
     e.preventDefault();
 
     // Collect billing and shipping information
@@ -487,6 +507,7 @@ jQuery(document).ready(function ($) {
     // Collect shipping method information
     const shippingMethod = $("#shipping_method").val();
     const shippingMethodTitle = $("#shipping_method option:selected").text();
+    const shippingTotal = $(".shipping-total-number").text();
 
     const orderData = {
       action: "create_order_from_form",
@@ -501,6 +522,7 @@ jQuery(document).ready(function ($) {
       phone: billing.phone,
       shipping_method: shippingMethod,
       shipping_method_title: shippingMethodTitle,
+      shipping_total: shippingTotal,
       line_items: JSON.stringify(lineItems),
     };
 
@@ -517,7 +539,12 @@ jQuery(document).ready(function ($) {
           // Clear the cart
           $(".content-cart ul").empty();
           $(".cart-total-number").text("0");
-          $(".checkout").attr("disabled", true);
+          $("#checkout").attr("disabled", true);
+          $("#billing-form").trigger("reset");
+          $("#shipping_method option:selected")
+            .prop("selected", false)
+            .trigger("change");
+          $("#client-select").val(null).trigger("change");
         } else {
           alert("Error creating order: " + response.data);
         }
@@ -544,6 +571,93 @@ jQuery(document).ready(function ($) {
       },
     });
   }
+
+  // Fetch and populate billing form based on selected client
+  $("#client-select").on("change", function () {
+    toggleArrow();
+    const clientId = $(this).val();
+
+    if (clientId) {
+      // Fetch client details via AJAX
+      $.ajax({
+        url: alarnd_create_order_vars.ajax_url,
+        method: "POST",
+        data: {
+          action: "get_client_details",
+          client_id: clientId,
+          security: alarnd_create_order_vars.nonce,
+        },
+        success: function (response) {
+          if (response.success) {
+            const client = response.data;
+            // Populate billing form with client details
+            $("#billing-form #billing_first_name").val(client.first_name);
+            $("#billing-form #billing_last_name").val(client.last_name);
+            $("#billing-form #billing_address_1").val(client.address_1);
+            $("#billing-form #billing_city").val(client.city);
+            $("#billing-form #billing_email").val(client.email);
+            $("#billing-form #billing_phone").val(client.phone);
+            // $(".client_profile_URL a").attr("href", client.url);
+          } else {
+            alert("Failed to fetch client details");
+          }
+        },
+        error: function () {
+          alert("Error fetching client details");
+        },
+      });
+    } else {
+      // Clear the form if no client is selected
+      $("#billing-form").trigger("reset");
+    }
+  });
+
+  // Initialize Select2 on the client dropdown
+  $("#client-select").select2({
+    placeholder: "Select a Client",
+    allowClear: true,
+  });
+  // Function to toggle arrow visibility based on selection
+  function toggleArrow() {
+    const hasSelection = $("#client-select").val();
+    const select2Container = $("#client-select").siblings(".select2-container");
+
+    if (hasSelection) {
+      select2Container.addClass("hide-arrow");
+      $(".client_profile_URL").show();
+    } else {
+      select2Container.removeClass("hide-arrow");
+      $(".client_profile_URL").hide();
+    }
+  }
+
+  // Initial check to hide/show the arrow
+  toggleArrow();
+
+  // Open modal on client profile URL click
+  $(".client_profile_URL").on("click", function (e) {
+    e.preventDefault();
+    $.magnificPopup.open({
+      items: {
+        src: "#billing-form-modal",
+        type: "inline",
+      },
+      closeBtnInside: true,
+      fixedContentPos: true,
+      mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
+      zoom: {
+        enabled: true,
+        duration: 300, // don't forget to change the duration also in CSS
+      },
+    });
+  });
+
+  $(document).on("click", "#update-billing", function () {
+    $.magnificPopup.close();
+  });
+
+  // Initialize Select2 on the category dropdown
+  $("#category-select").select2();
 
   window.deleteProductTransient = function () {
     if (confirm("Are you sure you want to delete the product transient?")) {
