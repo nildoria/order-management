@@ -224,12 +224,11 @@ foreach ($products as $product) {
         <div class="content-cart-user-wraper">
             <!-- Client selection -->
             <div class="content-client">
-                <h5>Select Client</h5>
                 <select id="client-select" style="width: 100%;">
                     <option value="">Select a Client</option>
                     <?php foreach ($clients as $client): ?>
                         <option value="<?php echo esc_attr($client['id']); ?>">
-                            <?php echo esc_html($client['name']); ?> <a href="#"></a>
+                            <?php echo esc_html($client['name']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -275,7 +274,11 @@ foreach ($products as $product) {
             </div>
 
             <div class="content-cart">
-                <h2>Cart</h2>
+                <h4>Cart</h4>
+                <div class="empty-cart-message">
+                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/cart-large-minimalistic.svg" alt="Empty Cart">
+                    <p class="empty-cart-text"><?php echo esc_html__('Your cart is empty!', 'hello-elementor'); ?></p>
+                </div>
                 <ul>
                     <!-- Cart items will be added here -->
                 </ul>
@@ -289,8 +292,5 @@ foreach ($products as $product) {
             </div>
         </div>
     </div>
-    <pre>
-        <?php print_r($products); ?>
-    </pre>
 </main>
 <?php get_footer(); ?>

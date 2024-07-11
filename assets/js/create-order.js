@@ -152,22 +152,24 @@ jQuery(document).ready(function ($) {
   });
 
   // Function to reset input fields in the modal
-  function resetModalFields(modal) {
-    modal.find("input[type='text']").val("");
-    modal.find("input[type='file']").val("");
-    modal.find(".item_unit_rate").val("");
-    modal.find("input[type='radio']").prop("checked", false);
-    modal
-      .find(
-        ".item-total-number, .item-rate-number, .total_units, .group_unite_price"
-      )
-      .text("0");
-    modal
-      .find(".item_total_price, .item_total_units, .item_unit_rate")
-      .val("0");
-    modal.find(".single_add_to_cart_button").attr("disabled", true);
-    modal.find(".grouped_product_add_to_cart").attr("disabled", true);
-  }
+  // function resetModalFields(modal) {
+  //   modal.find("input[type='text']").val("");
+  //   modal.find("input[type='file']").val("");
+  //   modal.find(".item_unit_rate").val("");
+  //   modal.find("input[type='radio']").prop("checked", false);
+  //   modal
+  //     .find(
+  //       ".item-total-number, .item-rate-number, .total_units, .group_unite_price"
+  //     )
+  //     .text("0");
+  //   modal
+  //     .find(".item_total_price, .item_total_units, .item_unit_rate")
+  //     .val("0");
+  //   modal.find(".single_add_to_cart_button").attr("disabled", true);
+  //   modal.find(".grouped_product_add_to_cart").attr("disabled", true);
+  //   modal.find(".uploaded_artwork").remove();
+  //   modal.find(".new_product_artwork").show();
+  // }
 
   // Handle Add to Cart button click
   $(".single_add_to_cart_button").on("click", function (e) {
@@ -207,7 +209,7 @@ jQuery(document).ready(function ($) {
         <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
         <span class="cart-item-contents">
         <span class="product-name">${productName}</span>
-        <span class="product-quantity">Quantity: ${quantity}</span>
+        <span class="product-quantity">Quantity: <span class="product-quantity-number">${quantity}</span></span>
         <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
         <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
   `;
@@ -226,21 +228,12 @@ jQuery(document).ready(function ($) {
 
     $(".content-cart ul").append(cartItem);
 
-    $(this)
-      .closest(".product-details-modal")
-      .find(".uploaded_artwork")
-      .remove();
-    $(this)
-      .closest(".product-details-modal")
-      .find(".new_product_artwork")
-      .show();
-
     // Update cart total
     updateCartTotal();
-    validateShipping();
+    validateCheckout();
 
     // Reset input fields
-    resetModalFields(modal);
+    // resetModalFields(modal);
 
     // Close the modal
     $.magnificPopup.close();
@@ -283,7 +276,7 @@ jQuery(document).ready(function ($) {
             <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
             <span class="cart-item-contents">
             <span class="product-name">${productName}</span>
-            <span class="product-quantity">Quantity: ${quantity}</span>
+            <span class="product-quantity">Quantity: <span class="product-quantity-number">${quantity}</span></span>
             <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
             <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
         `;
@@ -309,10 +302,10 @@ jQuery(document).ready(function ($) {
 
     // Update cart total
     updateCartTotal();
-    validateShipping();
+    validateCheckout();
 
     // Reset input fields
-    resetModalFields(modal);
+    // resetModalFields(modal);
 
     // Close the modal
     $.magnificPopup.close();
@@ -324,12 +317,16 @@ jQuery(document).ready(function ($) {
     } else {
       $(".content-cart .shipping-total-number").text("0.00");
     }
-    validateShipping();
+    validateCheckout();
     updateCartTotal();
   });
 
-  function validateShipping() {
-    if ("" === $("#shipping_method").val()) {
+  function validateCheckout() {
+    if (
+      "" === $("#shipping_method").val() ||
+      "" === $("#client-select").val() ||
+      $(".content-cart ul li").length === 0
+    ) {
       $(".content-cart #checkout").attr("disabled", true);
     } else {
       $(".content-cart #checkout").attr("disabled", false);
@@ -348,6 +345,10 @@ jQuery(document).ready(function ($) {
     if (total !== 0) {
       $(".content-cart #checkout").attr("disabled", false);
     }
+    validateCheckout();
+
+    // Show/hide empty cart message
+    toggleEmptyCartMessage();
   }
 
   // Function to remove a cart item
@@ -473,9 +474,9 @@ jQuery(document).ready(function ($) {
       const productId = item.data("product-id");
       const productName = item.find(".product-name").text();
       const quantity = item
-        .find(".product-quantity")
+        .find(".product-quantity-number")
         .text()
-        .replace("Quantity: ", "");
+        .replace(" ", "");
       const subtotal = item
         .find(".product-total-price")
         .text()
@@ -531,8 +532,6 @@ jQuery(document).ready(function ($) {
       data: orderData,
       success: function (response) {
         if (response.success) {
-          // Create the order post
-          createOrderPost(response.data);
           alert(
             "Order created successfully. Order ID: " + response.data.order_id
           );
@@ -545,6 +544,8 @@ jQuery(document).ready(function ($) {
             .prop("selected", false)
             .trigger("change");
           $("#client-select").val(null).trigger("change");
+          // Create the order post
+          createOrderPost(response.data);
         } else {
           alert("Error creating order: " + response.data);
         }
@@ -575,6 +576,7 @@ jQuery(document).ready(function ($) {
   // Fetch and populate billing form based on selected client
   $("#client-select").on("change", function () {
     toggleArrow();
+    validateCheckout();
     const clientId = $(this).val();
 
     if (clientId) {
@@ -657,8 +659,27 @@ jQuery(document).ready(function ($) {
     $.magnificPopup.close();
   });
 
+  // Function to show/hide empty cart message
+  function toggleEmptyCartMessage() {
+    if ($(".content-cart ul li.single-cart-item").length === 0) {
+      $(".empty-cart-message").show();
+      $(".content-cart h4").hide();
+    } else {
+      $(".empty-cart-message").hide();
+      $(".content-cart h4").show();
+    }
+  }
+
+  // Initial check to show/hide empty cart message
+  toggleEmptyCartMessage(); // Initial call to updateCartTotal to set the correct state on page load
+  updateCartTotal();
+  validateCheckout();
+
   // Initialize Select2 on the category dropdown
   $("#category-select").select2();
+
+  // Initialize Select2 on the shipping dropdown
+  $("#shipping_method").select2();
 
   window.deleteProductTransient = function () {
     if (confirm("Are you sure you want to delete the product transient?")) {

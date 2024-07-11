@@ -40,7 +40,12 @@
 }
 
 .om_hidden_details {
+  position: relative;
   display: none;
+}
+.om_customer__details_title {
+  position: absolute;
+  top: -55px;
 }
 
 td.td_index {
@@ -211,4 +216,7 @@ select#order_type {
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   padding-bottom: 15px;
   padding-top: 15px;
+}
+#create-client-form {
+  padding: 40px 0;
 }
