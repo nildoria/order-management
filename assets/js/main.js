@@ -271,7 +271,7 @@
     if (newSize) newItemMeta.size = newSize;
     if (newColor) newItemMeta.color = newColor;
     if (newArtPosition) newItemMeta.art_position = newArtPosition;
-    if (newInstructionNote) newItemMeta.instruction_note = newInstructionNote;
+    newItemMeta.instruction_note = newInstructionNote;
 
     updateItemMeta(newItemMeta);
   });
@@ -417,6 +417,7 @@
     const orderId = allaround_vars.order_id;
     const itemId = $(this).data("item_id");
     const metaKey = $(this).data("meta_key");
+    const metaId = $(this).data("meta_id");
     let artworkContainer = $this.closest(".uploaded_graphics");
 
     if (files.length > 0) {
@@ -433,6 +434,7 @@
         order_id: orderId,
         item_id: itemId,
         art_meta_key: metaKey,
+        art_meta_id: metaId,
       };
 
       fetch("/wp-content/themes/manage-order/includes/php/artwork-upload.php", {
@@ -511,6 +513,7 @@
           ml_send_ajax(requestData, handleResponse);
           let fileInfo = data.data.attachment_url;
           let link = artworkContainer.find("a");
+
           if (link.length) {
             link.attr("href", fileInfo);
           } else {
@@ -519,9 +522,11 @@
               .appendTo(artworkContainer);
             artworkContainer.find(".no_artwork_text").remove();
           }
-          let img = artworkContainer.find(".alarnd__artwork_img");
+
+          // Check if an img tag already exists
+          let img = link.find("img");
           if (img.length) {
-            // Check if fileInfo ends with .png, .jpg, or .jpeg
+            // Update the existing img src
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
             } else if (/\.(pdf)$/i.test(fileInfo)) {
@@ -530,6 +535,7 @@
               img.attr("src", `${themeAssets}images/document.png`);
             }
           } else {
+            // Create a new img tag and append it to the a tag
             img = $('<img class="alarnd__artwork_img">');
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
@@ -538,7 +544,7 @@
             } else {
               img.attr("src", `${themeAssets}images/document.png`);
             }
-            artworkContainer.append(img);
+            link.append(img);
             artworkContainer.find(".no_artwork_text").remove();
           }
         } else {
@@ -565,6 +571,78 @@
         }, 100);
       });
   }
+
+  // ********** Handle Delete Artwork button click **********//
+  $(document).on("click", ".om__DeleteArtwork", function (e) {
+    e.preventDefault();
+    const $this = $(this);
+    const order_domain = allaround_vars.order_domain;
+    const orderId = allaround_vars.order_id;
+    const itemId = $this.data("item_id");
+    const metaId = $this.data("meta_id");
+    let artworkContainer = $this.closest(".uploaded_graphics");
+
+    let requestData = {
+      action: "update_order_transient",
+      order_id: orderId,
+    };
+
+    function handleResponse(response) {
+      Toastify({
+        text: `Artwork Deleted successfully!`,
+        duration: 3000,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+      }).showToast();
+    }
+
+    if (confirm("Are you sure you want to delete this artwork?")) {
+      $("body").addClass("updating");
+      showSpinner(artworkContainer); // Show spinner
+
+      let deleteArtworkMeta = {
+        order_id: orderId,
+        item_id: itemId,
+        art_meta_id: metaId,
+      };
+
+      fetch(`${order_domain}/wp-json/update-order/v1/delete-item-meta`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(deleteArtworkMeta),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            ml_send_ajax(requestData, handleResponse);
+            // Remove artwork from the DOM
+            artworkContainer.find("a").remove();
+            artworkContainer.find(".om__DeleteArtwork").hide();
+            artworkContainer.append(
+              '<span class="no_artwork_text">No Artwork Attached</span>'
+            );
+          } else {
+            alert("Failed to delete artwork: " + data.message);
+          }
+          console.log("Response:", data.message);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("Error: " + error.message);
+        })
+        .finally(() => {
+          $("body").removeClass("updating");
+          hideSpinner(artworkContainer); // Hide spinner
+        });
+    }
+  });
 
   function showSpinner(container) {
     const spinnerHtml =
@@ -865,7 +943,7 @@
     const currentValue = dropdown.val();
     dropdown.empty();
     dropdown.append(
-      `<option value="${currentValue}" selected>${currentValue}</option>`
+      `<option value="N/A">No Applicable</option><option value="${currentValue}" selected>${currentValue}</option>`
     );
     dropdown.append('<option value="">Select Color</option>');
     if (Array.isArray(colors)) {
@@ -880,9 +958,9 @@
     const currentValue = dropdown.val();
     dropdown.empty();
     dropdown.append(
-      `<option value="${currentValue && currentValue}" selected>${
-        currentValue ? currentValue : "Select Color"
-      }</option>`
+      `<option value="N/A">No Applicable</option><option value="${
+        currentValue && currentValue
+      }" selected>${currentValue ? currentValue : "Select Color"}</option>`
     );
     if (Array.isArray(colors)) {
       colors.forEach((item) => {
@@ -908,9 +986,9 @@
     dropdown.closest(".form-group").show();
     dropdown.show();
     dropdown.append(
-      `<option value="${currentValue && currentValue}" selected>${
-        currentValue ? currentValue : "Select Size"
-      }</option>`
+      `<option value="N/A">Not Applicable</option><option value="${
+        currentValue && currentValue
+      }" selected>${currentValue ? currentValue : "Select Size"}</option>`
     );
     if (sizes && typeof sizes === "object") {
       Object.values(sizes).forEach((item) => {
@@ -931,7 +1009,9 @@
     dropdown.closest(".form-group").show();
     dropdown.show();
     dropdown.append(
-      `<option value="${currentValue && currentValue}" selected>${
+      `<option value="N/A">Not Applicable</option><option value="${
+        currentValue && currentValue
+      }" selected>${
         currentValue ? currentValue : "Select Art Position"
       }</option>`
     );

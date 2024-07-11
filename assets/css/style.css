@@ -105,7 +105,30 @@ span#om__itemVariUpdateModal {
 }
 .om__itemVariUpdateMeta {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.om__itemVariUpdateMeta > label {
+  margin-top: 10px;
+  font-weight: 600;
+}
+.update-item-meta-btn {
+  background-color: #66de93;
+  color: #1a1a1a;
+  font-size: 16px;
+  border-radius: 7px;
+  padding: 15px 24px;
+  min-width: 200px;
+  font-weight: 600;
+  border: 0px solid transparent;
+  cursor: pointer;
+  margin: 25px auto 10px;
+  float: none;
   display: block;
+}
+.update-item-meta-btn:hover {
+  background-color: #74e49f;
 }
 .om__itemVariUpdateModal {
   position: relative;
