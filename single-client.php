@@ -39,7 +39,7 @@ if (!is_user_logged_in()) {
         ];
 
         ?>
-        <div id="create-order-form">
+        <div id="create-client-form">
             <h2>Edit: <?php the_title(); ?></h2>
             <form id="addClientForm" data-type="edit" method="post">
                 <?php wp_nonce_field('create_client', 'create_client_nonce'); ?>
@@ -74,7 +74,7 @@ if (!is_user_logged_in()) {
                         </div>
                         <br>
                         <div class="form-group">
-                            <label for="invoice">Invoice Name:</label><br>
+                            <label for="invoice">Invoice Name:</label>
                             <input type="text" name="invoice" id="invoice"
                                 value="<?php echo esc_attr($fields['invoice']); ?>" />
                         </div>
@@ -145,7 +145,6 @@ if (!is_user_logged_in()) {
                             <div class="om_customer__details_title">
                                 <h4><?php echo esc_html__('Company Details:', 'hello-elementor'); ?></h4>
                             </div>
-                            <br>
 
                             <div class="form-group">
                                 <label for="dark_logo">Dark Logo:</label>
@@ -222,13 +221,13 @@ if (!is_user_logged_in()) {
                             </div>
                             <br>
                             <div class="form-group">
-                                <label for="mini_url">Mini URL:</label><br>
+                                <label for="mini_url">Mini URL:</label>
                                 <input type="text" name="mini_url" id="mini_url"
                                     value="<?php echo esc_attr($fields['mini_url']); ?>" />
                             </div>
                             <br>
                             <div class="form-group">
-                                <label for="mini_header">Mini Header:</label><br>
+                                <label for="mini_header">Mini Header:</label>
                                 <input type="text" name="mini_header" id="mini_header"
                                     value="<?php echo esc_attr($fields['mini_header']); ?>" />
                             </div>

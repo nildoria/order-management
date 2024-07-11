@@ -110,7 +110,7 @@ class AllAroundCreateOrder
             $current_domain = $_SERVER['SERVER_NAME'];
             $products_api_url = strpos($current_domain, '.test') !== false ?
                 'https://allaround.test/wp-json/alarnd-main/v1/products' :
-                'https://allaround.co.il/wp-json/alarnd-main/v1/products';
+                'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
 
             // Transient does not exist or expired, fetch data from API
             $response = wp_remote_get(

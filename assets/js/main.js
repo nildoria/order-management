@@ -271,7 +271,7 @@
     if (newSize) newItemMeta.size = newSize;
     if (newColor) newItemMeta.color = newColor;
     if (newArtPosition) newItemMeta.art_position = newArtPosition;
-    if (newInstructionNote) newItemMeta.instruction_note = newInstructionNote;
+    newItemMeta.instruction_note = newInstructionNote;
 
     updateItemMeta(newItemMeta);
   });
@@ -417,6 +417,7 @@
     const orderId = allaround_vars.order_id;
     const itemId = $(this).data("item_id");
     const metaKey = $(this).data("meta_key");
+    const metaId = $(this).data("meta_id");
     let artworkContainer = $this.closest(".uploaded_graphics");
 
     if (files.length > 0) {
@@ -433,6 +434,7 @@
         order_id: orderId,
         item_id: itemId,
         art_meta_key: metaKey,
+        art_meta_id: metaId,
       };
 
       fetch("/wp-content/themes/manage-order/includes/php/artwork-upload.php", {
@@ -511,6 +513,7 @@
           ml_send_ajax(requestData, handleResponse);
           let fileInfo = data.data.attachment_url;
           let link = artworkContainer.find("a");
+
           if (link.length) {
             link.attr("href", fileInfo);
           } else {
@@ -519,9 +522,11 @@
               .appendTo(artworkContainer);
             artworkContainer.find(".no_artwork_text").remove();
           }
-          let img = artworkContainer.find(".alarnd__artwork_img");
+
+          // Check if an img tag already exists
+          let img = link.find("img");
           if (img.length) {
-            // Check if fileInfo ends with .png, .jpg, or .jpeg
+            // Update the existing img src
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
             } else if (/\.(pdf)$/i.test(fileInfo)) {
@@ -530,6 +535,7 @@
               img.attr("src", `${themeAssets}images/document.png`);
             }
           } else {
+            // Create a new img tag and append it to the a tag
             img = $('<img class="alarnd__artwork_img">');
             if (/\.(png|jpg|jpeg)$/i.test(fileInfo)) {
               img.attr("src", fileInfo);
@@ -538,7 +544,7 @@
             } else {
               img.attr("src", `${themeAssets}images/document.png`);
             }
-            artworkContainer.append(img);
+            link.append(img);
             artworkContainer.find(".no_artwork_text").remove();
           }
         } else {
@@ -565,6 +571,78 @@
         }, 100);
       });
   }
+
+  // ********** Handle Delete Artwork button click **********//
+  $(document).on("click", ".om__DeleteArtwork", function (e) {
+    e.preventDefault();
+    const $this = $(this);
+    const order_domain = allaround_vars.order_domain;
+    const orderId = allaround_vars.order_id;
+    const itemId = $this.data("item_id");
+    const metaId = $this.data("meta_id");
+    let artworkContainer = $this.closest(".uploaded_graphics");
+
+    let requestData = {
+      action: "update_order_transient",
+      order_id: orderId,
+    };
+
+    function handleResponse(response) {
+      Toastify({
+        text: `Artwork Deleted successfully!`,
+        duration: 3000,
+        close: true,
+        gravity: "bottom", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+      }).showToast();
+    }
+
+    if (confirm("Are you sure you want to delete this artwork?")) {
+      $("body").addClass("updating");
+      showSpinner(artworkContainer); // Show spinner
+
+      let deleteArtworkMeta = {
+        order_id: orderId,
+        item_id: itemId,
+        art_meta_id: metaId,
+      };
+
+      fetch(`${order_domain}/wp-json/update-order/v1/delete-item-meta`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(deleteArtworkMeta),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            ml_send_ajax(requestData, handleResponse);
+            // Remove artwork from the DOM
+            artworkContainer.find("a").remove();
+            artworkContainer.find(".om__DeleteArtwork").hide();
+            artworkContainer.append(
+              '<span class="no_artwork_text">No Artwork Attached</span>'
+            );
+          } else {
+            alert("Failed to delete artwork: " + data.message);
+          }
+          console.log("Response:", data.message);
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("Error: " + error.message);
+        })
+        .finally(() => {
+          $("body").removeClass("updating");
+          hideSpinner(artworkContainer); // Hide spinner
+        });
+    }
+  });
 
   function showSpinner(container) {
     const spinnerHtml =
@@ -757,202 +835,204 @@
   });
 
   // ********** Fetch Products from Ordered Site **********//
-  $("#fetchProductList")
-    .on("click", function () {
-      if (!$(this).data("loaded")) {
-        fetchProducts();
-        $(this).data("loaded", true);
-      }
-      $("#productDropdown").slideDown();
-    })
-    .on("focusout", function () {
-      $("#productDropdown").slideUp();
-    });
-  function fetchProducts() {
-    let order_domain = allaround_vars.order_domain;
-    console.log(order_domain);
+  // $("#fetchProductList")
+  //   .on("click", function () {
+  //     if (!$(this).data("loaded")) {
+  //       fetchProducts();
+  //       $(this).data("loaded", true);
+  //     }
+  //     $("#productDropdown").slideDown();
+  //   })
+  //   .on("focusout", function () {
+  //     $("#productDropdown").slideUp();
+  //   });
+  // function fetchProducts() {
+  //   let order_domain = allaround_vars.order_domain;
+  //   console.log(order_domain);
 
-    fetch(`${order_domain}/wp-json/alarnd-main/v1/products`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("HTTP error " + response.status);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        displayProductList(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching products:", error);
-      });
-  }
+  //   fetch(`${order_domain}/wp-json/alarnd-main/v1/products/12266`)
+  //     .then((response) => {
+  //       if (!response.ok) {
+  //         throw new Error("HTTP error " + response.status);
+  //       }
+  //       return response.json();
+  //     })
+  //     .then((data) => {
+  //       displayProductList(data);
+  //     })
+  //     .catch((error) => {
+  //       console.error("Error fetching products:", error);
+  //     });
+  // }
 
-  function displayProductList(products) {
-    let productDropdown = $("#productDropdown");
-    if (productDropdown.length === 0) {
-      productDropdown = $(
-        '<ul id="productDropdown" class="product-dropdown"></ul>'
-      );
-      // $("#fetchProductList").after(productDropdown);
-    }
-    productDropdown.empty();
-    products.forEach((product) => {
-      const productThumbnail = product.thumbnail ? product.thumbnail : "";
-      productDropdown.append(
-        `<li data-id="${product.id}" data-custom-quantity="${
-          product.is_custom_quantity
-        }" data-group-quantity="${
-          product.is_group_quantity
-        }" data-colors='${JSON.stringify(
-          product.colors
-        )}' data-sizes='${JSON.stringify(
-          product.sizes
-        )}' data-art-positions='${JSON.stringify(
-          product.art_positions
-        )}' class="product-item">
-        <img src="${productThumbnail}" alt="${
-          product.name
-        }" class="product-thumb">
-        ${product.name}
-        </li>`
-      );
-    });
+  // function displayProductList(products) {
+  //   let productDropdown = $("#productDropdown");
+  //   if (productDropdown.length === 0) {
+  //     productDropdown = $(
+  //       '<ul id="productDropdown" class="product-dropdown"></ul>'
+  //     );
+  //     // $("#fetchProductList").after(productDropdown);
+  //   }
+  //   productDropdown.empty();
+  //   products.forEach((product) => {
+  //     const productThumbnail = product.thumbnail ? product.thumbnail : "";
+  //     productDropdown.append(
+  //       `<li data-id="${product.id}" data-custom-quantity="${
+  //         product.is_custom_quantity
+  //       }" data-group-quantity="${
+  //         product.is_group_quantity
+  //       }" data-colors='${JSON.stringify(
+  //         product.colors
+  //       )}' data-sizes='${JSON.stringify(
+  //         product.sizes
+  //       )}' data-art-positions='${JSON.stringify(
+  //         product.art_positions
+  //       )}' class="product-item">
+  //       <img src="${productThumbnail}" alt="${
+  //         product.name
+  //       }" class="product-thumb">
+  //       ${product.name}
+  //       </li>`
+  //     );
+  //   });
 
-    $(".product-item").on("click", function () {
-      const selectedProduct = $(this).data("id");
-      const isCustomQuantity = $(this).data("custom-quantity");
-      const isGroupQuantity = $(this).data("group-quantity");
-      const colors = $(this).data("colors");
-      const sizes = $(this).data("sizes");
-      const artPositions = $(this).data("art-positions");
+  //   $(".product-item").on("click", function () {
+  //     const selectedProduct = $(this).data("id");
+  //     const isCustomQuantity = $(this).data("custom-quantity");
+  //     const isGroupQuantity = $(this).data("group-quantity");
+  //     const colors = $(this).data("colors");
+  //     const sizes = $(this).data("sizes");
+  //     const artPositions = $(this).data("art-positions");
 
-      const productThumbnail = $(this).find(".product-thumb").attr("src");
-      const productName = $(this).text().trim();
+  //     const productThumbnail = $(this).find(".product-thumb").attr("src");
+  //     const productName = $(this).text().trim();
 
-      if ($("#selectedProductDisplay").length) {
-        $("#selectedProductDisplay").html(
-          `<img src="${productThumbnail}" alt="${productName}" class="product-thumb">${productName}`
-        );
-        $("#selectedProductDisplay").data("product-id", selectedProduct);
+  //     if ($("#selectedProductDisplay").length) {
+  //       $("#selectedProductDisplay").html(
+  //         `<img src="${productThumbnail}" alt="${productName}" class="product-thumb">${productName}`
+  //       );
+  //       $("#selectedProductDisplay").data("product-id", selectedProduct);
 
-        $("#addNewItemButton, #addProductButton")
-          .addClass("om_add_item_selected")
-          .prop("disabled", false);
-      }
-      $("#new_product_id").val(selectedProduct);
+  //       $("#addNewItemButton, #addProductButton")
+  //         .addClass("om_add_item_selected")
+  //         .prop("disabled", false);
+  //     }
+  //     $("#new_product_id").val(selectedProduct);
 
-      // Insert the product name and thumbnail into a div or span
+  //     // Insert the product name and thumbnail into a div or span
 
-      if (isCustomQuantity) {
-        populateCustomQuantityColors("#new_product_color", colors);
-        hideSizeDropdown("#new_product_size");
-        hideArtPositionsDropdown("#new_product_art_pos");
-      } else if (isGroupQuantity) {
-        populateGroupQuantityColors("#new_product_color", colors);
-        populateSizeDropdown("#new_product_size", sizes);
-        populateArtPositionsDropdown("#new_product_art_pos", artPositions);
-      } else {
-        hideSizeDropdown("#new_product_size");
-        hideArtPositionsDropdown("#new_product_art_pos");
-      }
+  //     if (isCustomQuantity) {
+  //       populateCustomQuantityColors("#new_product_color", colors);
+  //       hideSizeDropdown("#new_product_size");
+  //       hideArtPositionsDropdown("#new_product_art_pos");
+  //     } else if (isGroupQuantity) {
+  //       populateGroupQuantityColors("#new_product_color", colors);
+  //       populateSizeDropdown("#new_product_size", sizes);
+  //       populateArtPositionsDropdown("#new_product_art_pos", artPositions);
+  //     } else {
+  //       hideSizeDropdown("#new_product_size");
+  //       hideArtPositionsDropdown("#new_product_art_pos");
+  //     }
 
-      $("#productDropdown").slideUp();
-    });
-  }
+  //     $("#productDropdown").slideUp();
+  //   });
+  // }
 
-  function populateCustomQuantityColors(selector, colors) {
-    const dropdown = $(selector);
-    const currentValue = dropdown.val();
-    dropdown.empty();
-    dropdown.append(
-      `<option value="${currentValue}" selected>${currentValue}</option>`
-    );
-    dropdown.append('<option value="">Select Color</option>');
-    if (Array.isArray(colors)) {
-      colors.forEach((item) => {
-        dropdown.append(`<option value="${item.color}">${item.color}</option>`);
-      });
-    }
-  }
+  // function populateCustomQuantityColors(selector, colors) {
+  //   const dropdown = $(selector);
+  //   const currentValue = dropdown.val();
+  //   dropdown.empty();
+  //   dropdown.append(
+  //     `<option value="N/A">No Applicable</option><option value="${currentValue}" selected>${currentValue}</option>`
+  //   );
+  //   dropdown.append('<option value="">Select Color</option>');
+  //   if (Array.isArray(colors)) {
+  //     colors.forEach((item) => {
+  //       dropdown.append(`<option value="${item.color}">${item.color}</option>`);
+  //     });
+  //   }
+  // }
 
-  function populateGroupQuantityColors(selector, colors) {
-    const dropdown = $(selector);
-    const currentValue = dropdown.val();
-    dropdown.empty();
-    dropdown.append(
-      `<option value="${currentValue && currentValue}" selected>${
-        currentValue ? currentValue : "Select Color"
-      }</option>`
-    );
-    if (Array.isArray(colors)) {
-      colors.forEach((item) => {
-        dropdown.append(
-          `<option value="${item.title}" style="background-color: ${item.color_hex_code};">${item.title}</option>`
-        );
-      });
-    }
-  }
+  // function populateGroupQuantityColors(selector, colors) {
+  //   const dropdown = $(selector);
+  //   const currentValue = dropdown.val();
+  //   dropdown.empty();
+  //   dropdown.append(
+  //     `<option value="N/A">No Applicable</option><option value="${
+  //       currentValue && currentValue
+  //     }" selected>${currentValue ? currentValue : "Select Color"}</option>`
+  //   );
+  //   if (Array.isArray(colors)) {
+  //     colors.forEach((item) => {
+  //       dropdown.append(
+  //         `<option value="${item.title}" style="background-color: ${item.color_hex_code};">${item.title}</option>`
+  //       );
+  //     });
+  //   }
+  // }
 
-  function populateSizeDropdown(selector, sizes) {
-    const dropdown = $(selector);
-    const currentValue = dropdown.val();
-    dropdown.empty();
-    if (
-      !sizes ||
-      (typeof sizes === "object" && Object.keys(sizes).length === 0)
-    ) {
-      dropdown.hide();
-      return;
-    }
+  // function populateSizeDropdown(selector, sizes) {
+  //   const dropdown = $(selector);
+  //   const currentValue = dropdown.val();
+  //   dropdown.empty();
+  //   if (
+  //     !sizes ||
+  //     (typeof sizes === "object" && Object.keys(sizes).length === 0)
+  //   ) {
+  //     dropdown.hide();
+  //     return;
+  //   }
 
-    dropdown.closest(".form-group").show();
-    dropdown.show();
-    dropdown.append(
-      `<option value="${currentValue && currentValue}" selected>${
-        currentValue ? currentValue : "Select Size"
-      }</option>`
-    );
-    if (sizes && typeof sizes === "object") {
-      Object.values(sizes).forEach((item) => {
-        dropdown.append(`<option value="${item}">${item}</option>`);
-      });
-    }
-  }
+  //   dropdown.closest(".form-group").show();
+  //   dropdown.show();
+  //   dropdown.append(
+  //     `<option value="N/A">Not Applicable</option><option value="${
+  //       currentValue && currentValue
+  //     }" selected>${currentValue ? currentValue : "Select Size"}</option>`
+  //   );
+  //   if (sizes && typeof sizes === "object") {
+  //     Object.values(sizes).forEach((item) => {
+  //       dropdown.append(`<option value="${item}">${item}</option>`);
+  //     });
+  //   }
+  // }
 
-  function populateArtPositionsDropdown(selector, artPositions) {
-    const dropdown = $(selector);
-    const currentValue = dropdown.val();
-    dropdown.empty();
-    if (!artPositions || !Array.isArray(artPositions)) {
-      dropdown.hide();
-      return;
-    }
+  // function populateArtPositionsDropdown(selector, artPositions) {
+  //   const dropdown = $(selector);
+  //   const currentValue = dropdown.val();
+  //   dropdown.empty();
+  //   if (!artPositions || !Array.isArray(artPositions)) {
+  //     dropdown.hide();
+  //     return;
+  //   }
 
-    dropdown.closest(".form-group").show();
-    dropdown.show();
-    dropdown.append(
-      `<option value="${currentValue && currentValue}" selected>${
-        currentValue ? currentValue : "Select Art Position"
-      }</option>`
-    );
-    artPositions.forEach((item) => {
-      dropdown.append(`<option value="${item.title}">${item.title}</option>`);
-    });
-  }
+  //   dropdown.closest(".form-group").show();
+  //   dropdown.show();
+  //   dropdown.append(
+  //     `<option value="N/A">Not Applicable</option><option value="${
+  //       currentValue && currentValue
+  //     }" selected>${
+  //       currentValue ? currentValue : "Select Art Position"
+  //     }</option>`
+  //   );
+  //   artPositions.forEach((item) => {
+  //     dropdown.append(`<option value="${item.title}">${item.title}</option>`);
+  //   });
+  // }
 
-  function hideSizeDropdown(selector) {
-    const dropdown = $(selector);
-    dropdown.empty();
-    dropdown.hide();
-    dropdown.closest(".form-group").hide();
-  }
+  // function hideSizeDropdown(selector) {
+  //   const dropdown = $(selector);
+  //   dropdown.empty();
+  //   dropdown.hide();
+  //   dropdown.closest(".form-group").hide();
+  // }
 
-  function hideArtPositionsDropdown(selector) {
-    const dropdown = $(selector);
-    dropdown.empty();
-    dropdown.hide();
-    dropdown.closest(".form-group").hide();
-  }
+  // function hideArtPositionsDropdown(selector) {
+  //   const dropdown = $(selector);
+  //   dropdown.empty();
+  //   dropdown.hide();
+  //   dropdown.closest(".form-group").hide();
+  // }
 
   // ********** Add New Item to the Existing Order **********//
   $("#new_product_artwork").on("change", function (event) {
@@ -994,14 +1074,6 @@
             .prop("disabled", false);
         });
     }
-  });
-
-  $("#addProductModal").magnificPopup({
-    items: {
-      src: "#add-item-modal",
-      type: "inline",
-    },
-    closeBtnInside: true,
   });
 
   $("#addNewItemButton").on("click", function (event) {
