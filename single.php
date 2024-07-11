@@ -5,6 +5,9 @@
  */
 get_header();
 
+$addItem = new AllAroundAddItem();
+$products = $addItem->fetch_products_data();
+
 ?>
 <main class="site-main" role="main">
     <?php
@@ -150,20 +153,24 @@ get_header();
 
                     <?php if (!ml_current_user_contributor()): ?>
                     
-                    <div id="add-item-modal" class="mfp-hide add-item-to-order-modal">
+                    <div id="add-item-modal" class="mfp-hide add-item-to-order-modal product-details-modal">
                         <div class="form-container">
                             <div class="form-group">
                                 <label for="fetchProductList">Add New Item</label>
                                 <input type="text" id="fetchProductList" placeholder="Add New Item" />
                                 <div id="selectedProductDisplay">Select Product...</div>
-                                <ul id="productDropdown" class="product-dropdown" style="display: none;"></ul>
+                                <ul id="productDropdown" class="product-dropdown" style="display: none;">
+
+                                </ul>
                             </div>
+
+                            <div id="productDetailsContainer"></div>
 
                             <div class="form-group">
                                 <label for="new_product_id">Product ID</label>
                                 <input type="text" id="new_product_id" value="" placeholder="Enter Product ID" readonly />
                             </div>
-                            <div class="form-group">
+                            <!-- <div class="form-group">
                                 <label for="new_product_quantity">Quantity</label>
                                 <input type="number" id="new_product_quantity" value="1" placeholder="Enter Quantity" />
                             </div>
@@ -191,7 +198,7 @@ get_header();
                                 <label for="new_product_artwork">Artwork</label>
                                 <input type="file" class="new_product_artwork" name="artwork" multiple />
                                 <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
-                            </div>
+                            </div> -->
                             <div class="form-group">
                                 <label for="new_product_instruction_note">Instruction Note</label>
                                 <input type="text" id="new_product_instruction_note" value=""

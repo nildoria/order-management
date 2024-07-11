@@ -1722,3 +1722,4 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
 require_once get_template_directory() . '/includes/classes/class-clients.php';
 require_once get_template_directory() . '/includes/classes/class-create-order.php';
+require_once get_template_directory() . '/includes/classes/class-add-item.php';
