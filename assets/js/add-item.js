@@ -299,6 +299,7 @@ jQuery(document).ready(function ($) {
             </div>
         `;
     container.html(html);
+    dynamicVariationColor();
   }
 
   function renderColors(colors) {
@@ -406,6 +407,42 @@ jQuery(document).ready(function ($) {
     }
     return color.omit_sizes.some((omitSize) => omitSize.value === size);
   }
+
+  function getBrightness(hex) {
+    hex = hex.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000;
+  }
+
+  function dynamicVariationColor() {
+    $(".alarnd--opt-color span").each(function () {
+      const bgColor = $(this).css("background-color");
+      const rgb = bgColor.match(/\d+/g);
+      const hexColor = rgb
+        ? "#" +
+          (
+            (1 << 24) +
+            (parseInt(rgb[0]) << 16) +
+            (parseInt(rgb[1]) << 8) +
+            parseInt(rgb[2])
+          )
+            .toString(16)
+            .slice(1)
+            .toUpperCase()
+        : bgColor;
+
+      const brightness = getBrightness(hexColor);
+      if (brightness < 128) {
+        $(this).css("color", "#FFFFFF"); // White text color
+      } else {
+        $(this).css("color", "#000000"); // Black text color
+      }
+    });
+  }
+
+  dynamicVariationColor();
 
   // Event listener for adding new item button
   $(document).on("click", "#addNewItemButton", function (event) {

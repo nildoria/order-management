@@ -698,10 +698,6 @@ select#shipping-method-list {
   cursor: text;
   margin-bottom: 5px;
 }
-.selected-item-display {
-  font-size: 18px;
-  font-weight: 600;
-}
 input#fetchProductList {
   margin-bottom: 15px;
 }
@@ -1493,6 +1489,19 @@ td.mockups-row {
   border-width: 0.2em;
   -webkit-box-shadow: 0 0 0 1px transparent;
   box-shadow: 0 0 0 1px transparent;
+}
+#post-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 35px;
+}
+.post-item {
+  width: 33.33%;
+  padding: 15px;
+}
+main#om__searchOrderPage {
+  margin-top: 50px;
+  margin-bottom: 50px;
 }
 
 @-webkit-keyframes button-spin {

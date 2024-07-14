@@ -1717,6 +1717,53 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 }
 
 
+/**
+ * Order Searching.
+ *
+ */
+function search_posts()
+{
+    $query = sanitize_text_field($_POST['query']);
+
+    // Default arguments for loading all posts initially
+    $args = array(
+        'post_type' => 'post',
+        'posts_per_page' => -1
+    );
+
+    if (!empty($query)) {
+        // To handle partial matches in titles
+        $args['s'] = $query;
+
+        add_filter('posts_where', function ($where) use ($query) {
+            global $wpdb;
+            return $where . $wpdb->prepare(" AND {$wpdb->posts}.post_title LIKE %s", '%' . $wpdb->esc_like($query) . '%');
+        });
+    }
+
+    $posts = new WP_Query($args);
+
+    if ($posts->have_posts()) {
+        while ($posts->have_posts()) {
+            $posts->the_post();
+            // get the order_status meta
+            $order_status = get_post_meta(get_the_ID(), 'order_status', true);
+            ?>
+            <div class="post-item">
+                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                <p><?php echo esc_html($order_status); ?></p>
+            </div>
+            <?php
+        }
+    } else {
+        echo '<p>No posts found.</p>';
+    }
+
+    wp_die();
+}
+add_action('wp_ajax_search_posts', 'search_posts');
+add_action('wp_ajax_nopriv_search_posts', 'search_posts');
+
 
 
 
