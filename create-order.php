@@ -180,6 +180,27 @@ foreach ($products as $product) {
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="grouped-product-meta-data">
+                                            <div class="form-group">
+                                                <label for="new_product_artwork">Upload Artwork</label>
+                                                <input type="file" class="new_product_artwork" name="artwork" multiple />
+                                                <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="new_product_art_pos">Art Position</label>
+                                                <select class="new_product_art_pos">
+                                                    <option value="">Select Art Position</option>
+                                                    <?php foreach ($product['art_positions'] as $artPosition): ?>
+                                                        <option value="<?php echo esc_html($artPosition['title']); ?>"><?php echo esc_html($artPosition['title']); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="new_product_instruction_note">Instruction Note</label>
+                                                <input type="text" class="new_product_instruction_note" value=""
+                                                    placeholder="Enter Instruction Note" />
+                                            </div>
+                                        </div>
                                         <div class="grouped-modal-actions">
                                             <div class="alarnd--price-by-shirt">
                                                 <p class="alarnd--group-price">
@@ -194,21 +215,9 @@ foreach ($products as $product) {
                                                     <?php echo esc_html__('Total: ', 'hello-elementor'); ?><span class="item-total-number">0</span>₪
                                                     <input type="hidden" class="item_total_price" name="item_total_price">
                                                 </div>
-                                                <button name="add-to-cart" value="<?php echo esc_html($product['id']) ?>"
-                                                class="grouped_product_add_to_cart ml_add_loading button alt "><?php echo esc_html__('Add to cart', 'hello-elementor'); ?></button>
                                             </div>
-                                            <div class="grouped-product-meta-data">
-                                                <div class="form-group">
-                                                    <label for="new_product_artwork">Upload Artwork</label>
-                                                    <input type="file" class="new_product_artwork" name="artwork" multiple />
-                                                    <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="new_product_instruction_note">Instruction Note</label>
-                                                    <input type="text" class="new_product_instruction_note" value=""
-                                                        placeholder="Enter Instruction Note" />
-                                                </div>
-                                            </div>
+                                            <button name="add-to-cart" value="<?php echo esc_html($product['id']) ?>"
+                                            class="grouped_product_add_to_cart ml_add_loading button alt "><?php echo esc_html__('Add to cart', 'hello-elementor'); ?></button>
                                         </div>
                                     <?php endif; ?>
 

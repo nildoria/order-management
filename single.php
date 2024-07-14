@@ -153,10 +153,10 @@ $products = $addItem->fetch_products_data();
 
                     <?php if (!ml_current_user_contributor()): ?>
                     
-                    <div id="add-item-modal" class="mfp-hide add-item-to-order-modal product-details-modal">
+                    <div id="add-item-modal" class="mfp-hide add-item-to-order-modal product-details-modal" data-order_id="<?php echo $order_id; ?>">
                         <div class="form-container">
-                            <div class="form-group">
-                                <label for="fetchProductList">Add New Item</label>
+                            <div class="form-group select-product-input">
+                                <label for="fetchingProductList">Add New Item</label>
                                 <input type="text" id="fetchProductList" placeholder="Add New Item" />
                                 <div id="selectedProductDisplay">Select Product...</div>
                                 <ul id="productDropdown" class="product-dropdown" style="display: none;">
@@ -166,47 +166,7 @@ $products = $addItem->fetch_products_data();
 
                             <div id="productDetailsContainer"></div>
 
-                            <div class="form-group">
-                                <label for="new_product_id">Product ID</label>
-                                <input type="text" id="new_product_id" value="" placeholder="Enter Product ID" readonly />
-                            </div>
-                            <!-- <div class="form-group">
-                                <label for="new_product_quantity">Quantity</label>
-                                <input type="number" id="new_product_quantity" value="1" placeholder="Enter Quantity" />
-                            </div>
-
-                            <div class="form-group">
-                                <label for="new_product_color">Color</label>
-                                <select id="new_product_color">
-                                    <option value="">Select Color</option>
-                                </select>
-                            </div>
-
-                            <div class="grid-container" id="size-color-container">
-                                <div class="form-group om_default_hidden">
-                                    <label for="new_product_size">Size</label>
-                                    <select id="new_product_size"></select>
-                                </div>
-                                <div class="form-group om_default_hidden">
-                                    <label for="new_product_art_pos">Art Position</label>
-                                    <select id="new_product_art_pos">
-                                        <option value="">Select Art Position</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="new_product_artwork">Artwork</label>
-                                <input type="file" class="new_product_artwork" name="artwork" multiple />
-                                <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
-                            </div> -->
-                            <div class="form-group">
-                                <label for="new_product_instruction_note">Instruction Note</label>
-                                <input type="text" id="new_product_instruction_note" value=""
-                                    placeholder="Enter Instruction Note" />
-                            </div>
-                            <div class="form-group">
-                                <button id="addNewItemButton" class="ml_add_loading" disabled>Add New Item</button>
-                            </div>
+                            <input type="hidden" id="new_product_id" value="" placeholder="Enter Product ID" readonly />
                         </div>
                     </div>
                     <div class="om__afterTable_buttonSet">

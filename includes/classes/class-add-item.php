@@ -8,10 +8,25 @@ class AllAroundAddItem
 
     public function additem_scripts()
     {
+        global $post;
         // Enqueue custom styles and scripts
         wp_enqueue_style('add-item-style', get_template_directory_uri() . '/assets/css/add-item.css', [], HELLO_ELEMENTOR_VERSION);
 
         wp_enqueue_script('add-item-script', get_template_directory_uri() . '/assets/js/add-item.js', ['jquery'], HELLO_ELEMENTOR_VERSION, true);
+
+        $post_id = is_singular('post') && isset($post) ? $post->ID : null;
+
+        if ($post_id) {
+            $order_id = esc_attr(get_post_meta($post_id, 'order_id', true));
+            $order_domain = esc_url(get_post_meta($post_id, 'site_url', true));
+        } else {
+            $order_id = '';
+            $order_domain = '';
+        }
+        // Set default order_domain if not set
+        if (empty($order_domain)) {
+            $order_domain = 'https://main.lukpaluk.xyz';
+        }
 
         wp_localize_script(
             'add-item-script',
@@ -20,6 +35,9 @@ class AllAroundAddItem
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce("add_item_nonce"),
                 'home_url' => home_url(),
+                'post_id' => $post_id,
+                'order_id' => $order_id,
+                'order_domain' => $order_domain,
             )
         );
     }
