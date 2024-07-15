@@ -1209,6 +1209,27 @@
           consumer_secret = "cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4";
         }
 
+        let requestData = {
+          action: "update_order_transient",
+          order_id: order_id,
+        };
+
+        function handleResponse() {
+          Toastify({
+            text: `Items Rearranged successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+
+          // location.reload();
+        }
+
         $.ajax({
           url: `${order_domain}/wp-json/update-order/v1/rearrange-order-items`,
           type: "POST",
@@ -1222,14 +1243,18 @@
             xhr.setRequestHeader("Authorization", "Basic " + auth);
           },
           success: function (response) {
+            console.log("Response:", response);
             if (response.success) {
-              alert(response.data);
+              // alert(response.message);
+              ml_send_ajax(requestData, handleResponse);
             } else {
               alert("Error: " + response.message);
+              console.log("Error:", response);
             }
           },
           error: function (xhr, status, error) {
             console.error("Error:", error);
+            console.error("Response Text:", xhr.responseText);
             alert("Failed to rearrange order items: " + xhr.responseText);
           },
         });
