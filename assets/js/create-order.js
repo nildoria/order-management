@@ -178,7 +178,11 @@ jQuery(document).ready(function ($) {
     const productId = modal.data("product_id");
     const productName = modal.find(".modal-title").text();
     const productThumbnail = modal.find(".product-thumb").val();
-    const quantity = modal.find(".custom-quantity").val();
+    // const quantity = modal.find(".custom-quantity").val();
+    const quantity =
+      modal.find(".custom-quantity").length > 0
+        ? modal.find(".custom-quantity").val()
+        : modal.find(".freestyle-custom-quantity").val();
     const selectedColor = modal
       .find("input[name='custom_color']:checked")
       .val();
@@ -680,6 +684,70 @@ jQuery(document).ready(function ($) {
 
   // Initialize Select2 on the shipping dropdown
   $("#shipping_method").select2();
+
+  // Function to ensure only numbers and one decimal point are allowed
+  function sanitizeInput(value) {
+    // Remove any non-numeric characters except for a decimal point
+    let sanitizedValue = value.replace(/[^0-9.]/g, "");
+    // Ensure only one decimal point is allowed
+    sanitizedValue = sanitizedValue.replace(/(\..*)\./g, "$1");
+    return sanitizedValue;
+  }
+
+  $(".freestyle-rate-number-input").on("input", function () {
+    // Sanitize input value
+    let freestyleRateStr = sanitizeInput($(this).val());
+    $(this).val(freestyleRateStr);
+
+    // Run the calculation function
+    freestylePriceCalc();
+  });
+
+  function freestylePriceCalc() {
+    $(".freestyle-custom-quantity").each(function () {
+      console.log("Calculating price for freestyle product");
+      let quantityStr = $(this).val().replace(/\D/g, ""); // Only numbers
+      if (quantityStr.length > 6) {
+        quantityStr = quantityStr.slice(0, 6); // Limit to 6 characters
+      }
+      if (quantityStr === "" || quantityStr === "0") {
+        quantityStr = "1";
+      }
+      let quantity = parseInt(quantityStr);
+
+      let rate = parseFloat(
+        $(this)
+          .closest(".product-custom-quantity-wraper")
+          .find(".freestyle-rate-number-input")
+          .val()
+      );
+
+      // Check if rate is a valid number
+      if (isNaN(rate)) {
+        rate = 0;
+      }
+
+      let total = rate * quantity;
+
+      $(this).val(quantityStr); // Update the input value
+      $(this)
+        .closest(".product-custom-quantity-wraper")
+        .find(".item-total-number")
+        .text(total.toFixed(2));
+      $(this)
+        .closest(".product-custom-quantity-wraper")
+        .find(".item_total_price")
+        .val(total.toFixed(2));
+    });
+  }
+
+  // Bind the input event for .freestyle-custom-quantity elements to update the total dynamically
+  $(".freestyle-custom-quantity").on("input", function () {
+    freestylePriceCalc();
+  });
+
+  // Initial calculation on page load
+  freestylePriceCalc();
 
   window.deleteProductTransient = function () {
     if (confirm("Are you sure you want to delete the product transient?")) {

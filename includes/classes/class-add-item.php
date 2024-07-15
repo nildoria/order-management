@@ -35,6 +35,7 @@ class AllAroundAddItem
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce("add_item_nonce"),
                 'home_url' => home_url(),
+                'assets' => get_template_directory_uri() . '/assets/',
                 'post_id' => $post_id,
                 'order_id' => $order_id,
                 'order_domain' => $order_domain,

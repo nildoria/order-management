@@ -30,9 +30,7 @@ jQuery(document).ready(function ($) {
   $("#fetchProductList").on("input", function () {
     filterProducts();
   });
-});
 
-jQuery(document).ready(function ($) {
   $("#fetchProductList")
     .on("click", function () {
       if (!$(this).data("loaded")) {
@@ -75,15 +73,42 @@ jQuery(document).ready(function ($) {
       const productThumbnail = product.thumbnail ? product.thumbnail : "";
       productDropdown.append(
         `<li data-id="${product.id}" class="product-item">
-                    <img src="${productThumbnail}" alt="${product.name}" class="product-thumb">
-                    ${product.name}
-                </li>`
+            <img src="${productThumbnail}" alt="${product.name}" class="product-thumb">
+            ${product.name}
+        </li>`
       );
     });
+    productDropdown.append(
+      `<li data-id="freestyle" class="product-item-freestyle">
+            <img src="${alarnd_add_item_vars.assets}images/allaround-logo.png" alt="Freestyle" class="product-thumb">
+            Freestyle Item
+        </li>`
+    );
 
     $(".product-item").on("click", function () {
       const productId = $(this).data("id");
       fetchProductDetails(productId);
+
+      const productThumbnail = $(this).find(".product-thumb").attr("src");
+      const productName = $(this).text().trim();
+
+      // Call the new function with the necessary parameters
+      updateSelectedProductDisplay(productId, productThumbnail, productName);
+    });
+
+    $(".product-item-freestyle").on("click", function () {
+      const productId = $(this).data("id");
+      freestyleProductDetails(productId);
+      loadCreateOrderJS();
+      $("#addNewItemButton")
+        .addClass("om_add_item_selected")
+        .prop("disabled", false);
+      $("#fetchProductList").hide();
+      $("label[for='fetchingProductList']").hide();
+      $("#selectedProductDisplay").addClass("selected-item-display");
+      $("#add-item-modal .select-product-input").prepend(
+        '<button id="returnToSelectProduct" class="button">Select Another Product</button>'
+      );
 
       const productThumbnail = $(this).find(".product-thumb").attr("src");
       const productName = $(this).text().trim();
@@ -113,6 +138,31 @@ jQuery(document).ready(function ($) {
 
     // Update the hidden input value
     $("#new_product_id").val(productId);
+  }
+
+  function freestyleProductDetails(productId) {
+    let productDetailsContainer = $("#productDetailsContainer");
+    let html = `<div class="product-custom-quantity-wraper">
+                  <div class="form-group">
+                    <label for="custom-quantity">Quantity</label>
+                    <div class="quantity-wrapper">
+                      <input type="text" name="freestyle-custom-quantity" class="freestyle-custom-quantity" value="1" data-steps='[]'>
+                      <div class="price-total">
+                          <span class="item-total-number">0</span>₪
+                          <input type="hidden" class="item_total_price" name="item_total_price" value="0">
+                      </div>
+                      <div class="price-item freestyle-price-rate">
+                          <input type="text" value="1" name="item-rate-number" class="freestyle-rate-number-input">
+                          <span> per unit</span>
+                      </div>
+                    </div>
+                  </div>
+                  ${renderArtworkUploader()}
+                  ${renderInstructionNote()}
+                  <button name="add-to-cart" value="freestyle" id="addNewItemButton"
+                    class="customQuantity_add_to_cart_button ml_add_loading button alt ">Add to order</button>
+                </div>`;
+    productDetailsContainer.html(html);
   }
 
   function fetchProductDetails(productId) {
@@ -483,10 +533,14 @@ jQuery(document).ready(function ($) {
       });
     } else {
       const productId = modal.find("#new_product_id").val();
-      const quantity = modal.find(".custom-quantity").val();
+      const quantity =
+        modal.find(".custom-quantity").length > 0
+          ? modal.find(".custom-quantity").val()
+          : modal.find(".freestyle-custom-quantity").val();
       const selectedColor = modal
         .find("input[name='custom_color']:checked")
         .val();
+      const subTotalPrice = modal.find(".item_total_price").val();
       const artworkUrl = modal.find(".uploaded_file_path").val();
       const instructionNote = modal.find(".new_product_instruction_note").val();
 
@@ -494,6 +548,7 @@ jQuery(document).ready(function ($) {
         product_id: productId,
         quantity: quantity,
         alarnd_color: selectedColor,
+        subtotal: subTotalPrice,
         // allaround_art_pos: $("#new_product_art_pos").val(),
         allaround_instruction_note: instructionNote,
         alarnd_artwork: artworkUrl,
