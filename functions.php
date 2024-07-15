@@ -1025,10 +1025,8 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         if (isset($item->id)) {
             echo '<input type="hidden" name="item_id" value="' . esc_attr($item_id) . '">';
         }
-        if (isset($item->image->src)) {
-            $thumbnail_url = $item->image->src;
-            echo '<span class="om_item_thumb_cont"><img width="100" src="' . esc_url($thumbnail_url) . '" /></span>';
-        }
+        $thumbnail_url = isset($item->image->src) && !empty($item->image->src) ? $item->image->src : get_template_directory_uri() . '/assets/images/allaround-logo.png';
+        echo '<span class="om_item_thumb_cont"><img width="100" src="' . esc_url($thumbnail_url) . '" /></span>';
         echo '<span class="item_name_variations">';
         echo '<strong class="product_item_title">' . esc_html($item->name) . '</strong>';
         echo '<ul>';

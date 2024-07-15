@@ -269,12 +269,12 @@ class AllAroundCreateOrder
                             // Extract the file extension
                             $extension = pathinfo($artwork_url, PATHINFO_EXTENSION);
                             // Create the HTML content for each artwork with dynamic class based on file extension
-                            $meta['value'] .= "<p>" . basename($artwork_url) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_url . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_url . "\" /></a></div>";
+                            $meta['value'] .= "<p>" . basename($artwork_url) . "</p><a href=\"" . $artwork_url . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_url . "\" /></a>";
                         }
                     } elseif (!empty($artwork_urls)) { // Handle single artwork URL (not an array)
                         // Extract the file extension for single URL
                         $extension = pathinfo($artwork_urls, PATHINFO_EXTENSION);
-                        $meta['value'] = "<p>" . basename($artwork_urls) . "</p><div class=\"uploaded_graphics file-format-" . strtolower($extension) . "\"><a href=\"" . $artwork_urls . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_urls . "\" /></a></div>";
+                        $meta['value'] = "<p>" . basename($artwork_urls) . "</p><a href=\"" . $artwork_urls . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_urls . "\" /></a>";
                     }
                 }
             }

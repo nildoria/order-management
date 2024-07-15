@@ -160,7 +160,7 @@ $products = $addItem->fetch_products_data();
                                 <input type="text" id="fetchProductList" placeholder="Add New Item" />
                                 <div id="selectedProductDisplay">Select Product...</div>
                                 <ul id="productDropdown" class="product-dropdown" style="display: none;">
-
+                                    
                                 </ul>
                             </div>
 

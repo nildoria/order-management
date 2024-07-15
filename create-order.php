@@ -196,9 +196,7 @@ foreach ($products as $product) {
                                                 </select>
                                             </div>
                                             <div class="form-group">
-                                                <label for="new_product_instruction_note">Instruction Note</label>
-                                                <input type="text" class="new_product_instruction_note" value=""
-                                                    placeholder="Enter Instruction Note" />
+                                                <label for="new_produc                                                <input type="text" name="custom-quantity" class="custom-quantity" value="1" data-steps='[{"quantity":"1","amount":"1"}]'>                                           placeholder="Enter Instruction Note" />
                                             </div>
                                         </div>
                                         <div class="grouped-modal-actions">
@@ -225,6 +223,49 @@ foreach ($products as $product) {
                             </div>
                         <?php endif; ?>
                     <?php endforeach; ?>
+                    <div class="item all freestyle" data-category="all freestyle">
+                        <div class="item-wrap" data-modal-id="product-details-modal-freestyle">
+                            <div class="img">
+                                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/allaround-logo.png" alt="Freestyle">
+                            </div>
+                            <div class="item-content">
+                                <h6 class="title">Freestyle Item</h6>
+                                <span class="product-price">0.00₪ - 0.00₪</span>
+                                <button class="item-select-quantity">Select Quantity</button>
+                            </div>
+                        </div>
+                        <div id="product-details-modal-freestyle" class="product-details-modal mfp-hide" data-product_id="freestyle">
+                            <input type="hidden" name="product-thumb" class="product-thumb" value="<?php echo get_template_directory_uri(); ?>/assets/images/allaround-logo.png">
+                            <h4 class="modal-title">Freestyle Item</h4>
+                            <div class="product-custom-quantity-wraper">
+                                <div class="form-group">
+                                    <label for="custom-quantity">Quantity</label>
+                                    <div class="quantity-wrapper">
+                                        <input type="text" name="freestyle-custom-quantity" class="freestyle-custom-quantity" value="1" data-steps='[]'>
+                                        <div class="price-total">
+                                            <span class="item-total-number">0</span>₪
+                                            <input type="hidden" class="item_total_price" name="item_total_price" value="0">
+                                        </div>
+                                        <div class="price-item freestyle-price-rate">
+                                            <input type="text" value="1" name="item-rate-number" class="freestyle-rate-number-input">
+                                            <span> per unit</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="new_product_artwork">Upload Artwork</label>
+                                    <input type="file" class="new_product_artwork" name="artwork" multiple="">
+                                    <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
+                                </div>
+                                <div class="form-group">
+                                    <label for="new_product_instruction_note">Instruction Note</label>
+                                    <input type="text" class="new_product_instruction_note" value="" placeholder="Enter Instruction Note">
+                                </div>
+                                <button name="add-to-cart" value="freestyle" class="single_add_to_cart_button ml_add_loading button alt ">Add to cart</button>
+                            </div>
+                                                                
+                        </div>
+                    </div>
                 <?php else: ?>
                     <p>No products found.</p>
                 <?php endif; ?>
