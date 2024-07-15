@@ -198,6 +198,12 @@ $products = $addItem->fetch_products_data();
                 </div>
 
                 <div class="mockup-revision-activity-container">
+                    <div class="mockup-proof-admin-comments">
+                        <div class="form-group">
+                            <label for="mockup-proof-comments">Mockup Comments</label>
+                            <input type="text" name="mockup-proof-comments" id="mockup-proof-comments" placeholder="Mockup Comments">
+                        </div>
+                    </div>
                     <h4>היסטוריית שינויים</h4>
                     <div class="revision-activities-all">
                         <?php

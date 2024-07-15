@@ -12,7 +12,8 @@
     let orderNumber = allaround_vars.order_number;
     let customerName = allaround_vars.customer_name;
     let customerEmail = allaround_vars.customer_email;
-    let commentText = "Your comment here"; // Customize as needed
+    let commentText =
+      $("#mockup-proof-comments").val() || "A proof has been uploaded";
 
     let mainTable = document.getElementById("tableMain");
     if (!mainTable) {
@@ -1182,6 +1183,59 @@
       $(this).attr("src", `${allaround_vars.assets}images/document.png`);
     }
   });
+
+  // ********** Sortable Order List **********//
+  if ($("#tableMain").length) {
+    $("#tableMain tbody").sortable({
+      update: function (event, ui) {
+        let new_order = [];
+        $("#tableMain tbody tr").each(function () {
+          new_order.push($(this).attr("id"));
+        });
+
+        let order_id = allaround_vars.order_id;
+        let order_domain = allaround_vars.order_domain;
+
+        console.log("New Order:", new_order);
+        console.log("Order ID:", order_id);
+
+        let consumer_key, consumer_secret;
+
+        if (order_domain.includes(".test")) {
+          consumer_key = "ck_fc4eb8c5ecaa7c8115294fe19433a9372fffb8a2";
+          consumer_secret = "cs_5f14e11d8f501bc7cd17800bcf90e9adb1d5412c";
+        } else {
+          consumer_key = "ck_c18ff0701de8832f6887537107b75afce3914b4c";
+          consumer_secret = "cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4";
+        }
+
+        $.ajax({
+          url: `${order_domain}/wp-json/update-order/v1/rearrange-order-items`,
+          type: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({
+            order_id: order_id,
+            new_order: new_order,
+          }),
+          beforeSend: function (xhr) {
+            let auth = btoa(consumer_key + ":" + consumer_secret);
+            xhr.setRequestHeader("Authorization", "Basic " + auth);
+          },
+          success: function (response) {
+            if (response.success) {
+              alert(response.data);
+            } else {
+              alert("Error: " + response.message);
+            }
+          },
+          error: function (xhr, status, error) {
+            console.error("Error:", error);
+            alert("Failed to rearrange order items: " + xhr.responseText);
+          },
+        });
+      },
+    });
+  }
 
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
