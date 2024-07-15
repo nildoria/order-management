@@ -209,7 +209,9 @@ if (!function_exists('hello_elementor_scripts_styles')) {
 
         wp_enqueue_script('toastify-js', 'https://cdn.jsdelivr.net/npm/toastify-js', array('jquery'), HELLO_ELEMENTOR_VERSION, true);
 
-        wp_enqueue_script('allaround-main', get_template_directory_uri() . '/assets/js/main.js', array('jquery'), filemtime(get_theme_file_path('/assets/js/main.js')), true);
+        wp_enqueue_script('jquery-ui-sortable', 'https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js', array('jquery'), HELLO_ELEMENTOR_VERSION, true);
+
+        wp_enqueue_script('allaround-main', get_template_directory_uri() . '/assets/js/main.js', array('jquery', 'jquery-ui-sortable'), filemtime(get_theme_file_path('/assets/js/main.js')), true);
 
         $post_id = is_singular('post') && isset($post) ? $post->ID : null;
 
