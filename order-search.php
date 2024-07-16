@@ -2,6 +2,11 @@
 /* Template Name: Search Order */
 
 get_header();
+
+// Restrict access to logged-in users
+restrict_access_to_logged_in_users();
+
+
 ?>
 <main id="om__searchOrderPage" class="site-main" role="main">
     <div id="post-search">

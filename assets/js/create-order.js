@@ -562,16 +562,28 @@ jQuery(document).ready(function ($) {
   });
 
   function createOrderPost(orderData) {
+    var jwtToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbWxpbW9uLmlvL29yZGVybWFuYWdlbWVudCIsImlhdCI6MTcyMTEyNDQzNCwibmJmIjoxNzIxMTI0NDM0LCJleHAiOjE3MjE3MjkyMzQsImRhdGEiOnsidXNlciI6eyJpZCI6IjEifX19.uyVFvMQU9_9RDmUrUyrUdc9RMt3h0JXJWhUOY1pILcE';
+  
     $.ajax({
       url: `${alarnd_create_order_vars.redirecturl}/wp-json/manage-order/v1/create`,
       method: "POST",
-      contentType: "application/json",
+      contentType: 'application/json',
       data: JSON.stringify(orderData),
+      headers: {
+        'Authorization': 'Bearer ' + jwtToken
+      },
       success: function (response) {
+        console.log("Order post created successfully:", response);
         alert("Order post created successfully!");
         location.reload();
       },
       error: function (xhr, status, error) {
+        console.error("Error creating order post:", error);
+        console.log("XHR:", xhr);
+        console.log("Status:", status);
+        console.log("Error:", error);
+        console.log("Response Headers:", xhr.getAllResponseHeaders());
+        console.log("Response Body:", xhr.responseText);
         alert("Error creating order post: " + error);
       },
     });

@@ -5,6 +5,9 @@
  */
 get_header();
 
+// Restrict access to logged-in users
+restrict_access_to_logged_in_users();
+
 $addItem = new AllAroundAddItem();
 $products = $addItem->fetch_products_data();
 

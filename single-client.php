@@ -1,10 +1,8 @@
 <?php
 get_header();
 
-if (!is_user_logged_in()) {
-    echo 'Please login to view this page';
-    exit;
-}
+// Restrict access to logged-in users
+restrict_access_to_logged_in_users();
 
 ?>
 <main class="site-main" role="main">

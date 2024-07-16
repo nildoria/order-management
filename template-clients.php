@@ -5,6 +5,9 @@
 
 get_header();
 
+// Restrict access to logged-in users
+restrict_access_to_logged_in_users();
+
 // Handle search if applicable
 $search_query = isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '';
 $paged = get_query_var('paged') ? get_query_var('paged') : 1;

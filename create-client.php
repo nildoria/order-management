@@ -4,6 +4,11 @@
  */
 
 get_header();
+
+// Restrict access to logged-in users
+restrict_access_to_logged_in_users();
+
+
 ?>
 <main class="site-main" role="main">
 

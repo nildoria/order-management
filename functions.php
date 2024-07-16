@@ -9,6 +9,9 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
+use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
+
 define('HELLO_ELEMENTOR_VERSION', '2.4.2');
 
 if (!isset($content_width)) {
@@ -755,9 +758,24 @@ function order_management_api()
         array(
             'methods' => 'POST',
             'callback' => 'create_order',
-            'permission_callback' => function () {
-                return true;
-            }
+            'permission_callback' => function ($request) {
+                $token = $request->get_header('Authorization');
+                if (empty($token)) {
+                    return false;
+                }
+
+                $token = str_replace('Bearer ', '', $token);
+                $secret_key = 'bTN$8G95sVDd-CM0+~w+q3~sv&*RnE?S=OOk{PGxD4=Jz0B'; // Replace with your secret key
+                try {
+                    $decoded = JWT::decode(
+                        $token,
+                        new Key($secret_key, apply_filters('jwt_auth_algorithm', 'HS256'))
+                    );
+                    return true; // Token is valid
+                } catch (Exception $e) {
+                    return false; // Token is invalid
+                }
+            },
         )
     );
 }
@@ -1765,6 +1783,20 @@ add_action('wp_ajax_search_posts', 'search_posts');
 add_action('wp_ajax_nopriv_search_posts', 'search_posts');
 
 
+/**
+ * Function to restrict access to logged-in users.
+ * Redirects to login page if user is not logged in.
+ */
+function restrict_access_to_logged_in_users() {
+    // Check if user is logged in
+    // Check if user is logged in
+    if (!is_user_logged_in()) {
+        // Display error message
+        echo '<h3 class="login_require_error"><b>Login Required</b>: You must be logged in to view this page.</h3>';
+        // Optionally, you can exit the script to prevent further execution
+        exit;
+    }
+}
 
 
 require_once get_template_directory() . '/includes/classes/class-clients.php';
