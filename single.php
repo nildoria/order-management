@@ -5,8 +5,8 @@
  */
 get_header();
 
-$addItem = new AllAroundAddItem();
-$products = $addItem->fetch_products_data();
+// Restrict access to logged-in users
+restrict_access_to_logged_in_users();
 
 ?>
 <main class="site-main" role="main">
@@ -30,7 +30,12 @@ $products = $addItem->fetch_products_data();
             // get the post url for the client post with the id
             $first_name = get_post_meta($client_id, 'first_name', true);
             $last_name = get_post_meta($client_id, 'last_name', true);
+            $client_address = get_post_meta($client_id, 'address_1', true);
+            $client_city = get_post_meta($client_id, 'city', true);
+            $client_phone = get_post_meta($client_id, 'phone', true);
             $email = get_post_meta($client_id, 'email', true);
+            $invoice_name = get_post_meta($client_id, 'invoice', true);
+            $client_type = get_post_meta($client_id, 'client_type', true);
             $client_name = $first_name . ' ' . $last_name;
             $client_url = get_permalink($client_id);
         }
@@ -52,9 +57,31 @@ $products = $addItem->fetch_products_data();
                                 <div class="om__orderSummeryItem">
                                 <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?><span><?php echo $order_status; ?></span></h6>
                                 </div>
+                                <?php if (!empty($client_name)): ?>
                                 <div class="om__orderSummeryItem">
-                                <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?><span> <a href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a></span></h6>
+                                    <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?><span> <a href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a><span class="om__edit_clientButton"><img src="<?php echo get_template_directory_uri(); ?>/assets/images/edit.svg" alt=""></span></span></h6>
+                                    <!-- Billing Information Form -->
+                                    <div id="om__edit_client" class="mfp-hide billing-form">
+                                        <h5>Billing Information</h5>
+                                        <form id="billing-form">
+                                            <label for="billing_first_name">First Name:</label>
+                                            <input type="text" id="billing_first_name" name="billing_first_name" required value="<?php echo esc_html($first_name); ?>" data-old_value="<?php echo esc_html($first_name); ?>">
+                                            <label for="billing_last_name">Last Name:</label>
+                                            <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_html($last_name); ?>" data-old_value="<?php echo esc_html($last_name); ?>">
+                                            <label for="billing_address_1">Address:</label>
+                                            <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_html($client_address); ?>" required>
+                                            <label for="billing_company">Invoice Name:</label>
+                                            <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_html($invoice_name); ?>">
+                                            <label for="billing_city">City:</label>
+                                            <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_html($client_city); ?>" required>
+                                            <label for="billing_phone">Phone:</label>
+                                            <input type="text" id="billing_phone" name="billing_phone" required value="<?php echo esc_html($client_phone); ?>">
+                                            <input type="hidden" id="billing_email" name="billing_email" required value="<?php echo esc_html($email); ?>">
+                                        </form>
+                                        <button type="button" data-client_id="<?php echo esc_attr($client_id); ?>" id="update-order-client" class="update-order-client ml_add_loading"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+                                    </div>
                                 </div>
+                                <?php endif; ?>
                             </div>
                             <div class="om__orderSummeryTwo">
                                 <div class="shipping_method_update_box">
@@ -120,7 +147,7 @@ $products = $addItem->fetch_products_data();
                             <div class="om__displayOrderComment<?php echo empty($order_manage_general_comment) ? ' om_no_notes' : ''; ?>">
                                 <?php if ($order_manage_general_comment): ?>
                                     <div class="om__orderGeneralComment_text">
-                                        <p><?php echo $order_manage_general_comment; ?></p>
+                                        <p><?php echo nl2br(esc_html($order_manage_general_comment)); ?></p>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -180,7 +207,7 @@ $products = $addItem->fetch_products_data();
                         </div>
                         <div class="om__extraOrder_Note_File">
                             <div class="om__orderComment_input">
-                                <textarea id="order_general_comment" placeholder="Order Notes" ></textarea>
+                                <textarea id="order_general_comment" placeholder="Order Notes"><?php echo $order_manage_general_comment; ?></textarea>
                             </div>
                             <div class="om__extra_attachments">
                                 <input type="text" id="uploaded_extra_file_path" name="uploaded_extra_file_path" placeholder="Select Attachments" readonly>

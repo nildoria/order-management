@@ -1117,13 +1117,18 @@
           $.magnificPopup.close();
           // Update the UI with the new comment and attachments
           if (orderComment !== "") {
-            $(".om__orderGeneralComment_text").remove();
+            $(".om__orderGeneralComment_text p").remove();
             $(".om__displayOrderComment").removeClass("om_no_notes");
-            $(".om__displayOrderComment").append(`
-                        <div class="om__orderGeneralComment_text">
-                            <p>${response.data.order_general_comment}</p>
-                        </div>
-                    `);
+            $(".om__orderGeneralComment_text").append(`
+                <p>${response.data.order_general_comment}</p>
+            `);
+            // $("#order_general_comment").remove();
+
+            // $(".om__orderComment_input").append(`
+            //   <textarea id="order_general_comment" placeholder="Order Notes">${response.data.order_general_comment
+            //     .replace(/<br\s*[\/]?>/gi, "\n")
+            //     .trim()}</textarea>
+            // `);
           }
 
           if (response.data.attachments.length > 0) {
@@ -1138,9 +1143,9 @@
           }
 
           // Clear the textarea and file input only if they were used
-          if (orderComment !== "") {
-            $("#order_general_comment").val(""); // Clear the textarea
-          }
+          // if (orderComment !== "") {
+          //   $("#order_general_comment").val(""); // Clear the textarea
+          // }
           if (files.length > 0) {
             $("#order_extra_attachments").val(""); // Clear the file input
             $("#uploaded_extra_file_path").val(""); // Clear the hidden input
@@ -1166,12 +1171,22 @@
     });
   });
 
-  $(".om_addOrderNote ").magnificPopup({
+  $(".om_addOrderNote, .om__orderGeneralComment_text").magnificPopup({
     items: {
       src: "#om__orderNote_container",
       type: "inline",
     },
     closeBtnInside: true,
+    callbacks: {
+      open: function () {
+        let orderComment = $(".om__orderGeneralComment_text p").html();
+        if (orderComment) {
+          // Replace <br> tags with \n and remove any trailing line breaks
+          orderComment = orderComment.replace(/<br\s*[\/]?>/gi, "").trim();
+          $("#order_general_comment").val(orderComment);
+        }
+      },
+    },
   });
 
   // .alarnd__artwork_img src is not jpg, png or jpeg change to document.png
@@ -1209,6 +1224,27 @@
           consumer_secret = "cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4";
         }
 
+        let requestData = {
+          action: "update_order_transient",
+          order_id: order_id,
+        };
+
+        function handleResponse() {
+          Toastify({
+            text: `Items Rearranged successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+
+          // location.reload();
+        }
+
         $.ajax({
           url: `${order_domain}/wp-json/update-order/v1/rearrange-order-items`,
           type: "POST",
@@ -1222,14 +1258,18 @@
             xhr.setRequestHeader("Authorization", "Basic " + auth);
           },
           success: function (response) {
+            console.log("Response:", response);
             if (response.success) {
-              alert(response.data);
+              // alert(response.message);
+              ml_send_ajax(requestData, handleResponse);
             } else {
               alert("Error: " + response.message);
+              console.log("Error:", response);
             }
           },
           error: function (xhr, status, error) {
             console.error("Error:", error);
+            console.error("Response Text:", xhr.responseText);
             alert("Failed to rearrange order items: " + xhr.responseText);
           },
         });

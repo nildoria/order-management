@@ -46,7 +46,7 @@ class AllAroundAddItem
 
 
     /**
-     * Fetch products data from the API
+     * Fetch products data from the API (Not Used)
      */
     public function fetch_products_data()
     {

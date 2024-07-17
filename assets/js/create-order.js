@@ -459,6 +459,8 @@ jQuery(document).ready(function ($) {
   $("#checkout").on("click", function (e) {
     e.preventDefault();
 
+    let orderType = $("#client_type").val();
+
     // Collect billing and shipping information
     const billing = {
       first_name: $("#billing_first_name").val(),
@@ -549,7 +551,7 @@ jQuery(document).ready(function ($) {
             .trigger("change");
           $("#client-select").val(null).trigger("change");
           // Create the order post
-          createOrderPost(response.data);
+          createOrderPost(response.data, orderType);
         } else {
           alert("Error creating order: " + response.data);
         }
@@ -561,17 +563,32 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  function createOrderPost(orderData) {
+  function createOrderPost(orderData, orderType) {
+    var jwtToken =
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjExNDMyMTMsIm5iZiI6MTcyMTE0MzIxMywiZXhwIjoxNzIxNzQ4MDEzLCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.Hs6OXlqf8KGnj2h4ZMsCF5cxMam6tKUkMC4o3T2BLG4";
+
+    orderData.order_type = orderType;
+
     $.ajax({
       url: `${alarnd_create_order_vars.redirecturl}/wp-json/manage-order/v1/create`,
       method: "POST",
       contentType: "application/json",
       data: JSON.stringify(orderData),
+      headers: {
+        Authorization: "Bearer " + jwtToken,
+      },
       success: function (response) {
+        console.log("Order post created successfully:", response);
         alert("Order post created successfully!");
         location.reload();
       },
       error: function (xhr, status, error) {
+        console.error("Error creating order post:", error);
+        console.log("XHR:", xhr);
+        console.log("Status:", status);
+        console.log("Error:", error);
+        console.log("Response Headers:", xhr.getAllResponseHeaders());
+        console.log("Response Body:", xhr.responseText);
         alert("Error creating order post: " + error);
       },
     });
@@ -596,14 +613,28 @@ jQuery(document).ready(function ($) {
         success: function (response) {
           if (response.success) {
             const client = response.data;
+            console.log("Client details:", client);
+            // if client.client_type is not empty, set the client_type value to the select box
+            if (client.client_type) {
+              $("#billing-form #client_type").val(client.client_type);
+            }
             // Populate billing form with client details
             $("#billing-form #billing_first_name").val(client.first_name);
             $("#billing-form #billing_last_name").val(client.last_name);
+            $("#billing-form #billing_first_name").data(
+              "old_value",
+              client.first_name
+            );
+            $("#billing-form #billing_last_name").data(
+              "old_value",
+              client.last_name
+            );
             $("#billing-form #billing_company").val(client.invoice);
             $("#billing-form #billing_address_1").val(client.address_1);
             $("#billing-form #billing_city").val(client.city);
             $("#billing-form #billing_email").val(client.email);
             $("#billing-form #billing_phone").val(client.phone);
+            $("#update-order-client").data("client_id", clientId);
             // $(".client_profile_URL a").attr("href", client.url);
           } else {
             alert("Failed to fetch client details");
@@ -619,11 +650,47 @@ jQuery(document).ready(function ($) {
     }
   });
 
-  // Initialize Select2 on the client dropdown
-  $("#client-select").select2({
-    placeholder: "Select a Client",
-    allowClear: true,
+  // Custom matcher function for Select2
+  function customMatcher(params, data) {
+    // If there are no search terms, return all of the data
+    if ($.trim(params.term) === "") {
+      return data;
+    }
+
+    // Do not display the item if there is no 'text' property
+    if (typeof data.text === "undefined") {
+      return null;
+    }
+
+    // Create a string to combine name, email, and phone
+    var combinedText =
+      data.text +
+      " " +
+      $(data.element).data("email") +
+      " " +
+      $(data.element).data("phone");
+
+    // Make the search case-insensitive
+    var term = params.term.toLowerCase();
+
+    // Check if the term is in the combined string
+    if (combinedText.toLowerCase().indexOf(term) > -1) {
+      return data;
+    }
+
+    // Return `null` if the term should not be displayed
+    return null;
+  }
+
+  $(document).ready(function () {
+    // Initialize Select2 with the custom matcher
+    $("#client-select").select2({
+      placeholder: "Select a Client",
+      allowClear: true,
+      matcher: customMatcher,
+    });
   });
+
   // Function to toggle arrow visibility based on selection
   function toggleArrow() {
     const hasSelection = $("#client-select").val();
@@ -657,10 +724,6 @@ jQuery(document).ready(function ($) {
         duration: 300, // don't forget to change the duration also in CSS
       },
     });
-  });
-
-  $(document).on("click", "#update-billing", function () {
-    $.magnificPopup.close();
   });
 
   // Function to show/hide empty cart message

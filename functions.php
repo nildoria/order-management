@@ -9,6 +9,9 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
+use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
+
 define('HELLO_ELEMENTOR_VERSION', '2.4.2');
 
 if (!isset($content_width)) {
@@ -480,7 +483,7 @@ function save_order_general_comment()
     check_ajax_referer('order_management_nonce', 'nonce');
 
     $post_id = intval($_POST['post_id']);
-    $order_comment = sanitize_text_field($_POST['order_general_comment']);
+    $order_comment = sanitize_textarea_field($_POST['order_general_comment']); // Use sanitize_textarea_field instead of sanitize_text_field
 
     if (empty($post_id) || (empty($order_comment) && empty($_FILES['order_extra_attachments']))) {
         wp_send_json_error('Invalid post ID or comment.');
@@ -506,7 +509,7 @@ function save_order_general_comment()
 
     wp_send_json_success(
         array(
-            'order_general_comment' => $order_comment,
+            'order_general_comment' => nl2br($order_comment), // Convert new lines to <br> tags
             'attachments' => $attachments
         )
     );
@@ -755,9 +758,24 @@ function order_management_api()
         array(
             'methods' => 'POST',
             'callback' => 'create_order',
-            'permission_callback' => function () {
-                return true;
-            }
+            'permission_callback' => function ($request) {
+                $token = $request->get_header('Authorization');
+                if (empty($token)) {
+                    return false;
+                }
+
+                $token = str_replace('Bearer ', '', $token);
+                $secret_key = 'bTN$8G95sVDd-CM0+~w+q3~sv&*RnE?S=OOk{PGxD4=Jz0B'; // Replace with your secret key
+                try {
+                    $decoded = JWT::decode(
+                        $token,
+                        new Key($secret_key, apply_filters('jwt_auth_algorithm', 'HS256'))
+                    );
+                    return true; // Token is valid
+                } catch (Exception $e) {
+                    return false; // Token is invalid
+                }
+            },
         )
     );
 }
@@ -966,6 +984,7 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'payment_method', $order_data['payment_method'] ? $order_data['payment_method'] : []);
     update_post_meta($post_id, 'payment_method_title', $order_data['payment_method_title'] ? $order_data['payment_method_title'] : []);
     update_post_meta($post_id, 'site_url', $order_data['site_url'] ? $order_data['site_url'] : []);
+    update_post_meta($post_id, 'order_type', $order_data['order_type'] ? $order_data['order_type'] : []);
     do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
 
     // Return the ID of the new post
@@ -1765,6 +1784,21 @@ add_action('wp_ajax_search_posts', 'search_posts');
 add_action('wp_ajax_nopriv_search_posts', 'search_posts');
 
 
+/**
+ * Function to restrict access to logged-in users.
+ * Redirects to login page if user is not logged in.
+ */
+function restrict_access_to_logged_in_users()
+{
+    // Check if user is logged in
+    // Check if user is logged in
+    if (!is_user_logged_in()) {
+        // Display error message
+        echo '<h3 class="login_require_error"><b>Login Required</b>: You must be logged in to view this page.</h3>';
+        // Optionally, you can exit the script to prevent further execution
+        exit;
+    }
+}
 
 
 require_once get_template_directory() . '/includes/classes/class-clients.php';

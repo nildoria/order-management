@@ -616,6 +616,14 @@ select#shipping-method-list {
   background-image: url(../images/pdf-icon.svg);
   background-repeat: no-repeat;
 }
+h3.login_require_error {
+  text-align: center;
+  padding: 50px 0;
+  height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .mockup-image .slick-slide {
   margin-top: -20px;
 }
@@ -805,7 +813,6 @@ input#fetchProductList {
 }
 .om_displayOrderNotesGrid {
   display: flex;
-  justify-content: center;
   flex-direction: column;
   margin: 0px;
   padding: 20px;
@@ -1322,7 +1329,15 @@ form#custom-comment-form .artwork-comment-fields-container {
 }
 
 /* END Revision Proof Page */
-
+.om__edit_clientButton {
+  cursor: pointer;
+  margin-left: 10px;
+  position: relative;
+  bottom: -3px;
+}
+.om__edit_clientButton img {
+  width: 16px;
+}
 /* MLimon CSS */
 .order_manage_tab_wrapper {
   overflow-x: auto; /* Enable horizontal scrolling */

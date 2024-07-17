@@ -168,7 +168,8 @@
 .grouped_product_add_to_cart,
 .item-select-quantity,
 .content-cart #checkout,
-#update-billing {
+#update-billing,
+#update-order-client {
   display: block;
   width: 100%;
   /* max-width: 250px; */
@@ -190,6 +191,7 @@
 }
 .single_add_to_cart_button:hover,
 #update-billing:hover,
+#update-order-client:hover,
 .grouped_product_add_to_cart:hover,
 .item-select-quantity:hover,
 .content-cart #checkout:hover,
@@ -525,7 +527,8 @@ h4.modal-title {
   align-items: center;
   cursor: pointer;
 }
-#billing-form-modal {
+#billing-form-modal,
+#om__edit_client {
   max-width: 550px;
   background: #ffffff;
   border: 1px solid #cccccc;
@@ -535,7 +538,8 @@ h4.modal-title {
   margin: auto;
   position: relative;
 }
-#billing-form-modal .mfp-close {
+#billing-form-modal .mfp-close,
+#om__edit_client .mfp-close {
   top: -10px;
 }
 form#billing-form {

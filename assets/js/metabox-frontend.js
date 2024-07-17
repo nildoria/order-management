@@ -170,4 +170,93 @@
       },
     },
   });
+
+  // Open modal on client profile Edit click Order page
+  $(".om__edit_clientButton").on("click", function (e) {
+    e.preventDefault();
+    $.magnificPopup.open({
+      items: {
+        src: "#om__edit_client",
+        type: "inline",
+      },
+      closeBtnInside: true,
+      fixedContentPos: true,
+      mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
+      zoom: {
+        enabled: true,
+        duration: 300, // don't forget to change the duration also in CSS
+      },
+    });
+  });
+
+  // Update Client Profile data on Order page
+  $("#update-order-client").on("click", function () {
+    const $this = $(this);
+    const client_id = $this.data("client_id");
+    let client_data = {
+      client_type: $("#client_type").val(),
+      first_name: $("#billing_first_name").val(),
+      last_name: $("#billing_last_name").val(),
+      address_1: $("#billing_address_1").val(),
+      company: $("#billing_company").val(),
+      city: $("#billing_city").val(),
+      phone: $("#billing_phone").val(),
+      email: $("#billing_email").val(),
+      nonce: all_around_clients_vars.nonce,
+    };
+
+    $(this).addClass("ml_loading");
+
+    $.ajax({
+      url: all_around_clients_vars.ajax_url,
+      type: "POST",
+      data: {
+        action: "update_client",
+        client_id: client_id,
+        ...client_data,
+      },
+      success: function (response) {
+        if (response.success) {
+          // remove loading class
+          $this.removeClass("ml_loading");
+
+          // Check if the first name or last name has changed
+          const oldFirstName = $("#billing_first_name").data("old_value");
+          const oldLastName = $("#billing_last_name").data("old_value");
+          const newFirstName = $("#billing_first_name").val();
+          const newLastName = $("#billing_last_name").val();
+
+          if (oldFirstName !== newFirstName || oldLastName !== newLastName) {
+            const fullName = newFirstName + " " + newLastName;
+            $(".om__orderSummeryItem span a").text(fullName);
+
+            // Update the data attributes with the new values
+            $("#billing_first_name").data("old_value", newFirstName);
+            $("#billing_last_name").data("old_value", newLastName);
+          }
+          // close the modal
+          $.magnificPopup.close();
+          Toastify({
+            text: `Client shipping info updated successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+        } else {
+          alert(
+            "Failed to update client information: " + response.data.message
+          );
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error:", error);
+        alert("Failed to update client information.");
+      },
+    });
+  });
 })(jQuery); /*End document ready*/
