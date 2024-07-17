@@ -162,9 +162,16 @@ class AllAroundCreateOrder
         $client_list = array();
 
         foreach ($clients as $client) {
+            $first_name = get_post_meta($client->ID, 'first_name', true);
+            $last_name = get_post_meta($client->ID, 'last_name', true);
+            $email = get_post_meta($client->ID, 'email', true);
+            $phone = get_post_meta($client->ID, 'phone', true);
+            $name = $first_name . ' ' . $last_name;
             $client_list[] = array(
                 'id' => $client->ID,
-                'name' => $client->post_title
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone
             );
         }
 
@@ -204,6 +211,7 @@ class AllAroundCreateOrder
         $client_meta = get_post_meta($client_id);
 
         $client = array(
+            'client_type' => isset($client_meta['client_type'][0]) ? $client_meta['client_type'][0] : '',
             'first_name' => isset($client_meta['first_name'][0]) ? $client_meta['first_name'][0] : '',
             'last_name' => isset($client_meta['last_name'][0]) ? $client_meta['last_name'][0] : '',
             'invoice' => isset($client_meta['invoice'][0]) ? $client_meta['invoice'][0] : '',

@@ -282,7 +282,7 @@ foreach ($products as $product) {
                 <select id="client-select" style="width: 100%;">
                     <option value="">Select a Client</option>
                     <?php foreach ($clients as $client): ?>
-                        <option value="<?php echo esc_attr($client['id']); ?>">
+                        <option data-phone="<?php echo esc_html($client['phone']); ?>" data-email="<?php echo esc_html($client['email']); ?>" value="<?php echo esc_attr($client['id']); ?>">
                             <?php echo esc_html($client['name']); ?>
                         </option>
                     <?php endforeach; ?>
@@ -294,10 +294,15 @@ foreach ($products as $product) {
             <div id="billing-form-modal" class="mfp-hide billing-form">
                 <h5>Client Information</h5>
                 <form id="billing-form">
+                    <label for="client_type">Order Type</label>
+                    <select name="client_type" id="client_type">
+                        <option value="personal">Personal</option>
+                        <option value="company">Company</option>
+                    </select>
                     <label for="billing_first_name">First Name:</label>
                     <input type="text" id="billing_first_name" name="billing_first_name" required>
                     <label for="billing_last_name">Last Name:</label>
-                    <input type="text" id="billing_last_name" name="billing_last_name" required>
+                    <input type="text" id="billing_last_name" name="billing_last_name">
                     <label for="billing_address_1">Address:</label>
                     <input type="text" id="billing_address_1" name="billing_address_1" required>
                     <label for="billing_company">Invoice Name:</label>
@@ -311,7 +316,7 @@ foreach ($products as $product) {
                     <label for="billing_phone">Phone:</label>
                     <input type="text" id="billing_phone" name="billing_phone" required>
                 </form>
-                <button type="button" id="update-billing"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+                <button type="button" id="update-order-client" class="ml_add_loading"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
             </div>
 
             <!-- Shipping Method Select (optional) -->

@@ -483,7 +483,7 @@ function save_order_general_comment()
     check_ajax_referer('order_management_nonce', 'nonce');
 
     $post_id = intval($_POST['post_id']);
-    $order_comment = sanitize_text_field($_POST['order_general_comment']);
+    $order_comment = sanitize_textarea_field($_POST['order_general_comment']); // Use sanitize_textarea_field instead of sanitize_text_field
 
     if (empty($post_id) || (empty($order_comment) && empty($_FILES['order_extra_attachments']))) {
         wp_send_json_error('Invalid post ID or comment.');
@@ -509,7 +509,7 @@ function save_order_general_comment()
 
     wp_send_json_success(
         array(
-            'order_general_comment' => $order_comment,
+            'order_general_comment' => nl2br($order_comment), // Convert new lines to <br> tags
             'attachments' => $attachments
         )
     );
@@ -984,6 +984,7 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'payment_method', $order_data['payment_method'] ? $order_data['payment_method'] : []);
     update_post_meta($post_id, 'payment_method_title', $order_data['payment_method_title'] ? $order_data['payment_method_title'] : []);
     update_post_meta($post_id, 'site_url', $order_data['site_url'] ? $order_data['site_url'] : []);
+    update_post_meta($post_id, 'order_type', $order_data['order_type'] ? $order_data['order_type'] : []);
     do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
 
     // Return the ID of the new post
@@ -1787,7 +1788,8 @@ add_action('wp_ajax_nopriv_search_posts', 'search_posts');
  * Function to restrict access to logged-in users.
  * Redirects to login page if user is not logged in.
  */
-function restrict_access_to_logged_in_users() {
+function restrict_access_to_logged_in_users()
+{
     // Check if user is logged in
     // Check if user is logged in
     if (!is_user_logged_in()) {
