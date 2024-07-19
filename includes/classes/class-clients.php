@@ -253,10 +253,14 @@ class AllAroundClientsDB
 
     }
 
-    public function update_client_ajax() {
+    public function update_client_ajax()
+    {
         check_ajax_referer('client_nonce', 'nonce');
 
         $client_id = isset($_POST['client_id']) ? sanitize_text_field(absint($_POST['client_id'])) : 0;
+        $order_post_id = isset($_POST['order_post_id']) ? sanitize_text_field(absint($_POST['order_post_id'])) : 0;
+        $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
+
         $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
         $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
         $email = isset($_POST['email']) ? sanitize_text_field($_POST['email']) : '';
@@ -327,8 +331,8 @@ class AllAroundClientsDB
             $allowedFields = array_merge($allowedFields, $addition_fields);
         }
 
-        error_log( print_r( $client_type, true ) );
-        error_log( print_r( $allowedFields, true ) );
+        error_log(print_r($client_type, true));
+        error_log(print_r($allowedFields, true));
 
         // Filter the $_POST array to include only the allowed fields
         $filteredPostData = array_intersect_key($_POST, array_flip($allowedFields));
@@ -350,6 +354,21 @@ class AllAroundClientsDB
         if ($old_first_name !== $first_name || $old_last_name !== $last_name) {
             $name = $this->createFullName($first_name, $last_name);
             $this->update_post_title($client_id, $name);
+        }
+
+        // If type is order_client_billing_update, update the order post meta
+        if ($type === 'order_client_billing_update' && !empty($order_post_id)) {
+            $billing_data = [
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'company' => sanitize_text_field($_POST['company']),
+                'address_1' => sanitize_text_field($_POST['address_1']),
+                'city' => sanitize_text_field($_POST['city']),
+                'phone' => sanitize_text_field($_POST['phone']),
+                'email' => $email
+            ];
+
+            update_post_meta($order_post_id, 'billing', $billing_data);
         }
 
         wp_send_json_success(
@@ -479,17 +498,17 @@ class AllAroundClientsDB
 
             if (isset($filteredPostData) && !empty($filteredPostData)) {
                 // error_log( print_r( $filteredPostData, true ) );
-                foreach( (array) $filteredPostData as $key => $value ) {
-                    if( "client_type" === $key && "company" === $old_client_type ) {
+                foreach ((array) $filteredPostData as $key => $value) {
+                    if ("client_type" === $key && "company" === $old_client_type) {
                         continue;
                     }
-                    if( "company" === $key ) {
-                        $current_value = get_post_meta( $client_id, 'invoice', true );
-                        if ( $value !== $current_value ) {
-                            update_post_meta( $client_id, 'invoice', $value );
+                    if ("company" === $key) {
+                        $current_value = get_post_meta($client_id, 'invoice', true);
+                        if ($value !== $current_value) {
+                            update_post_meta($client_id, 'invoice', $value);
                         }
                     } else {
-                        $this->ml_update_postmeta( $client_id, $key, $value );
+                        $this->ml_update_postmeta($client_id, $key, $value);
                     }
                 }
             }

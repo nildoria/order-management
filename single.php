@@ -20,6 +20,7 @@ restrict_access_to_logged_in_users();
         $order_status = get_post_meta($current_id, 'order_status', true);
         $shipping_method = get_post_meta($current_id, 'shipping_method', true);
         $order_type = get_post_meta($current_id, 'order_type', true);
+        $order_shipping = get_post_meta($current_id, 'shipping', true);
         $order_domain = get_post_meta($current_id, 'site_url', true);
         $order_manage_general_comment = get_post_meta($current_id, '_order_manage_general_comment', true);
         $order_extra_attachments = get_post_meta($current_id, '_order_extra_attachments', true);
@@ -78,7 +79,7 @@ restrict_access_to_logged_in_users();
                                             <input type="text" id="billing_phone" name="billing_phone" required value="<?php echo esc_html($client_phone); ?>">
                                             <input type="hidden" id="billing_email" name="billing_email" required value="<?php echo esc_html($email); ?>">
                                         </form>
-                                        <button type="button" data-client_id="<?php echo esc_attr($client_id); ?>" id="update-order-client" class="update-order-client ml_add_loading"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+                                        <button type="button" data-client_id="<?php echo esc_attr($client_id); ?>" data-type="order_client_billing_update" data-post_id="<?php echo esc_attr($current_id); ?>" id="update-order-client" class="update-order-client ml_add_loading"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
                                     </div>
                                 </div>
                                 <?php endif; ?>
@@ -141,15 +142,15 @@ restrict_access_to_logged_in_users();
 
                     <div class="om__ordernoteContainer">
                         <h4><?php echo esc_html__('Order Note', 'hello-elementor'); ?></h4>
-                        <div class="om_displayOrderNotesGrid">
+                        <div class="om_displayOrderNotesGrid<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_gridNote' : ''; ?>">
                             <div class="om_addOrderNote<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_addNote' : ''; ?>">
                                 Add Note +</div>
                             <div class="om__displayOrderComment<?php echo empty($order_manage_general_comment) ? ' om_no_notes' : ''; ?>">
+                                <div class="om__orderGeneralComment_text">
                                 <?php if ($order_manage_general_comment): ?>
-                                    <div class="om__orderGeneralComment_text">
-                                        <p><?php echo nl2br(esc_html($order_manage_general_comment)); ?></p>
-                                    </div>
+                                    <p><?php echo nl2br(esc_html($order_manage_general_comment)); ?></p>
                                 <?php endif; ?>
+                                </div>
                             </div>
                         
                             <div class="om__orderNoteFiles_container<?php echo empty($order_extra_attachments) ? ' om_no_notes' : ''; ?>">
@@ -166,12 +167,30 @@ restrict_access_to_logged_in_users();
                         </div>
                     </div>
                 </div>
-                <?php// if (!ml_current_user_contributor()): ?>
-                    <!-- <div class="om_headin_cta_buttons">
-                        <button type="button" class="allarnd--regular-button ml_add_loading add_order_heading_btn"><a href="/add-order/">Add
-                                Order</a></button>
-                    </div> -->
-                <?php// endif; ?>
+
+                <div class="om__orderShippingDetails <?php echo ($shipping_method === "local_pickup") ? "local_pickup" : ""; ?>">
+                    <label for="om__orderShippingDetailsGrid"><?php echo esc_html__('Order Shipping Details', 'hello-elementor'); ?></label>
+                    <div class="om__orderShippingDetailsGrid">
+                        <div class="om__orderShippingDetailsItem">
+                            <input type="text" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_html($order_shipping['first_name']); ?>">
+                        </div>
+                        <div class="om__orderShippingDetailsItem">
+                            <input type="text" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_html($order_shipping['last_name']); ?>">
+                        </div>
+                        <div class="om__orderShippingDetailsItem">
+                            <input type="text" id="shipping_address_1" name="shipping_address_1" value="<?php echo esc_html($order_shipping['address_1']); ?>">
+                        </div>
+                        <div class="om__orderShippingDetailsItem">
+                            <input type="text" id="shipping_city" name="shipping_city" value="<?php echo esc_html($order_shipping['city']); ?>">
+                        </div>
+                        <div class="om__orderShippingDetailsItem">
+                            <input type="text" id="shipping_phone" name="shipping_phone" value="<?php echo esc_html($order_shipping['phone']); ?>">
+                        </div>
+                        <div class="om__orderShippingDetailsItem">
+                            <button type="button" class="allarnd--regular-button ml_add_loading" id="update-shipping-details"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="order_management_table_container" class="order_management_table_container">
                     <div class="om_table_wraper">

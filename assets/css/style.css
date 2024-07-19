@@ -263,7 +263,10 @@ span.item_name_variations {
   list-style: none;
   margin-top: 10px;
 }
-.item_product_column ul li {
+.item_product_column ul li[data-meta_key="Instruction Note"] {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
 }
 .item_product_column ul li .allarnd__order_item {
   display: inline-block;
@@ -825,6 +828,58 @@ input#fetchProductList {
   min-height: 160px;
   position: relative;
 }
+.om_displayOrderNotesGrid.om_no_notes_gridNote {
+  justify-content: center;
+}
+.om__orderShippingDetails {
+  background-color: #f7f7f7;
+  padding: 20px;
+  border-radius: 7px;
+  width: 670px;
+  max-width: 100%;
+  position: relative;
+  top: -5px;
+}
+.om__orderShippingDetails.local_pickup {
+  display: none;
+}
+.om__orderShippingDetails:before {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  top: -36px;
+  border: 18px solid transparent;
+  left: 70px;
+  border-top-color: transparent;
+  border-bottom-color: #f7f7f7;
+  background: transparent;
+}
+.om__orderShippingDetailsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+.om__orderShippingDetailsItem {
+  width: 200px;
+  max-width: 100%;
+}
+.om__orderShippingDetailsItem input {
+  padding: 6px 15px;
+}
+.om__orderShippingDetailsItem button#update-shipping-details {
+  width: 100%;
+  padding: 8px 20px;
+  border-radius: 7px;
+  font-weight: 600;
+  font-size: 15px;
+}
+.om__orderShippingDetails label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
 .om__summeryContainer,
 .om__ordernoteContainer {
   flex: 1;
