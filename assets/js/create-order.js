@@ -459,7 +459,7 @@ jQuery(document).ready(function ($) {
   $("#checkout").on("click", function (e) {
     e.preventDefault();
 
-    let orderType = $("#client_type").val();
+    let orderType = $("#order_type").val();
 
     // Collect billing and shipping information
     const billing = {
@@ -565,7 +565,7 @@ jQuery(document).ready(function ($) {
 
   function createOrderPost(orderData, orderType) {
     var jwtToken =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjExNDMyMTMsIm5iZiI6MTcyMTE0MzIxMywiZXhwIjoxNzIxNzQ4MDEzLCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.Hs6OXlqf8KGnj2h4ZMsCF5cxMam6tKUkMC4o3T2BLG4";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjE4MTg4ODcsIm5iZiI6MTcyMTgxODg4NywiZXhwIjoxNzIyNDIzNjg3LCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.yVDwkfyLoFGakhbH6bGfrptsu3_AQRMlZ37nIN7D6Y4";
 
     orderData.order_type = orderType;
 
@@ -699,9 +699,11 @@ jQuery(document).ready(function ($) {
     if (hasSelection) {
       select2Container.addClass("hide-arrow");
       $(".client_profile_URL").show();
+      $(".om__client_update_btn").show();
     } else {
       select2Container.removeClass("hide-arrow");
       $(".client_profile_URL").hide();
+      $(".om__client_update_btn").hide();
     }
   }
 

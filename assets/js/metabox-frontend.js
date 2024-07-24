@@ -171,28 +171,12 @@
     },
   });
 
-  // Open modal on client profile Edit click Order page
-  $(".om__edit_clientButton").on("click", function (e) {
-    e.preventDefault();
-    $.magnificPopup.open({
-      items: {
-        src: "#om__edit_client",
-        type: "inline",
-      },
-      closeBtnInside: true,
-      fixedContentPos: true,
-      mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
-      zoom: {
-        enabled: true,
-        duration: 300, // don't forget to change the duration also in CSS
-      },
-    });
-  });
-
   // Update Client Profile data on Order page
   $("#update-order-client").on("click", function () {
     const $this = $(this);
     const client_id = $this.data("client_id");
+    const order_post_id = $this.data("post_id");
+    const type = $this.data("type");
     let client_data = {
       client_type: $("#client_type").val(),
       first_name: $("#billing_first_name").val(),
@@ -213,6 +197,8 @@
       data: {
         action: "update_client",
         client_id: client_id,
+        order_post_id: order_post_id,
+        type: type,
         ...client_data,
       },
       success: function (response) {
@@ -237,7 +223,7 @@
           // close the modal
           $.magnificPopup.close();
           Toastify({
-            text: `Client shipping info updated successfully!`,
+            text: `Client info updated successfully!`,
             duration: 3000,
             close: true,
             gravity: "bottom", // `top` or `bottom`

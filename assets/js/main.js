@@ -1015,6 +1015,16 @@
             data.data.shipping_total + " " + allaround_vars.currency_symbol
           );
 
+          let shipping_method = data.data.shipping_method;
+
+          let shippingDetailsForm = $(".om__orderShippingDetails");
+
+          if (shipping_method === "local_pickup") {
+            shippingDetailsForm.hide();
+          } else {
+            shippingDetailsForm.show();
+          }
+
           let itemsTotal = parseFloat(
             $(".om__items_subtotal")
               .text()
@@ -1039,9 +1049,17 @@
   });
 
   // ********** Edit Shipping form open **********//
-  // on #shipping-method-list select option change show .om_shipping_submit button
+  // Store the current value before any change
+  var currentValue = $("#shipping-method-list").val();
+
   $("#shipping-method-list").on("change", function () {
-    $(".om_shipping_submit").show();
+    // Check if the selected value is not equal to the current value
+    if ($(this).val() !== currentValue && $(this).val() !== "") {
+      $(".om_shipping_submit").show();
+    } else {
+      // Optionally, hide the button if the selected value is the current value
+      $(".om_shipping_submit").hide();
+    }
   });
 
   // ********** Artwork Graphics Magnific **********//
@@ -1276,6 +1294,104 @@
       },
     });
   }
+
+  // Update Order Shipping data on Order page
+  $("#update-shipping-details").on("click", function () {
+    const $this = $(this);
+    const post_id = allaround_vars.post_id;
+    let client_data = {
+      first_name: $("#shipping_first_name").val(),
+      last_name: $("#shipping_last_name").val(),
+      address_1: $("#shipping_address_1").val(),
+      city: $("#shipping_city").val(),
+      phone: $("#shipping_phone").val(),
+      nonce: allaround_vars.nonce,
+    };
+
+    $(this).addClass("ml_loading");
+
+    $.ajax({
+      url: allaround_vars.ajax_url,
+      type: "POST",
+      data: {
+        action: "update_post_shipping_details",
+        post_id: post_id,
+        ...client_data,
+      },
+      success: function (response) {
+        if (response.success) {
+          // remove loading class
+          $this.removeClass("ml_loading");
+
+          let shipping_details = response.data.shipping_details;
+
+          $("#shipping_first_name").val();
+
+          console.log(response);
+
+          Toastify({
+            text: `Order shipping info updated successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+        } else {
+          alert(
+            "Failed to update shipping information: " + response.data.message
+          );
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error:", error);
+        alert("Failed to update shipping information.");
+      },
+    });
+  });
+
+  // Update Client on Order Manage post
+  $(".om__client_update_btn").on("click", function () {
+    $(this).addClass("ml_loading");
+    let selectedClientId = $("#client-select").val();
+    let orderPostId = allaround_vars.post_id;
+
+    if (!selectedClientId) {
+      alert("Please select a client.");
+      return;
+    }
+
+    $.ajax({
+      url: allaround_vars.ajax_url,
+      type: "POST",
+      data: {
+        action: "update_order_client",
+        client_id: selectedClientId,
+        post_id: orderPostId,
+        nonce: allaround_vars.nonce,
+      },
+      success: function (response) {
+        if (response.success) {
+          location.reload(); // Refresh the page on success
+        } else {
+          alert("Failed to update client: " + response.data.message);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error:", error);
+        alert("Failed to update client information.");
+      },
+    });
+  });
+
+  $(".om__edit_clientButton").on("click", function () {
+    console.log("Client Change Clicked!");
+    $(".om__orderedClientName").slideUp();
+    $(".om__change-client").slideDown();
+  });
 
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/

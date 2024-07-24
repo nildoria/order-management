@@ -137,9 +137,32 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
-.content-client {
+.content-client,
+.createOrder_orderType {
   margin-bottom: 15px;
   position: relative;
+}
+.createOrder_orderType select#order_type {
+  font-size: 14px;
+  font-weight: 500;
+  padding-left: 10px;
+  -moz-appearance: none; /* Firefox */
+  -webkit-appearance: none; /* Safari and Chrome */
+  appearance: none;
+}
+.createOrder_orderType:before {
+  content: "";
+  border: solid #1a1a1a;
+  border-width: 0 2px 2px 0;
+  display: inline-block;
+  padding: 2px;
+  transform: rotate(45deg);
+  -webkit-transform: rotate(45deg);
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  right: 10px;
+  top: 13px;
 }
 .content-cart h2 {
   margin-top: 0;
@@ -495,7 +518,7 @@ h4.modal-title {
   .select2-container--default
   .select2-selection--single
   .select2-selection__arrow {
-  height: 33px;
+  height: 32px;
 }
 .content-client
   .select2-container--default
@@ -517,8 +540,9 @@ h4.modal-title {
 .hide-arrow .select2-selection__arrow {
   display: none;
 }
-.client_profile_URL {
-  position: absolute;
+.client_profile_URL,
+.om__client_update_btn {
+  position: absolute !important;
   bottom: 1px;
   right: 1px;
   width: 20px;
@@ -566,7 +590,12 @@ form#billing-form input {
   .select2-selection--single
   .select2-selection__arrow
   b {
-  border-color: #1a1a1a transparent transparent transparent;
+  border: solid #1a1a1a;
+  border-width: 0 2px 2px 0;
+  display: inline-block;
+  padding: 2px;
+  transform: rotate(45deg);
+  -webkit-transform: rotate(45deg);
 }
 .empty-cart-message {
   text-align: center;

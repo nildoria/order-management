@@ -519,6 +519,55 @@ add_action('wp_ajax_nopriv_save_order_general_comment', 'save_order_general_comm
 
 
 /**
+ * Handle order shipping details meta update
+ @returns
+ */
+function update_post_shipping_details()
+{
+    // Check nonce for security
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = isset($_POST['post_id']) ? sanitize_text_field(absint($_POST['post_id'])) : '';
+    $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
+    $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
+    $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
+    $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
+    $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
+
+    if (empty($post_id) || empty($phone)) {
+        wp_send_json_error(
+            array(
+                "message_type" => 'reqular',
+                "message" => esc_html__("Invalid post ID or phone number.", "hello-elementor")
+            )
+        );
+        wp_die();
+    }
+
+    $shipping_data = [
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'address_1' => $address,
+        'city' => $city,
+        'phone' => $phone
+    ];
+
+    update_post_meta($post_id, 'shipping', $shipping_data);
+
+    wp_send_json_success(
+        array(
+            "shipping_details" => $shipping_data,
+            "message" => "Order Shipping details successfully updated!"
+        )
+    );
+    wp_die();
+
+}
+add_action('wp_ajax_update_post_shipping_details', 'update_post_shipping_details');
+add_action('wp_ajax_nopriv_update_post_shipping_details', 'update_post_shipping_details');
+
+
+/**
  * Handle file uploads for order attachments
  @returns array
  */
@@ -687,7 +736,13 @@ function update_order_shipping_method()
                 $transient_key = 'order_details_' . $order_id;
                 delete_transient($transient_key);
 
-                wp_send_json_success(array('message' => 'Shipping method updated successfully.', 'shipping_total' => number_format((float) $shipping_total, 2, '.', '')));
+                wp_send_json_success(
+                    array(
+                        'message' => 'Shipping method updated successfully.',
+                        'shipping_method' => $shipping_method,
+                        'shipping_total' => number_format((float) $shipping_total, 2, '.', '')
+                    )
+                );
             }
         } else {
             wp_send_json_error('Order not found.');
@@ -1474,6 +1529,33 @@ function ml_current_user_contributor()
  */
 add_action('wp_ajax_delete_mockup_folder', 'delete_mockup_folder');
 add_action('wp_ajax_nopriv_delete_mockup_folder', 'delete_mockup_folder');
+
+/**
+ * Update Client on Order Manage post
+ */
+function update_order_client()
+{
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $client_id = isset($_POST['client_id']) ? intval($_POST['client_id']) : 0;
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+
+    if (empty($post_id) || empty($client_id)) {
+        wp_send_json_error(array('message' => 'Missing post ID or client ID.'));
+        wp_die();
+    }
+
+    if (update_post_meta($post_id, 'client_id', $client_id)) {
+        wp_send_json_success();
+    } else {
+        wp_send_json_error(['message' => 'Failed to update client.']);
+    }
+    wp_die();
+}
+add_action('wp_ajax_update_order_client', 'update_order_client');
+add_action('wp_ajax_nopriv_update_order_client', 'update_order_client');
+
+
 
 function delete_mockup_folder()
 {

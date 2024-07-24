@@ -294,11 +294,6 @@ foreach ($products as $product) {
             <div id="billing-form-modal" class="mfp-hide billing-form">
                 <h5>Client Information</h5>
                 <form id="billing-form">
-                    <label for="client_type">Order Type</label>
-                    <select name="client_type" id="client_type">
-                        <option value="personal">Personal</option>
-                        <option value="company">Company</option>
-                    </select>
                     <label for="billing_first_name">First Name:</label>
                     <input type="text" id="billing_first_name" name="billing_first_name" required>
                     <label for="billing_last_name">Last Name:</label>
@@ -317,6 +312,14 @@ foreach ($products as $product) {
                     <input type="text" id="billing_phone" name="billing_phone" required>
                 </form>
                 <button type="button" id="update-order-client" class="ml_add_loading"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+            </div>
+
+            <div class="createOrder_orderType">
+                <select name="order_type" id="order_type">
+                    <option value="">Select Order Type</option>
+                    <option value="personal">Personal</option>
+                    <option value="company">Company</option>
+                </select>
             </div>
 
             <!-- Shipping Method Select (optional) -->
