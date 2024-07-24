@@ -1353,6 +1353,45 @@
     });
   });
 
+  // Update Client on Order Manage post
+  $(".om__client_update_btn").on("click", function () {
+    $(this).addClass("ml_loading");
+    let selectedClientId = $("#client-select").val();
+    let orderPostId = allaround_vars.post_id;
+
+    if (!selectedClientId) {
+      alert("Please select a client.");
+      return;
+    }
+
+    $.ajax({
+      url: allaround_vars.ajax_url,
+      type: "POST",
+      data: {
+        action: "update_order_client",
+        client_id: selectedClientId,
+        post_id: orderPostId,
+        nonce: allaround_vars.nonce,
+      },
+      success: function (response) {
+        if (response.success) {
+          location.reload(); // Refresh the page on success
+        } else {
+          alert("Failed to update client: " + response.data.message);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error("Error:", error);
+        alert("Failed to update client information.");
+      },
+    });
+  });
+
+  $(document).on("click", ".om__edit_clientButton", function () {
+    $(".om__orderedClientName").slideUp();
+    $(".om__change-client").slideDown();
+  });
+
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
 

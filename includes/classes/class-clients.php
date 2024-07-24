@@ -258,8 +258,6 @@ class AllAroundClientsDB
         check_ajax_referer('client_nonce', 'nonce');
 
         $client_id = isset($_POST['client_id']) ? sanitize_text_field(absint($_POST['client_id'])) : 0;
-        $order_post_id = isset($_POST['order_post_id']) ? sanitize_text_field(absint($_POST['order_post_id'])) : 0;
-        $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
 
         $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
         $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
@@ -354,21 +352,6 @@ class AllAroundClientsDB
         if ($old_first_name !== $first_name || $old_last_name !== $last_name) {
             $name = $this->createFullName($first_name, $last_name);
             $this->update_post_title($client_id, $name);
-        }
-
-        // If type is order_client_billing_update, update the order post meta
-        if ($type === 'order_client_billing_update' && !empty($order_post_id)) {
-            $billing_data = [
-                'first_name' => $first_name,
-                'last_name' => $last_name,
-                'company' => sanitize_text_field($_POST['company']),
-                'address_1' => sanitize_text_field($_POST['address_1']),
-                'city' => sanitize_text_field($_POST['city']),
-                'phone' => sanitize_text_field($_POST['phone']),
-                'email' => $email
-            ];
-
-            update_post_meta($order_post_id, 'billing', $billing_data);
         }
 
         wp_send_json_success(

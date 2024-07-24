@@ -1530,6 +1530,33 @@ function ml_current_user_contributor()
 add_action('wp_ajax_delete_mockup_folder', 'delete_mockup_folder');
 add_action('wp_ajax_nopriv_delete_mockup_folder', 'delete_mockup_folder');
 
+/**
+ * Update Client on Order Manage post
+ */
+function update_order_client()
+{
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $client_id = isset($_POST['client_id']) ? intval($_POST['client_id']) : 0;
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+
+    if (empty($post_id) || empty($client_id)) {
+        wp_send_json_error(array('message' => 'Missing post ID or client ID.'));
+        wp_die();
+    }
+
+    if (update_post_meta($post_id, 'client_id', $client_id)) {
+        wp_send_json_success();
+    } else {
+        wp_send_json_error(['message' => 'Failed to update client.']);
+    }
+    wp_die();
+}
+add_action('wp_ajax_update_order_client', 'update_order_client');
+add_action('wp_ajax_nopriv_update_order_client', 'update_order_client');
+
+
+
 function delete_mockup_folder()
 {
     check_ajax_referer('order_management_nonce', 'security');

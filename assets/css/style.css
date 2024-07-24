@@ -177,12 +177,12 @@ td.mockups-row {
   max-width: 100%;
   position: relative;
   min-width: 350px !important;
-  padding-left: 20px;
+  padding-left: 42px;
   transition: all ease 0.3s;
 }
-#tableMain .item_product_column:hover {
+/* #tableMain .item_product_column:hover {
   padding-left: 42px;
-}
+} */
 .om__editItemMeta,
 .om_duplicate_item,
 .om_delete_item {
@@ -194,10 +194,10 @@ td.mockups-row {
   border: 1px solid #ccc;
   background-color: #fff;
   position: absolute;
-  left: 20px;
+  left: 10px;
   top: 15px;
   cursor: pointer;
-  opacity: 0;
+  opacity: 1;
   transition: all ease 0.3s;
   text-align: center;
 }
@@ -222,12 +222,12 @@ td.mockups-row {
   fill: #ffffff;
 }
 
-.item_product_column:hover .om__editItemMeta,
+/* .item_product_column:hover .om__editItemMeta,
 td.item_product_column:hover .om_delete_item,
 td.item_product_column:hover .om_duplicate_item {
   left: 10px;
   opacity: 1;
-}
+} */
 td.item_product_column .om_duplicate_item {
   transition: all 0.3s ease 0.1s;
 }
@@ -940,6 +940,27 @@ input#fetchProductList {
   top: 0;
   right: 0;
   font-size: 14px;
+}
+.om__change-client {
+  display: none;
+  margin-bottom: 0px !important;
+}
+.om__change-client
+  .select2-container
+  .select2-selection--single
+  .select2-selection__rendered {
+  padding-left: 10px !important;
+  padding-right: 0px;
+}
+.om__change-client
+  .select2-container--default
+  .select2-selection--single
+  .select2-selection__clear {
+  padding-left: 0;
+  margin-right: 26px;
+}
+span.om__client_update_btn img {
+  max-width: 16px;
 }
 .om_displayOrderNotesGrid div:nth-child(3) {
   border-top: 1px solid #efe2b3;

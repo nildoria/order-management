@@ -171,24 +171,6 @@
     },
   });
 
-  // Open modal on client profile Edit click Order page
-  $(".om__edit_clientButton").on("click", function (e) {
-    e.preventDefault();
-    $.magnificPopup.open({
-      items: {
-        src: "#om__edit_client",
-        type: "inline",
-      },
-      closeBtnInside: true,
-      fixedContentPos: true,
-      mainClass: "mfp-no-margins mfp-with-zoom", // class to remove default margin from left and right side
-      zoom: {
-        enabled: true,
-        duration: 300, // don't forget to change the duration also in CSS
-      },
-    });
-  });
-
   // Update Client Profile data on Order page
   $("#update-order-client").on("click", function () {
     const $this = $(this);
