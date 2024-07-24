@@ -1387,7 +1387,8 @@
     });
   });
 
-  $(document).on("click", ".om__edit_clientButton", function () {
+  $(".om__edit_clientButton").on("click", function () {
+    console.log("Client Change Clicked!");
     $(".om__orderedClientName").slideUp();
     $(".om__change-client").slideDown();
   });
