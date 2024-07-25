@@ -434,10 +434,17 @@ function order_manage_metabox_content($post)
 
     // Use get_post_meta to retrieve an existing value from the database.
     $order_manage_general_comment = get_post_meta($post->ID, '_order_manage_general_comment', true);
+    $order_manage_designer_notes = get_post_meta($post->ID, '_order_manage_designer_notes', true);
 
     // Display the form, using the current value.
     echo '<label for="order_manage_general_comment">Order Notes</label>';
     echo '<input type="text" id="order_manage_general_comment" name="order_manage_general_comment" value="' . ($order_manage_general_comment) . '" style="width:100%;" />';
+    echo '<br>';
+    echo '<br>';
+    echo '<hr>';
+    echo '<br>';
+    echo '<label for="order_manage_designer_notes">Designer Notes</label>';
+    echo '<input type="text" id="order_manage_designer_notes" name="order_manage_designer_notes" value="' . ($order_manage_designer_notes) . '" style="width:100%;" />';
 }
 
 function save_order_manage_metabox($post_id)
@@ -470,9 +477,11 @@ function save_order_manage_metabox($post_id)
 
     // Sanitize user input.
     $order_manage_general_comment = sanitize_text_field($_POST['order_manage_general_comment']);
+    $order_manage_designer_notes = sanitize_text_field($_POST['order_manage_designer_notes']);
 
     // Update the meta field in the database.
     update_post_meta($post_id, '_order_manage_general_comment', $order_manage_general_comment);
+    update_post_meta($post_id, '_order_manage_designer_notes', $order_manage_designer_notes);
 }
 add_action('save_post', 'save_order_manage_metabox');
 
@@ -518,55 +527,46 @@ add_action('wp_ajax_save_order_general_comment', 'save_order_general_comment');
 add_action('wp_ajax_nopriv_save_order_general_comment', 'save_order_general_comment');
 
 
-/**
- * Handle order shipping details meta update
- @returns
- */
-function update_post_shipping_details()
+function save_order_designer_notes()
 {
     // Check nonce for security
     check_ajax_referer('order_management_nonce', 'nonce');
 
-    $post_id = isset($_POST['post_id']) ? sanitize_text_field(absint($_POST['post_id'])) : '';
-    $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
-    $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
-    $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
-    $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
-    $postcode = isset($_POST['postcode']) ? sanitize_text_field($_POST['postcode']) : '';
-    $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
+    $post_id = intval($_POST['post_id']);
+    $order_designer_notes = sanitize_textarea_field($_POST['order_designer_notes']);
 
-    if (empty($post_id) || empty($phone)) {
-        wp_send_json_error(
-            array(
-                "message_type" => 'reqular',
-                "message" => esc_html__("Invalid post ID or phone number.", "hello-elementor")
-            )
-        );
-        wp_die();
+    if (empty($post_id) || (empty($order_designer_notes) && empty($_FILES['order_designer_extra_attachments']))) {
+        wp_send_json_error('Invalid post ID or notes.');
     }
 
-    $shipping_data = [
-        'first_name' => $first_name,
-        'last_name' => $last_name,
-        'address_1' => $address,
-        'postcode' => $postcode,
-        'city' => $city,
-        'phone' => $phone
-    ];
+    $attachments = array();
 
-    update_post_meta($post_id, 'shipping', $shipping_data);
+    if (!empty($_FILES['order_designer_extra_attachments'])) {
+        $attachments = handle_file_uploads($_FILES['order_designer_extra_attachments'], $post_id);
+        if (is_wp_error($attachments)) {
+            wp_send_json_error($attachments->get_error_message());
+        }
+        // Overwrite the post meta for the attachments
+        update_post_meta($post_id, '_order_designer_extra_attachments', $attachments);
+    }
+
+    // Update the post meta for the comment if provided
+    if (!empty($order_designer_notes)) {
+        update_post_meta($post_id, '_order_manage_designer_notes', $order_designer_notes);
+    } else {
+        $order_designer_notes = get_post_meta($post_id, '_order_manage_designer_notes', true);
+    }
 
     wp_send_json_success(
         array(
-            "shipping_details" => $shipping_data,
-            "message" => "Order Shipping details successfully updated!"
+            'order_designer_notes' => nl2br($order_designer_notes), // Convert new lines to <br> tags
+            'attachments' => $attachments
         )
     );
-    wp_die();
-
 }
-add_action('wp_ajax_update_post_shipping_details', 'update_post_shipping_details');
-add_action('wp_ajax_nopriv_update_post_shipping_details', 'update_post_shipping_details');
+add_action('wp_ajax_save_order_designer_notes', 'save_order_designer_notes');
+add_action('wp_ajax_nopriv_save_order_designer_notes', 'save_order_designer_notes');
+
 
 
 /**
@@ -652,6 +652,57 @@ function resize_image($file, $max_width = 2000, $max_height = 2000)
     imagedestroy($new_image);
     imagedestroy($source_image);
 }
+
+
+/**
+ * Handle order shipping details meta update
+ @returns
+ */
+function update_post_shipping_details()
+{
+    // Check nonce for security
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = isset($_POST['post_id']) ? sanitize_text_field(absint($_POST['post_id'])) : '';
+    $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
+    $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
+    $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
+    $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
+    $postcode = isset($_POST['postcode']) ? sanitize_text_field($_POST['postcode']) : '';
+    $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
+
+    if (empty($post_id) || empty($phone)) {
+        wp_send_json_error(
+            array(
+                "message_type" => 'reqular',
+                "message" => esc_html__("Invalid post ID or phone number.", "hello-elementor")
+            )
+        );
+        wp_die();
+    }
+
+    $shipping_data = [
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'address_1' => $address,
+        'postcode' => $postcode,
+        'city' => $city,
+        'phone' => $phone
+    ];
+
+    update_post_meta($post_id, 'shipping', $shipping_data);
+
+    wp_send_json_success(
+        array(
+            "shipping_details" => $shipping_data,
+            "message" => "Order Shipping details successfully updated!"
+        )
+    );
+    wp_die();
+
+}
+add_action('wp_ajax_update_post_shipping_details', 'update_post_shipping_details');
+add_action('wp_ajax_nopriv_update_post_shipping_details', 'update_post_shipping_details');
 
 
 /**

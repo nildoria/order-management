@@ -24,8 +24,13 @@ $clients = $createOrder->fetch_clients_data();
         $order_type = get_post_meta($current_id, 'order_type', true);
         $order_shipping = get_post_meta($current_id, 'shipping', true);
         $order_domain = get_post_meta($current_id, 'site_url', true);
+
         $order_manage_general_comment = get_post_meta($current_id, '_order_manage_general_comment', true);
         $order_extra_attachments = get_post_meta($current_id, '_order_extra_attachments', true);
+
+        $order_manage_designer_notes = get_post_meta($current_id, '_order_manage_designer_notes', true);
+        $order_designer_extra_attachments = get_post_meta($current_id, '_order_designer_extra_attachments', true);
+
         $client_id = get_post_meta($current_id, 'client_id', true);
         $client_name = '';
         $client_url = '';
@@ -140,18 +145,113 @@ $clients = $createOrder->fetch_clients_data();
                     </div>
 
                     <div class="om__ordernoteContainer">
-                        <h4><?php echo esc_html__('Order Note', 'hello-elementor'); ?></h4>
-                        <div class="om_displayOrderNotesGrid<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_gridNote' : ''; ?>">
-                            <div class="om_addOrderNote<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_addNote' : ''; ?>">
+                        <div class="om__designers_notes_cont">
+                            <h4><?php echo esc_html__('Designer Note', 'hello-elementor'); ?></h4>
+                            <div class="om_displayOrderNotesGrid<?php echo empty($order_manage_designer_notes) && empty($order_designer_extra_attachments) ? ' om_no_notes_gridNote' : ''; ?>">
+                                <div
+                                    class="om_addDesignerNote<?php echo empty($order_manage_designer_notes) && empty($order_designer_extra_attachments) ? ' om_no_notes_addNote' : ''; ?>">
+                                    Add Note +</div>
+                                <div class="om__displayDesignerComment<?php echo empty($order_manage_designer_notes) ? ' om_no_notes' : ''; ?>">
+                                    <div class="om__orderDesignerNote_text">
+                                        <?php if ($order_manage_designer_notes): ?>
+                                            <p><?php echo nl2br(esc_html($order_manage_designer_notes)); ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            
+                                <div class="om__designerNoteFiles_container<?php echo empty($order_designer_extra_attachments) ? ' om_no_notes' : ''; ?>">
+                                    <h5><?php echo esc_html__('Attachments!', 'hello-elementor'); ?></h5>
+                                    <div class="om__designerNoteFiles">
+                                        <?php if (!empty($order_designer_extra_attachments)): ?>
+                                            <?php foreach ($order_designer_extra_attachments as $attachment): ?>
+                                                <a href="<?php echo esc_url($attachment['url']); ?>"
+                                                    target="_blank"><?php echo esc_html($attachment['name']); ?></a>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="om__designerNote_container" class="mfp-hide om__designerNote_container">
+                                <div class="om__orderComment_title">
+                                    <h5><?php echo esc_html__('Add Designer Notes', 'hello-elementor'); ?></h5>
+                                </div>
+                                <div class="om__extraOrder_Note_File">
+                                    <div class="om__orderComment_input">
+                                        <textarea id="order_designer_note"
+                                            placeholder="Designer Notes"><?php echo $order_manage_designer_notes; ?></textarea>
+                                    </div>
+                                    <div class="om__extra_attachments">
+                                        <input type="text" id="uploaded_designer_extra_file_path" name="uploaded_designer_extra_file_path"
+                                            placeholder="Select Attachments" readonly>
+                                        <label class="om__extraAttachment_label" for="order_designer_extra_attachments">
+                                            <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload"
+                                                class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 512 512">
+                                                <path fill="currentColor"
+                                                    d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z">
+                                                </path>
+                                            </svg>
+                                            <span>Attachments</span>
+                                        </label>
+                                        <input type="file" id="order_designer_extra_attachments" name="order_designer_extra_attachments" multiple />
+                                    </div>
+                                    <button type="button" class="allarnd--regular-button ml_add_loading"
+                                        id="add-designer-note"><?php echo esc_html__('Add Note', 'hello-elementor'); ?></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="orderSummery_rowTwo">
+                    <div class="om__orderShippingDetails <?php echo ($shipping_method === "local_pickup") ? "local_pickup" : ""; ?>">
+                        <label for="om__orderShippingDetailsGrid"><?php echo esc_html__('Order Shipping Details', 'hello-elementor'); ?></label>
+                        <div class="om__orderShippingDetailsGrid">
+                            <div class="om__orderShippingDetailsItem">
+                                <label for="shipping_first_name">First Name</label>
+                                <input type="text" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_html($order_shipping['first_name']); ?>">
+                            </div>
+                            <div class="om__orderShippingDetailsItem">
+                                <label for="shipping_first_name">Last Name</label>
+                                <input type="text" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_html($order_shipping['last_name']); ?>">
+                            </div>
+                            <div class="om__orderShippingDetailsItem orderShippingFieldLong">
+                                <label for="shipping_first_name">Street Address</label>
+                                <input type="text" id="shipping_address_1" name="shipping_address_1" value="<?php echo esc_html($order_shipping['address_1']); ?>">
+                            </div>
+                            <div class="om__orderShippingDetailsItem">
+                                <label for="shipping_first_name">Street Number</label>
+                                <input type="text" id="shipping_postcode" name="shipping_postcode" value="<?php echo esc_html($order_shipping['postcode']); ?>">
+                            </div>
+                            <div class="om__orderShippingDetailsItem">
+                                <label for="shipping_first_name">City</label>
+                                <input type="text" id="shipping_city" name="shipping_city" value="<?php echo esc_html($order_shipping['city']); ?>">
+                            </div>
+                            <div class="om__orderShippingDetailsItem">
+                                <label for="shipping_first_name">Phone</label>
+                                <input type="text" id="shipping_phone" name="shipping_phone" value="<?php echo esc_html($order_shipping['phone']); ?>">
+                            </div>
+                            <div class="om__orderShippingDetailsItem">
+                                <button type="button" class="allarnd--regular-button ml_add_loading" id="update-shipping-details"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
+                            </div>
+                        </div>
+                    </div>
+                        <div class="om__general_notes_cont">
+                            <label><?php echo esc_html__('Order Note', 'hello-elementor'); ?></label>
+                        <div
+                            class="om_displayOrderNotesGrid<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_gridNote' : ''; ?>">
+                            <div
+                                class="om_addOrderNote<?php echo empty($order_manage_general_comment) && empty($order_extra_attachments) ? ' om_no_notes_addNote' : ''; ?>">
                                 Add Note +</div>
                             <div class="om__displayOrderComment<?php echo empty($order_manage_general_comment) ? ' om_no_notes' : ''; ?>">
                                 <div class="om__orderGeneralComment_text">
-                                <?php if ($order_manage_general_comment): ?>
-                                    <p><?php echo nl2br(esc_html($order_manage_general_comment)); ?></p>
-                                <?php endif; ?>
+                                    <?php if ($order_manage_general_comment): ?>
+                                        <p><?php echo nl2br(esc_html($order_manage_general_comment)); ?></p>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                        
+                    
                             <div class="om__orderNoteFiles_container<?php echo empty($order_extra_attachments) ? ' om_no_notes' : ''; ?>">
                                 <h5><?php echo esc_html__('Attachments!', 'hello-elementor'); ?></h5>
                                 <div class="om__orderNoteFiles">
@@ -164,38 +264,34 @@ $clients = $createOrder->fetch_clients_data();
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="om__orderShippingDetails <?php echo ($shipping_method === "local_pickup") ? "local_pickup" : ""; ?>">
-                    <label for="om__orderShippingDetailsGrid"><?php echo esc_html__('Order Shipping Details', 'hello-elementor'); ?></label>
-                    <div class="om__orderShippingDetailsGrid">
-                        <div class="om__orderShippingDetailsItem">
-                            <label for="shipping_first_name">First Name</label>
-                            <input type="text" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_html($order_shipping['first_name']); ?>">
-                        </div>
-                        <div class="om__orderShippingDetailsItem">
-                            <label for="shipping_first_name">Last Name</label>
-                            <input type="text" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_html($order_shipping['last_name']); ?>">
-                        </div>
-                        <div class="om__orderShippingDetailsItem orderShippingFieldLong">
-                            <label for="shipping_first_name">Street Address</label>
-                            <input type="text" id="shipping_address_1" name="shipping_address_1" value="<?php echo esc_html($order_shipping['address_1']); ?>">
-                        </div>
-                        <div class="om__orderShippingDetailsItem">
-                            <label for="shipping_first_name">Street Number</label>
-                            <input type="text" id="shipping_postcode" name="shipping_postcode" value="<?php echo esc_html($order_shipping['postcode']); ?>">
-                        </div>
-                        <div class="om__orderShippingDetailsItem">
-                            <label for="shipping_first_name">City</label>
-                            <input type="text" id="shipping_city" name="shipping_city" value="<?php echo esc_html($order_shipping['city']); ?>">
-                        </div>
-                        <div class="om__orderShippingDetailsItem">
-                            <label for="shipping_first_name">Phone</label>
-                            <input type="text" id="shipping_phone" name="shipping_phone" value="<?php echo esc_html($order_shipping['phone']); ?>">
-                        </div>
-                        <div class="om__orderShippingDetailsItem">
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="update-shipping-details"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
+                    
+                        <div id="om__orderNote_container" class="mfp-hide om__orderNote_container">
+                            <div class="om__orderComment_title">
+                                <h5><?php echo esc_html__('Add Order Notes', 'hello-elementor'); ?></h5>
+                            </div>
+                            <div class="om__extraOrder_Note_File">
+                                <div class="om__orderComment_input">
+                                    <textarea id="order_general_comment"
+                                        placeholder="Order Notes"><?php echo $order_manage_general_comment; ?></textarea>
+                                </div>
+                                <div class="om__extra_attachments">
+                                    <input type="text" id="uploaded_extra_file_path" name="uploaded_extra_file_path"
+                                        placeholder="Select Attachments" readonly>
+                                    <label class="om__extraAttachment_label" for="order_extra_attachments">
+                                        <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload"
+                                            class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 512 512">
+                                            <path fill="currentColor"
+                                                d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z">
+                                            </path>
+                                        </svg>
+                                        <span>Attachments</span>
+                                    </label>
+                                    <input type="file" id="order_extra_attachments" name="order_extra_attachments" multiple />
+                                </div>
+                                <button type="button" class="allarnd--regular-button ml_add_loading"
+                                    id="add-order-comment"><?php echo esc_html__('Add Note', 'hello-elementor'); ?></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -228,27 +324,6 @@ $clients = $createOrder->fetch_clients_data();
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                     </div>
                     <?php endif; ?>
-                    <div id="om__orderNote_container" class="mfp-hide om__orderNote_container">
-                        <div class="om__orderComment_title">
-                            <h5><?php echo esc_html__('Add Order Notes', 'hello-elementor'); ?></h5>
-                        </div>
-                        <div class="om__extraOrder_Note_File">
-                            <div class="om__orderComment_input">
-                                <textarea id="order_general_comment" placeholder="Order Notes"><?php echo $order_manage_general_comment; ?></textarea>
-                            </div>
-                            <div class="om__extra_attachments">
-                                <input type="text" id="uploaded_extra_file_path" name="uploaded_extra_file_path" placeholder="Select Attachments" readonly>
-                                <label class="om__extraAttachment_label" for="order_extra_attachments">
-                                    <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="upload" class="svg-inline--fa fa-upload fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                                        <path fill="currentColor" d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"></path>
-                                    </svg>
-                                    <span>Attachments</span>
-                                </label>
-                                <input type="file" id="order_extra_attachments" name="order_extra_attachments" multiple />
-                            </div>
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="add-order-comment"><?php echo esc_html__('Add Note', 'hello-elementor'); ?></button>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="mockup-revision-activity-container">

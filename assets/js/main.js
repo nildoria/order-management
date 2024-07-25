@@ -1087,9 +1087,7 @@
     });
   });
 
-  // ********** Update Prder General Comment **********//
-  //
-  // on change to #order_extra_attachments show the selected file names in the input field #uploaded_extra_file_path
+  // ********** Update Order General Comment/Note **********//
   $("#order_extra_attachments").on("change", function () {
     let files = $(this)[0].files;
     let fileNames = [];
@@ -1132,6 +1130,7 @@
         if (response.success) {
           $("#add-order-comment").removeClass("ml_loading");
           $(".om_addOrderNote").removeClass("om_no_notes_addNote");
+          $(".om_displayOrderNotesGrid").removeClass("om_no_notes_gridNote");
           $.magnificPopup.close();
           // Update the UI with the new comment and attachments
           if (orderComment !== "") {
@@ -1140,13 +1139,6 @@
             $(".om__orderGeneralComment_text").append(`
                 <p>${response.data.order_general_comment}</p>
             `);
-            // $("#order_general_comment").remove();
-
-            // $(".om__orderComment_input").append(`
-            //   <textarea id="order_general_comment" placeholder="Order Notes">${response.data.order_general_comment
-            //     .replace(/<br\s*[\/]?>/gi, "\n")
-            //     .trim()}</textarea>
-            // `);
           }
 
           if (response.data.attachments.length > 0) {
@@ -1160,10 +1152,6 @@
             $(".om__orderNoteFiles_container").append(attachmentsHtml);
           }
 
-          // Clear the textarea and file input only if they were used
-          // if (orderComment !== "") {
-          //   $("#order_general_comment").val(""); // Clear the textarea
-          // }
           if (files.length > 0) {
             $("#order_extra_attachments").val(""); // Clear the file input
             $("#uploaded_extra_file_path").val(""); // Clear the hidden input
@@ -1206,6 +1194,115 @@
       },
     },
   });
+  // ********** END Order General Comment/Note **********//
+
+  // ********** Update Order Designer Note **********//
+  $("#order_designer_extra_attachments").on("change", function () {
+    let files = $(this)[0].files;
+    let fileNames = [];
+    for (let i = 0; i < files.length; i++) {
+      fileNames.push(files[i].name);
+    }
+    $("#uploaded_designer_extra_file_path").val(fileNames.join(", "));
+  });
+
+  $("#add-designer-note").on("click", function () {
+    let orderComment = $("#order_designer_note").val();
+    let postId = allaround_vars.post_id;
+    let nonce = allaround_vars.nonce;
+    $(this).addClass("ml_loading");
+
+    let files = $("#order_designer_extra_attachments")[0].files;
+
+    if (orderComment === "" && files.length === 0) {
+      alert("Please enter a comment or select files to upload.");
+      return;
+    }
+
+    let formData = new FormData();
+    formData.append("action", "save_order_designer_notes");
+    formData.append("order_designer_notes", orderComment);
+    formData.append("post_id", postId);
+    formData.append("nonce", nonce);
+
+    for (let i = 0; i < files.length; i++) {
+      formData.append("order_designer_extra_attachments[]", files[i]);
+    }
+
+    $.ajax({
+      type: "POST",
+      url: allaround_vars.ajax_url,
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function (response) {
+        if (response.success) {
+          $("#add-designer-note").removeClass("ml_loading");
+          $(".om_addDesignerNote").removeClass("om_no_notes_addNote");
+          $(".om_displayOrderNotesGrid").removeClass("om_no_notes_gridNote");
+          $.magnificPopup.close();
+          // Update the UI with the new comment and attachments
+          if (orderComment !== "") {
+            $(".om__orderDesignerNote_text p").remove();
+            $(".om__displayDesignerComment").removeClass("om_no_notes");
+            $(".om__orderDesignerNote_text").append(`
+                <p>${response.data.order_designer_notes}</p>
+            `);
+          }
+
+          if (response.data.attachments.length > 0) {
+            $(".om__designerNoteFiles").remove(); // Remove existing attachments
+            let attachmentsHtml = '<div class="om__designerNoteFiles">';
+            response.data.attachments.forEach(function (attachment) {
+              attachmentsHtml += `<a href="${attachment.url}" target="_blank">${attachment.name}</a>`;
+            });
+            attachmentsHtml += "</div>";
+            $(".om__designerNoteFiles_container").removeClass("om_no_notes");
+            $(".om__designerNoteFiles_container").append(attachmentsHtml);
+          }
+          if (files.length > 0) {
+            $("#order_designer_extra_attachments").val(""); // Clear the file input
+            $("#uploaded_designer_extra_file_path").val(""); // Clear the hidden input
+          }
+          Toastify({
+            text: `Designer Note Updated Successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+        } else {
+          alert("Something went wrong: " + response.data);
+        }
+      },
+      error: function (error) {
+        alert("An error occurred: " + error.responseText);
+      },
+    });
+  });
+
+  $(".om_addDesignerNote, .om__orderDesignerNote_text").magnificPopup({
+    items: {
+      src: "#om__designerNote_container",
+      type: "inline",
+    },
+    closeBtnInside: true,
+    callbacks: {
+      open: function () {
+        let orderComment = $(".om__orderDesignerNote_text p").html();
+        if (orderComment) {
+          // Replace <br> tags with \n and remove any trailing line breaks
+          orderComment = orderComment.replace(/<br\s*[\/]?>/gi, "").trim();
+          $("#order_designer_note").val(orderComment);
+        }
+      },
+    },
+  });
+  // ********** END Order Designer Note **********//
 
   // .alarnd__artwork_img src is not jpg, png or jpeg change to document.png
   $(".alarnd__artwork_img").each(function () {

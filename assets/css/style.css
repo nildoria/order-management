@@ -22,6 +22,14 @@ a.custom-logo-link {
   justify-content: center;
   align-items: center;
 }
+.orderSummery_rowTwo {
+  display: flex;
+  gap: 20px;
+}
+.om__general_notes_cont {
+  flex: 1;
+  margin-top: -5px;
+}
 .order_mngmnt_headings {
   margin-bottom: 20px;
   display: flex;
@@ -783,7 +791,8 @@ input#fetchProductList {
   height: 16px;
   margin-right: 5px;
 }
-#order_extra_attachments {
+#order_extra_attachments,
+#order_designer_extra_attachments {
   width: 0.1px;
   height: 0.1px;
   opacity: 0;
@@ -797,7 +806,8 @@ input#fetchProductList {
 .om_displayOrderNotesGrid.om_no_notes {
   display: none;
 }
-.om__orderNote_container {
+.om__orderNote_container,
+.om__designerNote_container {
   position: relative;
   background-color: #fff;
   width: 600px;
@@ -806,7 +816,8 @@ input#fetchProductList {
   padding: 35px;
   margin: 0 auto;
 }
-.om__orderNote_container button.mfp-close {
+.om__orderNote_container button.mfp-close,
+.om__designerNote_container button.mfp-close {
   top: -10px;
 }
 .om_headin_titles {
@@ -835,10 +846,10 @@ input#fetchProductList {
   background-color: #f7f7f7;
   padding: 20px;
   border-radius: 7px;
-  width: 670px;
   max-width: 100%;
   position: relative;
   top: -5px;
+  flex: 1;
 }
 .om__orderShippingDetails.local_pickup {
   display: none;
@@ -860,13 +871,14 @@ input#fetchProductList {
   flex-wrap: wrap;
   gap: 10px;
 }
-.om__orderShippingDetails label {
+.om__orderShippingDetails label,
+.om__general_notes_cont label {
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 10px;
 }
 .om__orderShippingDetailsItem {
-  width: 150px;
+  width: calc(25% - 10px);
   max-width: 100%;
   display: flex;
   flex-direction: column;
@@ -874,7 +886,7 @@ input#fetchProductList {
   margin-top: 10px;
 }
 .om__orderShippingDetailsItem.orderShippingFieldLong {
-  width: 308px;
+  width: calc(50% - 10px);
 }
 .om__orderShippingDetailsItem label {
   font-size: 14px;
@@ -939,17 +951,20 @@ input#fetchProductList {
 .order_type_title {
   margin-bottom: 5px;
 }
-.om_addOrderNote.om_no_notes_addNote {
+.om_addOrderNote.om_no_notes_addNote,
+.om_addDesignerNote.om_no_notes_addNote {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   position: static;
 }
-.om__orderComment_input textarea#order_general_comment {
+.om__orderComment_input textarea#order_general_comment,
+.om__orderComment_input textarea#order_designer_note {
   height: 90px;
 }
-.om_addOrderNote {
+.om_addOrderNote,
+.om_addDesignerNote {
   cursor: pointer;
   padding: 5px 8px;
   display: inline-block;
@@ -982,7 +997,8 @@ span.om__client_update_btn img {
 .om_displayOrderNotesGrid div:nth-child(3) {
   border-top: 1px solid #efe2b3;
 }
-.om__orderNoteFiles a {
+.om__orderNoteFiles a,
+.om__designerNoteFiles a {
   color: #1a1a1a;
   font-size: 14px;
   font-weight: 600;
@@ -994,20 +1010,24 @@ span.om__client_update_btn img {
   background-repeat: no-repeat;
   background-position: 92% center;
 }
-.om__orderNoteFiles {
+.om__orderNoteFiles,
+.om__designerNoteFiles {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
-.om__orderGeneralComment_text {
+.om__orderGeneralComment_text,
+.om__orderDesignerNote_text {
   color: #1a1a1a;
   font-size: 16px;
 }
-.om__orderGeneralComment_text p {
+.om__orderGeneralComment_text p,
+.om__orderDesignerNote_text p {
   margin-bottom: 0.6rem;
 }
 
-button#add-order-comment {
+button#add-order-comment,
+button#add-designer-note {
   margin-top: 10px;
 }
 .om__ordernoteContainer h4,
@@ -1016,7 +1036,8 @@ button#add-order-comment {
   font-size: 1.1em;
   font-weight: 600;
 }
-.om__orderNoteFiles_container h5 {
+.om__orderNoteFiles_container h5,
+.om__designerNoteFiles_container h5 {
   font-size: 16px;
   font-weight: 600;
   margin-top: 0.8rem;
