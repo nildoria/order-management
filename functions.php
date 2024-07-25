@@ -260,6 +260,7 @@ if (!function_exists('hello_elementor_scripts_styles')) {
                 'customer_email' => $customer_email,
                 'order_domain' => $order_domain,
                 'currency_symbol' => "₪",
+                'user_role' => get_current_user_role(),
             )
         );
 
@@ -312,6 +313,10 @@ require get_template_directory() . '/includes/classes/class-rules.php';
 require get_template_directory() . '/includes/classes/class-utility.php';
 // require get_template_directory() . '/includes/classes/class-ajax.php';
 
+require_once get_template_directory() . '/includes/classes/class-clients.php';
+require_once get_template_directory() . '/includes/classes/class-create-order.php';
+require_once get_template_directory() . '/includes/classes/class-add-item.php';
+
 /**
  * Include customizer registration functions
  */
@@ -357,6 +362,30 @@ if (!function_exists('hello_elementor_body_open')) {
         }
     }
 }
+
+// Change user role labels
+function change_user_role_labels()
+{
+    global $wp_roles;
+
+    if (!isset($wp_roles)) {
+        $wp_roles = new WP_Roles();
+    }
+
+    // Change Contributor to Designer
+    if (isset($wp_roles->roles['contributor'])) {
+        $wp_roles->roles['contributor']['name'] = 'Designer';
+        $wp_roles->role_names['contributor'] = 'Designer';
+    }
+
+    // Change Author to Employee
+    if (isset($wp_roles->roles['author'])) {
+        $wp_roles->roles['author']['name'] = 'Employee';
+        $wp_roles->role_names['author'] = 'Employee';
+    }
+}
+add_action('init', 'change_user_role_labels');
+
 
 function redirect_to_login_if_not_logged_in()
 {
@@ -434,10 +463,17 @@ function order_manage_metabox_content($post)
 
     // Use get_post_meta to retrieve an existing value from the database.
     $order_manage_general_comment = get_post_meta($post->ID, '_order_manage_general_comment', true);
+    $order_manage_designer_notes = get_post_meta($post->ID, '_order_manage_designer_notes', true);
 
     // Display the form, using the current value.
     echo '<label for="order_manage_general_comment">Order Notes</label>';
     echo '<input type="text" id="order_manage_general_comment" name="order_manage_general_comment" value="' . ($order_manage_general_comment) . '" style="width:100%;" />';
+    echo '<br>';
+    echo '<br>';
+    echo '<hr>';
+    echo '<br>';
+    echo '<label for="order_manage_designer_notes">Designer Notes</label>';
+    echo '<input type="text" id="order_manage_designer_notes" name="order_manage_designer_notes" value="' . ($order_manage_designer_notes) . '" style="width:100%;" />';
 }
 
 function save_order_manage_metabox($post_id)
@@ -470,9 +506,11 @@ function save_order_manage_metabox($post_id)
 
     // Sanitize user input.
     $order_manage_general_comment = sanitize_text_field($_POST['order_manage_general_comment']);
+    $order_manage_designer_notes = sanitize_text_field($_POST['order_manage_designer_notes']);
 
     // Update the meta field in the database.
     update_post_meta($post_id, '_order_manage_general_comment', $order_manage_general_comment);
+    update_post_meta($post_id, '_order_manage_designer_notes', $order_manage_designer_notes);
 }
 add_action('save_post', 'save_order_manage_metabox');
 
@@ -483,24 +521,24 @@ function save_order_general_comment()
     check_ajax_referer('order_management_nonce', 'nonce');
 
     $post_id = intval($_POST['post_id']);
-    $order_comment = sanitize_textarea_field($_POST['order_general_comment']); // Use sanitize_textarea_field instead of sanitize_text_field
+    $order_comment = sanitize_textarea_field($_POST['order_general_comment']);
 
     if (empty($post_id) || (empty($order_comment) && empty($_FILES['order_extra_attachments']))) {
         wp_send_json_error('Invalid post ID or comment.');
     }
 
-    $attachments = array();
+    $existing_attachments = get_post_meta($post_id, '_order_extra_attachments', true);
+    $attachments = is_array($existing_attachments) ? $existing_attachments : array();
 
     if (!empty($_FILES['order_extra_attachments'])) {
-        $attachments = handle_file_uploads($_FILES['order_extra_attachments'], $post_id);
-        if (is_wp_error($attachments)) {
-            wp_send_json_error($attachments->get_error_message());
+        $new_attachments = handle_file_uploads($_FILES['order_extra_attachments'], $post_id);
+        if (is_wp_error($new_attachments)) {
+            wp_send_json_error($new_attachments->get_error_message());
         }
-        // Overwrite the post meta for the attachments
+        $attachments = array_merge($attachments, $new_attachments);
         update_post_meta($post_id, '_order_extra_attachments', $attachments);
     }
 
-    // Update the post meta for the comment if provided
     if (!empty($order_comment)) {
         update_post_meta($post_id, '_order_manage_general_comment', $order_comment);
     } else {
@@ -509,7 +547,7 @@ function save_order_general_comment()
 
     wp_send_json_success(
         array(
-            'order_general_comment' => nl2br($order_comment), // Convert new lines to <br> tags
+            'order_general_comment' => nl2br($order_comment),
             'attachments' => $attachments
         )
     );
@@ -517,54 +555,78 @@ function save_order_general_comment()
 add_action('wp_ajax_save_order_general_comment', 'save_order_general_comment');
 add_action('wp_ajax_nopriv_save_order_general_comment', 'save_order_general_comment');
 
-
-/**
- * Handle order shipping details meta update
- @returns
- */
-function update_post_shipping_details()
+function delete_order_attachment()
 {
     // Check nonce for security
     check_ajax_referer('order_management_nonce', 'nonce');
 
-    $post_id = isset($_POST['post_id']) ? sanitize_text_field(absint($_POST['post_id'])) : '';
-    $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
-    $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
-    $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
-    $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
-    $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
+    $post_id = intval($_POST['post_id']);
+    $attachment_id = intval($_POST['attachment_id']);
+    $attachment_type = sanitize_text_field($_POST['attachment_type']);
 
-    if (empty($post_id) || empty($phone)) {
-        wp_send_json_error(
-            array(
-                "message_type" => 'reqular',
-                "message" => esc_html__("Invalid post ID or phone number.", "hello-elementor")
-            )
-        );
-        wp_die();
+    if (empty($post_id) || empty($attachment_id) || empty($attachment_type)) {
+        wp_send_json_error('Invalid post ID, attachment ID, or attachment type.');
     }
 
-    $shipping_data = [
-        'first_name' => $first_name,
-        'last_name' => $last_name,
-        'address_1' => $address,
-        'city' => $city,
-        'phone' => $phone
-    ];
+    $meta_key = $attachment_type === 'designer' ? '_order_designer_extra_attachments' : '_order_extra_attachments';
+    $attachments = get_post_meta($post_id, $meta_key, true);
 
-    update_post_meta($post_id, 'shipping', $shipping_data);
+    if (is_array($attachments)) {
+        foreach ($attachments as $key => $attachment) {
+            if ($attachment['id'] == $attachment_id) {
+                unset($attachments[$key]);
+                break;
+            }
+        }
+        update_post_meta($post_id, $meta_key, array_values($attachments));
+    }
+
+    wp_send_json_success();
+}
+add_action('wp_ajax_delete_order_attachment', 'delete_order_attachment');
+add_action('wp_ajax_nopriv_delete_order_attachment', 'delete_order_attachment');
+
+
+function save_order_designer_notes()
+{
+    // Check nonce for security
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = intval($_POST['post_id']);
+    $order_designer_notes = sanitize_textarea_field($_POST['order_designer_notes']);
+
+    if (empty($post_id) || (empty($order_designer_notes) && empty($_FILES['order_designer_extra_attachments']))) {
+        wp_send_json_error('Invalid post ID or notes.');
+    }
+
+    $existing_attachments = get_post_meta($post_id, '_order_designer_extra_attachments', true);
+    $attachments = is_array($existing_attachments) ? $existing_attachments : array();
+
+    if (!empty($_FILES['order_designer_extra_attachments'])) {
+        $new_attachments = handle_file_uploads($_FILES['order_designer_extra_attachments'], $post_id);
+        if (is_wp_error($new_attachments)) {
+            wp_send_json_error($new_attachments->get_error_message());
+        }
+        $attachments = array_merge($attachments, $new_attachments);
+        update_post_meta($post_id, '_order_designer_extra_attachments', $attachments);
+    }
+
+    if (!empty($order_designer_notes)) {
+        update_post_meta($post_id, '_order_manage_designer_notes', $order_designer_notes);
+    } else {
+        $order_designer_notes = get_post_meta($post_id, '_order_manage_designer_notes', true);
+    }
 
     wp_send_json_success(
         array(
-            "shipping_details" => $shipping_data,
-            "message" => "Order Shipping details successfully updated!"
+            'order_designer_notes' => nl2br($order_designer_notes), // Convert new lines to <br> tags
+            'attachments' => $attachments
         )
     );
-    wp_die();
-
 }
-add_action('wp_ajax_update_post_shipping_details', 'update_post_shipping_details');
-add_action('wp_ajax_nopriv_update_post_shipping_details', 'update_post_shipping_details');
+add_action('wp_ajax_save_order_designer_notes', 'save_order_designer_notes');
+add_action('wp_ajax_nopriv_save_order_designer_notes', 'save_order_designer_notes');
+
 
 
 /**
@@ -650,6 +712,57 @@ function resize_image($file, $max_width = 2000, $max_height = 2000)
     imagedestroy($new_image);
     imagedestroy($source_image);
 }
+
+
+/**
+ * Handle order shipping details meta update
+ @returns
+ */
+function update_post_shipping_details()
+{
+    // Check nonce for security
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = isset($_POST['post_id']) ? sanitize_text_field(absint($_POST['post_id'])) : '';
+    $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
+    $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
+    $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
+    $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
+    $postcode = isset($_POST['postcode']) ? sanitize_text_field($_POST['postcode']) : '';
+    $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
+
+    if (empty($post_id) || empty($phone)) {
+        wp_send_json_error(
+            array(
+                "message_type" => 'reqular',
+                "message" => esc_html__("Invalid post ID or phone number.", "hello-elementor")
+            )
+        );
+        wp_die();
+    }
+
+    $shipping_data = [
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'address_1' => $address,
+        'postcode' => $postcode,
+        'city' => $city,
+        'phone' => $phone
+    ];
+
+    update_post_meta($post_id, 'shipping', $shipping_data);
+
+    wp_send_json_success(
+        array(
+            "shipping_details" => $shipping_data,
+            "message" => "Order Shipping details successfully updated!"
+        )
+    );
+    wp_die();
+
+}
+add_action('wp_ajax_update_post_shipping_details', 'update_post_shipping_details');
+add_action('wp_ajax_nopriv_update_post_shipping_details', 'update_post_shipping_details');
 
 
 /**
@@ -1093,7 +1206,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
 
         echo '<tr class="om__orderRow" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
         echo '<td class="item_product_column">';
-        if (!ml_current_user_contributor()):
+        if (is_current_user_admin()):
             echo '<span class="om__editItemMeta" title="Edit" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
             echo '<span class="om_duplicate_item" title="Duplicate"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="duplicate-icon" d="M10.5003 3.49996V1.74996C10.5003 1.59525 10.4389 1.44688 10.3295 1.33748C10.2201 1.22808 10.0717 1.16663 9.91699 1.16663H1.75033C1.59562 1.16663 1.44724 1.22808 1.33785 1.33748C1.22845 1.44688 1.16699 1.59525 1.16699 1.74996V9.91663C1.16699 10.0713 1.22845 10.2197 1.33785 10.3291C1.44724 10.4385 1.59562 10.5 1.75033 10.5H3.50033V12.25C3.50033 12.4047 3.56178 12.553 3.67118 12.6624C3.78058 12.7718 3.92895 12.8333 4.08366 12.8333H12.2503C12.405 12.8333 12.5534 12.7718 12.6628 12.6624C12.7722 12.553 12.8337 12.4047 12.8337 12.25V4.08329C12.8337 3.92858 12.7722 3.78021 12.6628 3.67081C12.5534 3.56142 12.405 3.49996 12.2503 3.49996H10.5003ZM2.33366 9.33329V2.33329H9.33366V9.33329H2.33366ZM11.667 11.6666H4.66699V10.5H9.91699C10.0717 10.5 10.2201 10.4385 10.3295 10.3291C10.4389 10.2197 10.5003 10.0713 10.5003 9.91663V4.66663H11.667V11.6666Z" fill="#1A1A1A"/></svg></span>';
             echo '<span class="om_delete_item" title="Delete"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></span>';
@@ -1120,6 +1233,8 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '<span class="om__itemVariUpdateMeta">';
         $instruction_note_found = false;
         $color_found = false;
+        $size_found = false;
+        $artPosition_found = false;
         foreach ($item->meta_data as $meta) {
             if ($meta->key === "Color") {
                 echo '<span class="om__item_metaData_updateCon">';
@@ -1135,7 +1250,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '<select id="size-input_' . $item_id . '">';
                 echo '<option value="' . esc_html(strip_tags($meta->value)) . '">' . esc_html(strip_tags($meta->value)) . '</option>';
                 echo '</select>';
-
+                $size_found = true;
             }
             if ($meta->key === "Art Position") {
                 echo '<span class="om__item_metaData_updateCon">';
@@ -1144,6 +1259,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '<option value="' . esc_html(strip_tags($meta->value)) . '">' . esc_html(strip_tags($meta->value)) . '</option>';
                 echo '</select>';
                 echo '</span>';
+                $artPosition_found = true;
             }
             if ($meta->key === "Instruction Note") {
                 echo '<label for="instruction-note-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
@@ -1152,26 +1268,28 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             }
         }
 
+        // Add ArtPosition if there is Color and Size, but Art Position
+        if ($color_found && $size_found && !$artPosition_found) {
+            echo '<span class="om__item_metaData_updateCon">';
+            echo '<label for="art-position-input_' . $item_id . '">Art Position</label>';
+            echo '<select id="art-position-input_' . $item_id . '">';
+            echo '<option value="">Select Art Position</option>';
+            echo '</select>';
+            echo '</span>';
+        }
+
         // Add Instruction Note input if it was not found in the meta data
         if (!$instruction_note_found) {
             echo '<label for="instruction-note-input_' . $item_id . '">Instruction Note</label>';
             echo '<input type="text" id="instruction-note-input_' . $item_id . '" placeholder="Enter instruction note">';
         }
 
-        // Add Color input if it was not found in the meta data
-        // if (!$color_found) {
-        //     echo '<label for="color-input_' . $item_id . '">Color</label>';
-        //     echo '<select id="color-input_' . $item_id . '">';
-        //     echo '<option value="">Select Color</option>';
-        //     echo '</select>';
-        // }
-
         echo '</span>';
         echo '<button data-order_id="' . $order_id . '" data-item_id="' . $item_id . '" class="update-item-meta-btn" id="update-item-meta-btn_' . $item_id . '">Update Item Meta</button>';
         echo '</span>';
         echo '</td>';
-        if (!ml_current_user_contributor()):
-            echo '<td class="item_quantity_column">';
+        echo '<td class="item_quantity_column">';
+        if (is_current_user_admin()) {
             echo '<span class="om__quantityNumbers">';
             echo '<span class="om__itemQuantity">' . esc_attr($item->quantity) . '</span>x';
             echo '<span class="om__itemRate">' . esc_attr(number_format($item->price, 2) . $currency_symbol) . '</span> = ';
@@ -1182,7 +1300,10 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '<input type="number" class="item-cost-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->price) . '" />';
             echo '</span>';
             echo '</span>';
-        endif;
+        } else {
+            echo '<span class="om__itemQuantity om_onlyQuantity">' . esc_attr($item->quantity) . '</span>';
+        }
+        echo '</td>';
         echo '<td class="item_graphics_column">';
         $artworkFound = false;
         foreach ($item->meta_data as $meta) {
@@ -1326,9 +1447,6 @@ function fetch_order_details($order_id, $domain)
 }
 
 
-add_action('wp_ajax_initialize_mockup_columns', 'initialize_mockup_columns');
-add_action('wp_ajax_nopriv_initialize_mockup_columns', 'initialize_mockup_columns');
-
 function initialize_mockup_columns()
 {
     $order_id = intval($_POST['order_id']);
@@ -1346,11 +1464,27 @@ function initialize_mockup_columns()
         }
     }
 
-    wp_send_json_success(['mockup_versions' => $mockup_versions]);
+    // Check if the current user is an Employee
+    if (current_user_can('author')) {
+        // Return only the last version for Employee role
+        if (!empty($mockup_versions)) {
+            $last_version = end($mockup_versions);
+            wp_send_json_success(['mockup_versions' => [$last_version]]);
+        } else {
+            wp_send_json_success(['mockup_versions' => [], 'no_mockup_state' => true]);
+        }
+    } else {
+        // Return all versions for other roles
+        if (!empty($mockup_versions)) {
+            wp_send_json_success(['mockup_versions' => $mockup_versions]);
+        } else {
+            wp_send_json_success(['mockup_versions' => [], 'no_mockup_state' => true]);
+        }
+    }
 }
+add_action('wp_ajax_initialize_mockup_columns', 'initialize_mockup_columns');
+add_action('wp_ajax_nopriv_initialize_mockup_columns', 'initialize_mockup_columns');
 
-add_action('wp_ajax_fetch_mockup_files', 'fetch_mockup_files');
-add_action('wp_ajax_nopriv_fetch_mockup_files', 'fetch_mockup_files');
 
 function fetch_mockup_files()
 {
@@ -1385,6 +1519,9 @@ function fetch_mockup_files()
         }
     }
 }
+add_action('wp_ajax_fetch_mockup_files', 'fetch_mockup_files');
+add_action('wp_ajax_nopriv_fetch_mockup_files', 'fetch_mockup_files');
+
 
 
 
@@ -1522,6 +1659,51 @@ function ml_current_user_contributor()
     // Return the result
     return $is_contributor === '1';
 }
+
+function is_current_user_author()
+{
+    if (current_user_can('author')) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function is_current_user_admin()
+{
+    if (current_user_can('administrator')) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// Function to get the current user's role
+function get_current_user_role()
+{
+    if (is_user_logged_in()) {
+        $user = wp_get_current_user();
+        $roles = (array) $user->roles;
+        return $roles[0]; // Assuming the user has only one role
+    } else {
+        return null; // User is not logged in
+    }
+}
+
+// Add User role class to body
+function add_user_role_to_body_class($classes)
+{
+    if (is_user_logged_in()) {
+        $user = wp_get_current_user();
+        $roles = (array) $user->roles;
+        foreach ($roles as $role) {
+            $classes[] = 'om__' . $role;
+        }
+    }
+    return $classes;
+}
+add_filter('body_class', 'add_user_role_to_body_class');
+
 
 
 /**
@@ -1881,8 +2063,3 @@ function restrict_access_to_logged_in_users()
         exit;
     }
 }
-
-
-require_once get_template_directory() . '/includes/classes/class-clients.php';
-require_once get_template_directory() . '/includes/classes/class-create-order.php';
-require_once get_template_directory() . '/includes/classes/class-add-item.php';

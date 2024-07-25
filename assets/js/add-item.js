@@ -499,6 +499,8 @@ jQuery(document).ready(function ($) {
     event.preventDefault();
     const modal = $(this).closest(".product-details-modal");
 
+    $("#addNewItemButton").addClass("ml_loading");
+
     const isGroupedProduct = $(this).hasClass(
       "groupedProduct_add_to_cart_button"
     );
@@ -565,6 +567,7 @@ jQuery(document).ready(function ($) {
     };
 
     function handleResponse(response) {
+      $("#addNewItemButton").removeClass("ml_loading");
       alert("Item(s) added successfully");
       location.reload(); // Refresh the page to see the new item
     }
@@ -593,6 +596,9 @@ jQuery(document).ready(function ($) {
       .catch((error) => {
         console.error("Error:", error);
         alert("Error: " + error.message);
+      })
+      .finally(() => {
+        $("#addNewItemButton").removeClass("ml_loading");
       });
   });
 

@@ -459,6 +459,8 @@ jQuery(document).ready(function ($) {
   $("#checkout").on("click", function (e) {
     e.preventDefault();
 
+    $(".sitewide_spinner").addClass("loading");
+
     let orderType = $("#order_type").val();
 
     // Collect billing and shipping information
@@ -552,11 +554,15 @@ jQuery(document).ready(function ($) {
           $("#client-select").val(null).trigger("change");
           // Create the order post
           createOrderPost(response.data, orderType);
+
+          $(".sitewide_spinner").removeClass("loading");
         } else {
+          $(".sitewide_spinner").removeClass("loading");
           alert("Error creating order: " + response.data);
         }
       },
       error: function (xhr, status, error) {
+        $(".sitewide_spinner").removeClass("loading");
         console.error("AJAX Error:", error);
         alert("An error occurred while creating the order. Please try again.");
       },
@@ -580,7 +586,7 @@ jQuery(document).ready(function ($) {
       success: function (response) {
         console.log("Order post created successfully:", response);
         alert("Order post created successfully!");
-        location.reload();
+        // location.reload();
       },
       error: function (xhr, status, error) {
         console.error("Error creating order post:", error);

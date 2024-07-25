@@ -38,8 +38,8 @@
   position: relative;
   top: 2px;
 }
-
-.om_hidden_details {
+.om_hidden_details,
+.client_token_field {
   position: relative;
   display: none;
 }
