@@ -138,6 +138,20 @@
     }
   });
 
+  // Show Token if Status is Client
+  $(document).on("change", "#status", function () {
+    clientStatus();
+  });
+
+  function clientStatus() {
+    if ($("#status").val() == "client") {
+      $(".client_token_field").fadeIn();
+    } else {
+      $(".client_token_field").fadeOut();
+    }
+  }
+  clientStatus();
+
   if ($("#addClientForm").length > 0) {
     $("#addClientForm").validate();
   }

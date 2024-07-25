@@ -1303,6 +1303,7 @@
       first_name: $("#shipping_first_name").val(),
       last_name: $("#shipping_last_name").val(),
       address_1: $("#shipping_address_1").val(),
+      postcode: $("#shipping_postcode").val(),
       city: $("#shipping_city").val(),
       phone: $("#shipping_phone").val(),
       nonce: allaround_vars.nonce,

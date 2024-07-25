@@ -858,14 +858,36 @@ input#fetchProductList {
 .om__orderShippingDetailsGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 10px;
+}
+.om__orderShippingDetails label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
 }
 .om__orderShippingDetailsItem {
-  width: 200px;
+  width: 150px;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.om__orderShippingDetailsItem.orderShippingFieldLong {
+  width: 308px;
+}
+.om__orderShippingDetailsItem label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 0px;
+  margin-left: 5px;
 }
 .om__orderShippingDetailsItem input {
-  padding: 6px 15px;
+  padding: 5px 5px 2px;
+  border: 0px solid transparent;
+  border-bottom: 1px solid #ccc;
+  border-radius: 0px;
+  background-color: transparent;
 }
 .om__orderShippingDetailsItem button#update-shipping-details {
   width: 100%;
@@ -873,11 +895,6 @@ input#fetchProductList {
   border-radius: 7px;
   font-weight: 600;
   font-size: 15px;
-}
-.om__orderShippingDetails label {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 10px;
 }
 
 .om__summeryContainer,

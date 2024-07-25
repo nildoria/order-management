@@ -171,18 +171,27 @@ $clients = $createOrder->fetch_clients_data();
                     <label for="om__orderShippingDetailsGrid"><?php echo esc_html__('Order Shipping Details', 'hello-elementor'); ?></label>
                     <div class="om__orderShippingDetailsGrid">
                         <div class="om__orderShippingDetailsItem">
+                            <label for="shipping_first_name">First Name</label>
                             <input type="text" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_html($order_shipping['first_name']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">
+                            <label for="shipping_first_name">Last Name</label>
                             <input type="text" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_html($order_shipping['last_name']); ?>">
                         </div>
-                        <div class="om__orderShippingDetailsItem">
+                        <div class="om__orderShippingDetailsItem orderShippingFieldLong">
+                            <label for="shipping_first_name">Street Address</label>
                             <input type="text" id="shipping_address_1" name="shipping_address_1" value="<?php echo esc_html($order_shipping['address_1']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">
+                            <label for="shipping_first_name">Street Number</label>
+                            <input type="text" id="shipping_postcode" name="shipping_postcode" value="<?php echo esc_html($order_shipping['postcode']); ?>">
+                        </div>
+                        <div class="om__orderShippingDetailsItem">
+                            <label for="shipping_first_name">City</label>
                             <input type="text" id="shipping_city" name="shipping_city" value="<?php echo esc_html($order_shipping['city']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">
+                            <label for="shipping_first_name">Phone</label>
                             <input type="text" id="shipping_phone" name="shipping_phone" value="<?php echo esc_html($order_shipping['phone']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">

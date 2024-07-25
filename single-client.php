@@ -36,6 +36,9 @@ restrict_access_to_logged_in_users();
             'logo' => get_post_meta($client_id, 'logo', true),
         ];
 
+        $token = esc_attr($fields['token']);
+        $masked_token = substr($token, 0, 4) . str_repeat('*', strlen($token) - 4);
+
         ?>
         <div id="create-client-form">
             <h2>Edit: <?php the_title(); ?></h2>
@@ -114,6 +117,12 @@ restrict_access_to_logged_in_users();
                                 <option value="company_prospect" <?php selected($fields['status'], 'company_prospect'); ?>>
                                     Company Prospect</option>
                             </select>
+                        </div>
+                        <br>
+
+                        <div class="form-group client_token_field">
+                            <label for="token">Token:</label>
+                            <input type="text" name="token" id="token" value="<?php echo $masked_token; ?>" />
                         </div>
                         <br>
 

@@ -109,6 +109,7 @@ class AllAroundClientsDB
             'phone',
             'city',
             'status',
+            'token',
             'email',
             'subscribed',
             'invoice'
@@ -309,6 +310,7 @@ class AllAroundClientsDB
             'phone',
             'city',
             'status',
+            'token',
             'email',
             'subscribed',
             'invoice'
@@ -594,6 +596,10 @@ class AllAroundClientsDB
             'invoice' => get_post_meta($post->ID, 'invoice', true),
             'logo' => get_post_meta($post->ID, 'logo', true),
         ];
+
+        $token = esc_attr($fields['token']);
+        $masked_token = substr($token, 0, 4) . str_repeat('*', strlen($token) - 4);
+
         ?>
         <p>
             <label for="client_type">Client Type:</label><br>
@@ -641,7 +647,7 @@ class AllAroundClientsDB
         </p>
         <p>
             <label for="token">Token:</label><br>
-            <input type="text" name="token" id="token" value="<?php echo esc_attr($fields['token']); ?>" />
+            <input type="text" name="token" id="token" value="<?php echo $masked_token; ?>" />
         </p>
         <hr>
         <br>
@@ -780,7 +786,12 @@ class AllAroundClientsDB
 
         foreach ($fields as $field) {
             if (isset($_POST[$field])) {
-                update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
+                if ($field === 'token') {
+                    $sanitized_value = base64_encode(sanitize_text_field($_POST[$field]));
+                } else {
+                    $sanitized_value = sanitize_text_field($_POST[$field]);
+                }
+                update_post_meta($post_id, $field, $sanitized_value);
             } else {
                 delete_post_meta($post_id, $field);
             }

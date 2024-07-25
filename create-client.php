@@ -80,6 +80,12 @@ restrict_access_to_logged_in_users();
                     </div>
                     <br>
 
+                    <div class="form-group client_token_field">
+                        <label for="token">Token:</label>
+                        <input type="text" name="token" id="token" />
+                    </div>
+                    <br>
+
                     <div class="form-group form-group-row">
                         <label>Subscribed:</label>
                         <div class="form-group-flex">

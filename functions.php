@@ -532,6 +532,7 @@ function update_post_shipping_details()
     $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
+    $postcode = isset($_POST['postcode']) ? sanitize_text_field($_POST['postcode']) : '';
     $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
 
     if (empty($post_id) || empty($phone)) {
@@ -548,6 +549,7 @@ function update_post_shipping_details()
         'first_name' => $first_name,
         'last_name' => $last_name,
         'address_1' => $address,
+        'postcode' => $postcode,
         'city' => $city,
         'phone' => $phone
     ];
