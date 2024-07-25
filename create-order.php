@@ -201,7 +201,9 @@ foreach ($products as $product) {
                                                 </select>
                                             </div>
                                             <div class="form-group">
-                                                <label for="new_produc                                                <input type="text" name="custom-quantity" class="custom-quantity" value="1" data-steps='[{"quantity":"1","amount":"1"}]'>                                           placeholder="Enter Instruction Note" />
+                                                <label for="new_product_instruction_note">Instruction Note</label>
+                                                <input type="text" class="new_product_instruction_note" value=""
+                                                    placeholder="Enter Instruction Note" />
                                             </div>
                                         </div>
                                         <div class="grouped-modal-actions">

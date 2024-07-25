@@ -16,6 +16,23 @@ $header_nav_menu = wp_nav_menu([
 	'echo' => false,
 ]);
 ?>
+<div class="lds-spinner-wrap sitewide_spinner">
+	<div class="lds-spinner">
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+		<div></div>
+	</div>
+	<span>Processing...</span>
+</div>
 <section id="fullwidth-header">
 
 	<header id="site-header" class="site-header" role="banner">
@@ -43,7 +60,7 @@ $header_nav_menu = wp_nav_menu([
 		</div>
 
 		<?php if ($header_nav_menu): ?>
-			<?php if (!ml_current_user_contributor()): ?>
+			<?php if (is_current_user_admin()): ?>
 				<nav class="site-navigation" role="navigation">
 					<?php echo $header_nav_menu; ?>
 				</nav>

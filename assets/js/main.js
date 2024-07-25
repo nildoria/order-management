@@ -1132,24 +1132,30 @@
           $(".om_addOrderNote").removeClass("om_no_notes_addNote");
           $(".om_displayOrderNotesGrid").removeClass("om_no_notes_gridNote");
           $.magnificPopup.close();
+
           // Update the UI with the new comment and attachments
           if (orderComment !== "") {
             $(".om__orderGeneralComment_text p").remove();
             $(".om__displayOrderComment").removeClass("om_no_notes");
             $(".om__orderGeneralComment_text").append(`
-                <p>${response.data.order_general_comment}</p>
-            `);
+                            <p>${response.data.order_general_comment}</p>
+                        `);
           }
 
           if (response.data.attachments.length > 0) {
-            $(".om__orderNoteFiles").remove(); // Remove existing attachments
-            let attachmentsHtml = '<div class="om__orderNoteFiles">';
+            let attachmentsHtml =
+              '<h5>Attachments!</h5><div class="om__orderNoteFiles">';
             response.data.attachments.forEach(function (attachment) {
-              attachmentsHtml += `<a href="${attachment.url}" target="_blank">${attachment.name}</a>`;
+              attachmentsHtml += `
+                                <div class="attachment-item">
+                                    <a href="${attachment.url}" target="_blank">${attachment.name}</a>
+                                    <span class="delete-attachment" data-attachment-id="${attachment.id}" data-attachment-type="general">&times;</span>
+                                </div>`;
             });
             attachmentsHtml += "</div>";
+
             $(".om__orderNoteFiles_container").removeClass("om_no_notes");
-            $(".om__orderNoteFiles_container").append(attachmentsHtml);
+            $(".om__orderNoteFiles_container").html(attachmentsHtml);
           }
 
           if (files.length > 0) {
@@ -1177,23 +1183,88 @@
     });
   });
 
-  $(".om_addOrderNote, .om__orderGeneralComment_text").magnificPopup({
-    items: {
-      src: "#om__orderNote_container",
-      type: "inline",
-    },
-    closeBtnInside: true,
-    callbacks: {
-      open: function () {
-        let orderComment = $(".om__orderGeneralComment_text p").html();
-        if (orderComment) {
-          // Replace <br> tags with \n and remove any trailing line breaks
-          orderComment = orderComment.replace(/<br\s*[\/]?>/gi, "").trim();
-          $("#order_general_comment").val(orderComment);
+  // Handle deleting attachments
+  $(document).on("click", ".delete-attachment", function () {
+    let attachmentId = $(this).data("attachment-id");
+    let attachmentType = $(this).data("attachment-type");
+    let postId = allaround_vars.post_id;
+    let nonce = allaround_vars.nonce;
+
+    $.ajax({
+      type: "POST",
+      url: allaround_vars.ajax_url,
+      data: {
+        action: "delete_order_attachment",
+        attachment_id: attachmentId,
+        post_id: postId,
+        attachment_type: attachmentType,
+        nonce: nonce,
+      },
+      success: function (response) {
+        if (response.success) {
+          $(`.delete-attachment[data-attachment-id="${attachmentId}"]`)
+            .parent()
+            .remove();
+
+          // Check if there are any more attachments
+          if ($(".om__orderNoteFiles .attachment-item").length === 0) {
+            // If no more attachments, empty the container
+            $(".om__orderNoteFiles_container").empty().addClass("om_no_notes");
+          }
+
+          // Check if there are any more attachments
+          if ($(".om__designerNoteFiles .attachment-item").length === 0) {
+            // If no more attachments, empty the container
+            $(".om__designerNoteFiles_container")
+              .empty()
+              .addClass("om_no_notes");
+          }
+
+          Toastify({
+            text: `Attachment Deleted Successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #f44336, #ff5252)",
+            },
+          }).showToast();
+        } else {
+          alert("Something went wrong: " + response.data);
         }
       },
-    },
+      error: function (error) {
+        alert("An error occurred: " + error.responseText);
+      },
+    });
   });
+
+  // Function to check if the current user is an Employee
+  function isEmployee() {
+    return allaround_vars.user_role === "author";
+  }
+
+  if (!isEmployee()) {
+    $(".om_addOrderNote, .om__orderGeneralComment_text").magnificPopup({
+      items: {
+        src: "#om__orderNote_container",
+        type: "inline",
+      },
+      closeBtnInside: true,
+      callbacks: {
+        open: function () {
+          let orderComment = $(".om__orderGeneralComment_text p").html();
+          if (orderComment) {
+            // Replace <br> tags with \n and remove any trailing line breaks
+            orderComment = orderComment.replace(/<br\s*[\/]?>/gi, "").trim();
+            $("#order_general_comment").val(orderComment);
+          }
+        },
+      },
+    });
+  }
   // ********** END Order General Comment/Note **********//
 
   // ********** Update Order Designer Note **********//
@@ -1206,6 +1277,7 @@
     $("#uploaded_designer_extra_file_path").val(fileNames.join(", "));
   });
 
+  // Handle adding or updating designer notes and attachments
   $("#add-designer-note").on("click", function () {
     let orderComment = $("#order_designer_note").val();
     let postId = allaround_vars.post_id;
@@ -1246,20 +1318,25 @@
             $(".om__orderDesignerNote_text p").remove();
             $(".om__displayDesignerComment").removeClass("om_no_notes");
             $(".om__orderDesignerNote_text").append(`
-                <p>${response.data.order_designer_notes}</p>
-            `);
+                            <p>${response.data.order_designer_notes}</p>
+                        `);
           }
 
           if (response.data.attachments.length > 0) {
-            $(".om__designerNoteFiles").remove(); // Remove existing attachments
-            let attachmentsHtml = '<div class="om__designerNoteFiles">';
+            let attachmentsHtml =
+              '<h5>Attachments!</h5><div class="om__designerNoteFiles">';
             response.data.attachments.forEach(function (attachment) {
-              attachmentsHtml += `<a href="${attachment.url}" target="_blank">${attachment.name}</a>`;
+              attachmentsHtml += `
+                                <div class="attachment-item">
+                                    <a href="${attachment.url}" target="_blank">${attachment.name}</a>
+                                    <span class="delete-attachment" data-attachment-id="${attachment.id}" data-attachment-type="designer">&times;</span>
+                                </div>`;
             });
             attachmentsHtml += "</div>";
             $(".om__designerNoteFiles_container").removeClass("om_no_notes");
-            $(".om__designerNoteFiles_container").append(attachmentsHtml);
+            $(".om__designerNoteFiles_container").html(attachmentsHtml);
           }
+
           if (files.length > 0) {
             $("#order_designer_extra_attachments").val(""); // Clear the file input
             $("#uploaded_designer_extra_file_path").val(""); // Clear the hidden input
@@ -1491,6 +1568,116 @@
     $(".om__change-client").slideDown();
   });
 
+  $("#mockupDoneSendWebhook").on("click", function () {
+    let order_id = allaround_vars.order_id;
+    let root_domain = allaround_vars.redirecturl;
+
+    $(this).addClass("ml_loading");
+
+    let webhook_url = "";
+
+    if (root_domain.includes(".test")) {
+      // Webhook URL for test environment
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+    } else {
+      // Webhook URL for production environment
+      webhook_url =
+        "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    }
+
+    // Data to send to the webhook
+    let data = {
+      order_id: order_id,
+      status: "mockups done",
+    };
+
+    // AJAX request to send the data to the webhook
+    $.ajax({
+      url: webhook_url,
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(data),
+      success: function (response) {
+        console.log("Webhook request successful:", response);
+        // Optionally, you can show a success message to the user
+        Toastify({
+          text: "Webhook request sent successfully!",
+          duration: 3000,
+          close: true,
+          gravity: "bottom",
+          position: "right",
+          stopOnFocus: true,
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
+
+        $("#mockupDoneSendWebhook").removeClass("ml_loading");
+      },
+      error: function (xhr, status, error) {
+        console.error("Error sending webhook request:", error);
+        // Optionally, you can show an error message to the user
+        alert("Failed to send webhook request. Please try again.");
+      },
+    });
+  });
+
+  $("#printLabelSendWebhook").on("click", function () {
+    let order_id = allaround_vars.order_id;
+    let root_domain = allaround_vars.redirecturl;
+
+    $(this).addClass("ml_loading");
+
+    let webhook_url = "";
+
+    if (root_domain.includes(".test")) {
+      // Webhook URL for test environment
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+    } else {
+      // Webhook URL for production environment
+      webhook_url =
+        "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    }
+
+    // Data to send to the webhook
+    let data = {
+      order_id: order_id,
+      status: "print label",
+    };
+
+    // AJAX request to send the data to the webhook
+    $.ajax({
+      url: webhook_url,
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(data),
+      success: function (response) {
+        console.log("Webhook request successful:", response);
+        // Optionally, you can show a success message to the user
+        Toastify({
+          text: "Webhook request sent successfully!",
+          duration: 3000,
+          close: true,
+          gravity: "bottom",
+          position: "right",
+          stopOnFocus: true,
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
+
+        $("#printLabelSendWebhook").removeClass("ml_loading");
+      },
+      error: function (xhr, status, error) {
+        console.error("Error sending webhook request:", error);
+        // Optionally, you can show an error message to the user
+        alert("Failed to send webhook request. Please try again.");
+      },
+    });
+  });
+
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
 
@@ -1501,6 +1688,13 @@ document.addEventListener("DOMContentLoaded", function () {
   let mainTable = document.getElementById("tableMain");
   if (!mainTable) return;
 
+  // Function to check if the current user is an Employee
+  function isEmployee() {
+    return allaround_vars.user_role === "author";
+  }
+
+  console.log(allaround_vars.user_role);
+  // Existing logic to fetch and display all versions
   async function initializeMockupColumns(mainTable, orderId) {
     const mainTableTrs = mainTable.querySelectorAll("tbody > tr");
     if (mainTableTrs.length === 0) return;
@@ -1513,15 +1707,15 @@ document.addEventListener("DOMContentLoaded", function () {
       const loadingIndicator = document.createElement("td");
       loadingIndicator.className = "loading-indicator";
       loadingIndicator.innerHTML = `
-      <div class="lds-spinner-wrap">
-        <div class="lds-spinner">
-          <div></div><div></div><div></div><div></div>
-          <div></div><div></div><div></div><div></div>
-          <div></div><div></div><div></div><div></div>
-        </div>
-        <span>Loading...</span>
-      </div>
-    `;
+            <div class="lds-spinner-wrap">
+                <div class="lds-spinner">
+                    <div></div><div></div><div></div><div></div>
+                    <div></div><div></div><div></div><div></div>
+                    <div></div><div></div><div></div><div></div>
+                </div>
+                <span>Loading...</span>
+            </div>
+        `;
       thisTr.appendChild(loadingIndicator);
 
       // Initialize columns by checking directories
@@ -1537,44 +1731,64 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         const data = await response.json();
 
-        if (data.success && data.data.mockup_versions) {
+        if (data.success) {
           let maxVersion = 0;
-          for (const mockup of data.data.mockup_versions) {
-            maxVersion = Math.max(maxVersion, mockup.version);
-            const mockupVersion = mockup.version;
-            const mockupTd = document.createElement("td");
-            mockupTd.className = `item_mockup_column om_expired_mockups`;
-            mockupTd.setAttribute("data-version_number", mockupVersion);
+          if (data.data.no_mockup_state) {
+            // Handle no mockup state
+            const noMockupTd = document.createElement("td");
+            noMockupTd.className = "no-mockup-state";
+            noMockupTd.innerHTML = `<span>No Mockups!</span>`;
+            thisTr.appendChild(noMockupTd);
+          } else {
+            for (const mockup of data.data.mockup_versions) {
+              maxVersion = Math.max(maxVersion, mockup.version);
+              const mockupVersion = mockup.version;
+              const mockupTd = document.createElement("td");
+              mockupTd.className = `item_mockup_column om_expired_mockups`;
+              mockupTd.setAttribute("data-version_number", mockupVersion);
+              if (isEmployee()) {
+                mockupTd.innerHTML = `
+                                <input type="hidden" class="hidden_mockup_url" name="mockup-image-v${mockupVersion}" value="">
+                                <div class="mockup-image mockupUUID_${orderId}_${productId}_${mockupVersion}">Loading mockup images...</div>
+                                <div class="this-mockup-version"><span>V${mockupVersion}</span></div>
+                            `;
+              } else {
+                mockupTd.innerHTML = `
+                                <div class="lds-spinner-wrap" style="display: flex;">
+                                    <div class="lds-spinner">
+                                        ${"<div></div>".repeat(12)}
+                                    </div>
+                                </div>
+                                <input type="hidden" class="hidden_mockup_url" name="mockup-image-v${mockupVersion}" value="">
+                                <div class="mockup-image mockupUUID_${orderId}_${productId}_${mockupVersion}">Loading mockup images...</div>
+                                <div class="this-mockup-version"><span>V${mockupVersion}</span></div>
+                                <input class="file-input__input" name="file-input[${productId}]" id="file-input-${productId}-v${mockupVersion}" data-version="V${mockupVersion}" type="file" placeholder="Upload Mockup" multiple>
+                                <label class="file-input__label" for="file-input-${productId}-v${mockupVersion}">
+                                    <span class="dashicons dashicons-plus-alt2"></span>
+                                </label>
+                            `;
+              }
+              thisTr.appendChild(mockupTd);
 
-            mockupTd.innerHTML = `
-            <div class="lds-spinner-wrap" style="display: flex;">
-              <div class="lds-spinner">
-                ${"<div></div>".repeat(12)}
-              </div>
-            </div>
-            <input type="hidden" class="hidden_mockup_url" name="mockup-image-v${mockupVersion}" value="">
-            <div class="mockup-image mockupUUID_${orderId}_${productId}_${mockupVersion}">Loading mockup images...</div>
-            <div class="this-mockup-version"><span>V${mockupVersion}</span></div>
-            <input class="file-input__input" name="file-input[${productId}]" id="file-input-${productId}-v${mockupVersion}" data-version="V${mockupVersion}" type="file" placeholder="Upload Mockup" multiple>
-            <label class="file-input__label" for="file-input-${productId}-v${mockupVersion}">
-              <span class="dashicons dashicons-plus-alt2"></span>
-            </label>
-          `;
-            thisTr.appendChild(mockupTd);
+              // Fetch the image URLs for this column
+              await fetchImageURLs(orderId, productId, mockupVersion, mockupTd);
+            }
 
-            // Fetch the image URLs for this column
-            await fetchImageURLs(orderId, productId, mockupVersion, mockupTd);
+            initialAddNewMockupColumn(thisTr, maxVersion + 1);
+            populateTableHeader();
+            if (maxVersion) {
+              const maxColumn = thisTr.querySelector(
+                `td[data-version_number="${maxVersion}"]`
+              );
+              maxColumn.classList.remove("om_expired_mockups");
+              maxColumn.classList.add("last_send_version");
+              if (!isEmployee()) {
+                createDeleteButton(maxColumn, "V" + maxVersion, productId);
+              }
+            }
           }
-          initialAddNewMockupColumn(thisTr, maxVersion + 1);
-          populateTableHeader();
-          if (maxVersion) {
-            const maxColumn = thisTr.querySelector(
-              `td[data-version_number="${maxVersion}"]`
-            );
-            maxColumn.classList.remove("om_expired_mockups");
-            maxColumn.classList.add("last_send_version");
-            createDeleteButton(maxColumn, "V" + maxVersion, productId);
-          }
+        } else {
+          // Handle error case if needed
         }
       } catch (error) {
         console.error("Error initializing mockup columns:", error);
@@ -1780,6 +1994,9 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
               mockupInput.value = data.file_path;
             }
+
+            // Add Last Mockup class
+            mockupColumn.classList.add("last_send_version");
 
             // Create new anchor tag with image
             const newAnchor = document.createElement("a");
@@ -2195,5 +2412,28 @@ document.addEventListener("DOMContentLoaded", function () {
     // Set the colspan attribute
     mockupHead.setAttribute("colspan", maxMockupColumns);
     emptyTfootTd.setAttribute("colspan", maxMockupColumns + 1);
+  }
+
+  // Remove specified elements after page load
+  function removeElementsAfterLoad() {
+    const selectors = [
+      ".om__editItemArtwork",
+      ".om__DeleteArtwork",
+      ".om_itemQuantPriceEdit",
+      ".om__editItemMeta",
+      ".om_duplicate_item",
+      ".om_delete_item",
+    ];
+
+    selectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((element) => {
+        element.remove();
+      });
+    });
+  }
+
+  // Call the function to remove elements
+  if (isEmployee()) {
+    removeElementsAfterLoad();
   }
 });
