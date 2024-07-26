@@ -38,12 +38,11 @@ $clients = $createOrder->fetch_clients_data();
             // get the post url for the client post with the id
             $first_name = get_post_meta($client_id, 'first_name', true);
             $last_name = get_post_meta($client_id, 'last_name', true);
-            // $client_address = get_post_meta($client_id, 'address_1', true);
-            // $client_city = get_post_meta($client_id, 'city', true);
-            // $client_phone = get_post_meta($client_id, 'phone', true);
-            // $email = get_post_meta($client_id, 'email', true);
-            // $invoice_name = get_post_meta($client_id, 'invoice', true);
-            // $client_type = get_post_meta($client_id, 'client_type', true);
+            $client_address = get_post_meta($client_id, 'address_1', true);
+            $client_city = get_post_meta($client_id, 'city', true);
+            $client_phone = get_post_meta($client_id, 'phone', true);
+            $email = get_post_meta($client_id, 'email', true);
+            $invoice_name = get_post_meta($client_id, 'invoice', true);
             $client_name = $first_name . ' ' . $last_name;
             $client_url = get_permalink($client_id);
         }
@@ -62,29 +61,58 @@ $clients = $createOrder->fetch_clients_data();
                                 <div class="om__orderSummeryItem">
                                 <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?><span><?php echo $order_number; ?></span></h6>
                                 </div>
+
+                                <?php if (!is_current_user_author()): ?>
                                 <div class="om__orderSummeryItem">
                                 <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?><span><?php echo $order_status; ?></span></h6>
                                 </div>
+                                <?php endif; ?>
+
                                 <?php if (!empty($client_name) && is_current_user_admin()): ?>
                                 <div class="om__orderSummeryItem">
                                     <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?><span class="om__orderedClientName"> <a target="_blank" href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a><span class="om__edit_clientButton"><img src="<?php echo get_template_directory_uri(); ?>/assets/images/edit.svg" alt=""></span></span></h6>
 
                                     <!-- Client Change -->
                                     <div class="content-client om__change-client">
-                                        <select id="client-select" style="width: 100%;">
+                                        <span class="toogle-select-client">&times;</span>
+                                        <select id="client-select" class="om__client-select" style="width: 100%;">
                                             <option value="">Select a Client</option>
                                             <?php foreach ($clients as $client): ?>
                                             <option data-phone="<?php echo esc_html($client['phone']); ?>"
-                                                data-email="<?php echo esc_html($client['email']); ?>" value="<?php echo esc_attr($client['id']); ?>">
+                                                data-email="<?php echo esc_html($client['email']); ?>" value="<?php echo esc_attr($client['id']); ?>" <?php echo ($client['id'] == $client_id) ? 'selected' : ''; ?>>
                                                 <?php echo esc_html($client['name']); ?>
                                             </option>
                                             <?php endforeach; ?>
                                         </select>
+                                        <span title="Edit" class="client_profile_URL om__client_profile_edit"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
                                         <span title="Update Client" class="om__client_update_btn ml_add_loading">
                                             <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="Mark Icon">
                                         </span>
                                     </div>
 
+                                    <!-- Billing Information Form -->
+                                    <div id="billing-form-modal" class="mfp-hide billing-form">
+                                        <h5>Client Information</h5>
+                                        <form id="billing-form">
+                                            <label for="billing_first_name">First Name:</label>
+                                            <input type="text" id="billing_first_name" name="billing_first_name" value="<?php echo esc_html($first_name); ?>" required>
+                                            <label for="billing_last_name">Last Name:</label>
+                                            <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_html($last_name); ?>">
+                                            <label for="billing_address_1">Address:</label>
+                                            <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_html($client_address); ?>" required>
+                                            <label for="billing_company">Invoice Name:</label>
+                                            <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_html($invoice_name); ?>">
+                                            <label for="billing_city">City:</label>
+                                            <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_html($client_city); ?>" required>
+                                            <label for="billing_country" style="display: none;">Country:</label>
+                                            <input type="hidden" id="billing_country" name="billing_country" value="Israel">
+                                            <label for="billing_email">Email:</label>
+                                            <input type="email" id="billing_email" name="billing_email" value="<?php echo esc_html($email); ?>" required>
+                                            <label for="billing_phone">Phone:</label>
+                                            <input type="text" id="billing_phone" name="billing_phone" value="<?php echo esc_html($client_phone); ?>" required>
+                                        </form>
+                                        <button type="button" id="update-order-client" class="ml_add_loading" data-client_id=""><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+                                    </div>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -116,12 +144,13 @@ $clients = $createOrder->fetch_clients_data();
                                         <?php endif; ?>
                                     </div>
                                 </div>
+                                <?php if (is_current_user_admin()): ?>
                                 <div class="order_type_update_box">
                                     <div class="order_type_title">
                                         <h6><?php echo esc_html__('Order Type:', 'hello-elementor'); ?></h6>
                                     </div>
                                     <div class="order_type_value">
-                                        <?php if (is_current_user_admin()): ?>
+                                        <?//php if (is_current_user_admin()): ?>
                                         <form id="order_type-form">
                                             <input type="hidden" name="post_id" value="<?php echo $current_id; ?>">
                                             <select id="order_type" name="order_type">
@@ -131,15 +160,16 @@ $clients = $createOrder->fetch_clients_data();
                                             </select>
                                             <input class="om_order_type_submit" type="submit" value="Update">
                                         </form>
-                                        <?php else: ?>
-                                            <select id="order_type" class="non-admin-shipping-list" name="order_type">
+                                        <?//php else: ?>
+                                            <!-- <select id="order_type" class="non-admin-shipping-list" name="order_type">
                                                 <option value="">Order Type</option>
-                                                <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
-                                                <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
-                                            </select>
-                                        <?php endif; ?>
+                                                <option value="personal" <?//php selected($order_type, 'personal'); ?>>Personal</option>
+                                                <option value="company" <?//php selected($order_type, 'company'); ?>>Company</option>
+                                            </select> -->
+                                        <?//php endif; ?>
                                     </div>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -207,7 +237,6 @@ $clients = $createOrder->fetch_clients_data();
                         </div>
                     </div>
 
-                    <?php if (!is_current_user_author()): ?>
                     <div class="om__orderShippingDetails <?php echo ($shipping_method === "local_pickup") ? "local_pickup" : ""; ?>">
                         <label
                             for="om__orderShippingDetailsGrid"><?php echo esc_html__('Order Shipping Details', 'hello-elementor'); ?></label>
@@ -242,10 +271,12 @@ $clients = $createOrder->fetch_clients_data();
                                 <input type="text" id="shipping_phone" name="shipping_phone"
                                     value="<?php echo esc_html($order_shipping['phone']); ?>">
                             </div>
+                            <?php if (is_current_user_admin()): ?>
                             <div class="om__orderShippingDetailsItem">
                                 <button type="button" class="allarnd--regular-button ml_add_loading"
                                     id="update-shipping-details"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -303,8 +334,6 @@ $clients = $createOrder->fetch_clients_data();
                         </div>
                     </div>
 
-                    <?php endif; ?>
-
                 </div>
 
                 <div id="order_management_table_container" class="order_management_table_container">
@@ -330,23 +359,23 @@ $clients = $createOrder->fetch_clients_data();
                             <input type="hidden" id="new_product_id" value="" placeholder="Enter Product ID" readonly />
                         </div>
                     </div>
+                    
+                    <?php endif; ?>
                     <div class="om__afterTable_buttonSet">
-                        <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal"><?php echo esc_html__('Add Product', 'hello-elementor'); ?></button>
-                        <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                        <?php if (is_current_user_admin()): ?>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal"><?php echo esc_html__('Add Product', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                        <?php endif; ?>
+                        <?php if (ml_current_user_contributor() || is_current_user_admin()): ?>
+                            <button type="button" class="allarnd--regular-button ml_add_loading"
+                                id="mockupDoneSendWebhook"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
+                        <?php endif; ?>
+                        
+                        <?php if (is_current_user_author() || is_current_user_admin()): ?>
+                            <button type="button" class="allarnd--regular-button ml_add_loading"
+                                id="printLabelSendWebhook"><?php echo esc_html__('Print Label', 'hello-elementor'); ?></button>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
-
-                    <?php if (ml_current_user_contributor()): ?>
-                        <div class="om__afterTable_buttonSet">
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="mockupDoneSendWebhook"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (is_current_user_author()): ?>
-                        <div class="om__afterTable_buttonSet">
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="printLabelSendWebhook"><?php echo esc_html__('Print Label', 'hello-elementor'); ?></button>
-                        </div>
-                    <?php endif; ?>
                 </div>
 
                 <?php if (!is_current_user_author()): ?>

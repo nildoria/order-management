@@ -154,6 +154,8 @@
     let item_id = $(this).siblings('input[name="item_id"]').val();
     let order_domain = allaround_vars.order_domain;
 
+    $(".sitewide_spinner").addClass("loading");
+
     // Debugging
     console.log("Order ID:", order_id);
     console.log("Item ID:", item_id);
@@ -172,6 +174,7 @@
     };
 
     function handleResponse(response) {
+      $(".sitewide_spinner").removeClass("loading");
       alert("Item duplicated successfully");
       location.reload(); // Refresh the page to see the new item
     }
@@ -198,6 +201,9 @@
       .catch((error) => {
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
+      })
+      .finally(() => {
+        $(".sitewide_spinner").removeClass("loading");
       });
   });
 
@@ -206,6 +212,8 @@
     let order_id = allaround_vars.order_id;
     let item_id = $(this).siblings('input[name="item_id"]').val();
     let order_domain = allaround_vars.order_domain;
+
+    $(".sitewide_spinner").addClass("loading");
 
     // Debugging
     console.log("Order ID:", order_id);
@@ -225,6 +233,7 @@
     };
 
     function handleResponse(response) {
+      $(".sitewide_spinner").removeClass("loading");
       alert("Item deleted successfully");
       location.reload(); // Refresh the page to see the new item
     }
@@ -251,17 +260,23 @@
       .catch((error) => {
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
+      })
+      .finally(() => {
+        $(".sitewide_spinner").removeClass("loading");
       });
   });
 
   // ********** Order Meta Update Script **********//
   $(document).on("click", "[id^=update-item-meta-btn_]", function () {
-    const itemId = $(this).data("item_id");
-    const orderId = $(this).data("order_id");
+    const $this = $(this);
+    const itemId = $this.data("item_id");
+    const orderId = $this.data("order_id");
     const newSize = $("#size-input_" + itemId).val();
     const newColor = $("#color-input_" + itemId).val();
     const newArtPosition = $("#art-position-input_" + itemId).val();
     const newInstructionNote = $("#instruction-note-input_" + itemId).val();
+
+    $this.addClass("ml_loading");
 
     // Collect only the fields that have changed
     let newItemMeta = {
@@ -274,10 +289,10 @@
     if (newArtPosition) newItemMeta.art_position = newArtPosition;
     newItemMeta.instruction_note = newInstructionNote;
 
-    updateItemMeta(newItemMeta);
+    updateItemMeta(newItemMeta, $this);
   });
 
-  function updateItemMeta(newItemMeta) {
+  function updateItemMeta(newItemMeta, $this) {
     let order_domain = allaround_vars.order_domain;
 
     let requestData = {
@@ -286,6 +301,7 @@
     };
 
     function handleResponse(response) {
+      $this.removeClass("ml_loading");
       $.magnificPopup.close();
       Toastify({
         text: `${response.message}`,
@@ -338,6 +354,9 @@
             background: "linear-gradient(to right, #cc3366, #a10036)",
           },
         }).showToast();
+      })
+      .finally(() => {
+        $this.removeClass("ml_loading");
       });
   }
 
@@ -1469,6 +1488,18 @@
     });
   }
 
+  // Store the current value before any change
+  var currentClient = $(".om__client-select").val();
+  // Show Save Mark when client_select is changed
+  $(".om__client-select").on("change", function () {
+    if ($(this).val() !== currentClient && $(this).val() !== "") {
+      $(".om__client_update_btn").addClass("show");
+    } else {
+      $(".om__client_update_btn").removeClass("show");
+      $(".select2-selection__arrow").show();
+    }
+  });
+
   // Update Order Shipping data on Order page
   $("#update-shipping-details").on("click", function () {
     const $this = $(this);
@@ -1532,7 +1563,17 @@
   $(".om__client_update_btn").on("click", function () {
     $(this).addClass("ml_loading");
     let selectedClientId = $("#client-select").val();
-    let orderPostId = allaround_vars.post_id;
+    let post_id = allaround_vars.post_id;
+    let client_data = {
+      client_id: selectedClientId,
+      first_name: $("#billing_first_name").val(),
+      last_name: $("#billing_last_name").val(),
+      address_1: $("#billing_address_1").val(),
+      postcode: $("#billing_postcode").val(),
+      city: $("#billing_city").val(),
+      phone: $("#billing_phone").val(),
+      nonce: allaround_vars.nonce,
+    };
 
     if (!selectedClientId) {
       alert("Please select a client.");
@@ -1545,12 +1586,13 @@
       data: {
         action: "update_order_client",
         client_id: selectedClientId,
-        post_id: orderPostId,
-        nonce: allaround_vars.nonce,
+        post_id: post_id,
+        ...client_data,
       },
       success: function (response) {
         if (response.success) {
-          location.reload(); // Refresh the page on success
+          $(".om__client_update_btn").removeClass("ml_loading");
+          location.reload();
         } else {
           alert("Failed to update client: " + response.data.message);
         }
@@ -1563,9 +1605,13 @@
   });
 
   $(".om__edit_clientButton").on("click", function () {
-    console.log("Client Change Clicked!");
     $(".om__orderedClientName").slideUp();
     $(".om__change-client").slideDown();
+  });
+
+  $(".toogle-select-client").on("click", function () {
+    $(".om__orderedClientName").slideDown();
+    $(".om__change-client").slideUp();
   });
 
   $("#mockupDoneSendWebhook").on("click", function () {
@@ -1627,6 +1673,17 @@
     let order_id = allaround_vars.order_id;
     let root_domain = allaround_vars.redirecturl;
 
+    // Gather shipping details from input fields
+    let shipping_method = $("#shipping-method-list").val();
+    let shipping_first_name = $("#shipping_first_name").val();
+    let shipping_last_name = $("#shipping_last_name").val();
+    let shipping_address_1 = $("#shipping_address_1").val();
+    let shipping_postcode = $("#shipping_postcode").val();
+    let shipping_city = $("#shipping_city").val();
+    let shipping_phone = $("#shipping_phone").val();
+
+    let full_name = `${shipping_first_name} ${shipping_last_name}`;
+
     $(this).addClass("ml_loading");
 
     let webhook_url = "";
@@ -1645,7 +1702,15 @@
     let data = {
       order_id: order_id,
       status: "print label",
+      shipping_method: shipping_method,
+      shipping_fullName: full_name,
+      shipping_addressName: shipping_address_1,
+      shipping_addressNumber: shipping_postcode,
+      shipping_city: shipping_city,
+      shipping_phone: shipping_phone,
     };
+
+    console.log("Data to send:", data);
 
     // AJAX request to send the data to the webhook
     $.ajax({
@@ -2423,6 +2488,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ".om__editItemMeta",
       ".om_duplicate_item",
       ".om_delete_item",
+      ".delete-attachment",
     ];
 
     selectors.forEach((selector) => {

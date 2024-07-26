@@ -37,7 +37,11 @@ restrict_access_to_logged_in_users();
         ];
 
         $token = esc_attr($fields['token']);
-        $masked_token = substr($token, 0, 4) . str_repeat('*', strlen($token) - 4);
+        if (!empty($token)) {
+            $masked_token = substr($token, 0, 4) . str_repeat('*', strlen($token) - 4);
+        } else {
+            $masked_token = '';
+        }
 
         ?>
         <div id="create-client-form">

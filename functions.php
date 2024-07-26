@@ -1285,7 +1285,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         }
 
         echo '</span>';
-        echo '<button data-order_id="' . $order_id . '" data-item_id="' . $item_id . '" class="update-item-meta-btn" id="update-item-meta-btn_' . $item_id . '">Update Item Meta</button>';
+        echo '<button data-order_id="' . $order_id . '" data-item_id="' . $item_id . '" class="update-item-meta-btn ml_add_loading" id="update-item-meta-btn_' . $item_id . '">Update Item Meta</button>';
         echo '</span>';
         echo '</td>';
         echo '<td class="item_quantity_column">';
@@ -1727,11 +1727,33 @@ function update_order_client()
         wp_die();
     }
 
-    if (update_post_meta($post_id, 'client_id', $client_id)) {
+    $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
+    $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
+    $address_1 = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
+    $postcode = isset($_POST['postcode']) ? sanitize_text_field($_POST['postcode']) : '';
+    $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
+    $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
+
+    // Update client ID
+    $client_update = update_post_meta($post_id, 'client_id', $client_id);
+
+    // Update shipping details
+    $shipping_data = [
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'address_1' => $address_1,
+        'postcode' => $postcode,
+        'city' => $city,
+        'phone' => $phone
+    ];
+    $shipping_update = update_post_meta($post_id, 'shipping', $shipping_data);
+
+    if ($client_update && $shipping_update) {
         wp_send_json_success();
     } else {
-        wp_send_json_error(['message' => 'Failed to update client.']);
+        wp_send_json_error(['message' => 'Failed to update client or shipping information.']);
     }
+
     wp_die();
 }
 add_action('wp_ajax_update_order_client', 'update_order_client');

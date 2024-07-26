@@ -570,13 +570,24 @@ jQuery(document).ready(function ($) {
   });
 
   function createOrderPost(orderData, orderType) {
-    var jwtToken =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjE4MTg4ODcsIm5iZiI6MTcyMTgxODg4NywiZXhwIjoxNzIyNDIzNjg3LCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.yVDwkfyLoFGakhbH6bGfrptsu3_AQRMlZ37nIN7D6Y4";
+    let root_domain = alarnd_create_order_vars.redirecturl;
+
+    let jwtToken = "";
+
+    if (root_domain.includes(".test")) {
+      // Webhook URL for test environment
+      jwtToken =
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjE4MTg4ODcsIm5iZiI6MTcyMTgxODg4NywiZXhwIjoxNzIyNDIzNjg3LCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.yVDwkfyLoFGakhbH6bGfrptsu3_AQRMlZ37nIN7D6Y4";
+    } else {
+      // Webhook URL for production environment
+      jwtToken =
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29tLmx1a3BhbHVrLnh5eiIsImlhdCI6MTcyMTgyMzE4NywibmJmIjoxNzIxODIzMTg3LCJleHAiOjE3MjI0Mjc5ODcsImRhdGEiOnsidXNlciI6eyJpZCI6IjEifX19.r3xwKH_5RAY_JJZ-njLl7Cse_tvS8b7ng4ShUMG-1sg";
+    }
 
     orderData.order_type = orderType;
 
     $.ajax({
-      url: `${alarnd_create_order_vars.redirecturl}/wp-json/manage-order/v1/create`,
+      url: `${root_domain}/wp-json/manage-order/v1/create`,
       method: "POST",
       contentType: "application/json",
       data: JSON.stringify(orderData),
@@ -605,6 +616,8 @@ jQuery(document).ready(function ($) {
     toggleArrow();
     validateCheckout();
     const clientId = $(this).val();
+
+    console.log("Selected client ID:", clientId);
 
     if (clientId) {
       // Fetch client details via AJAX
@@ -688,12 +701,38 @@ jQuery(document).ready(function ($) {
     return null;
   }
 
+  // Template for displaying options in the dropdown
+  function formatClient(client) {
+    if (!client.id) {
+      return client.text;
+    }
+
+    var $client = $(
+      "<div>" +
+        client.text +
+        " | " +
+        $(client.element).data("email") +
+        " | " +
+        $(client.element).data("phone") +
+        "</div>"
+    );
+
+    return $client;
+  }
+
+  // Template for displaying the selected option
+  function formatClientSelection(client) {
+    return client.text;
+  }
+
   $(document).ready(function () {
-    // Initialize Select2 with the custom matcher
+    // Initialize Select2 with the custom matcher and templates
     $("#client-select").select2({
       placeholder: "Select a Client",
       allowClear: true,
       matcher: customMatcher,
+      templateResult: formatClient,
+      templateSelection: formatClientSelection,
     });
   });
 

@@ -21,6 +21,7 @@ class AllAroundClientsDB
         add_action('init', [$this, 'register_post_type_cb'], 0);
         add_filter('post_type_link', [$this, 'client_post_type_link'], 1, 2);
         add_action('init', [$this, 'client_rewrite_rules']);
+        add_action('admin_init', [$this, 'add_client_capabilities']);
 
         add_shortcode('allaround_client_lists', [$this, 'client_lists_shortcode']);
 
@@ -265,6 +266,8 @@ class AllAroundClientsDB
         $email = isset($_POST['email']) ? sanitize_text_field($_POST['email']) : '';
         $client_type = isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal';
 
+        error_log(print_r($_POST, true));
+
         // check email empty or email not valid then return
         if (empty($client_id)) {
             wp_send_json_error(
@@ -331,8 +334,8 @@ class AllAroundClientsDB
             $allowedFields = array_merge($allowedFields, $addition_fields);
         }
 
-        error_log(print_r($client_type, true));
-        error_log(print_r($allowedFields, true));
+        // error_log(print_r($client_type, true));
+        // error_log(print_r($allowedFields, true));
 
         // Filter the $_POST array to include only the allowed fields
         $filteredPostData = array_intersect_key($_POST, array_flip($allowedFields));
@@ -598,7 +601,11 @@ class AllAroundClientsDB
         ];
 
         $token = esc_attr($fields['token']);
-        $masked_token = substr($token, 0, 4) . str_repeat('*', strlen($token) - 4);
+        if (!empty($token)) {
+            $masked_token = substr($token, 0, 4) . str_repeat('*', strlen($token) - 4);
+        } else {
+            $masked_token = '';
+        }
 
         ?>
         <p>
@@ -896,9 +903,37 @@ class AllAroundClientsDB
             'exclude_from_search' => false,
             'publicly_queryable' => true,
             'capability_type' => 'post',
+            'capabilities' => array(
+                'edit_post' => 'edit_client',
+                'read_post' => 'read_client',
+                'delete_post' => 'delete_client',
+                'edit_posts' => 'edit_clients',
+                'edit_others_posts' => 'edit_others_clients',
+                'publish_posts' => 'publish_clients',
+                'read_private_posts' => 'read_private_clients',
+            ),
+            'map_meta_cap' => true,
         );
         register_post_type('client', $args);
 
+    }
+
+    // Add custom capabilities to the administrator role
+    function add_client_capabilities()
+    {
+        $roles = array('administrator');
+
+        foreach ($roles as $the_role) {
+            $role = get_role($the_role);
+
+            $role->add_cap('edit_client');
+            $role->add_cap('read_client');
+            $role->add_cap('delete_client');
+            $role->add_cap('edit_clients');
+            $role->add_cap('edit_others_clients');
+            $role->add_cap('publish_clients');
+            $role->add_cap('read_private_clients');
+        }
     }
 
     function client_post_type_link($post_link, $post)
