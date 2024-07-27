@@ -200,13 +200,19 @@ select#order_type {
   max-width: 600px;
   margin: 0 auto;
   background-color: white;
-  padding: 30px 50px;
+  padding: 30px 30px;
+  position: relative;
+}
+.allrnd--order-lists-modal.white-popup-block .mfp-close {
+  top: -12px;
 }
 
 .allrnd-client-order-list ul {
   list-style: none;
-  padding: 0;
+  padding: 0 20px;
   margin: 0;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .allrnd-client-order-list ul li {

@@ -196,7 +196,7 @@
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
-      company: $("#billing_company").val(),
+      invoice: $("#billing_company").val(),
       city: $("#billing_city").val(),
       phone: $("#billing_phone").val(),
       email: $("#billing_email").val(),

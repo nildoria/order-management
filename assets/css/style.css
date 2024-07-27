@@ -577,12 +577,15 @@ body.om__author .om__DeleteArtwork,
 body.om__author .om_itemQuantPriceEdit,
 body.om__author .om__editItemMeta,
 body.om__author .om_duplicate_item,
-body.om__author .om_delete_item {
+body.om__author .om_delete_item,
+body.om__author .om__editItemArtwork {
   display: none;
 }
-body.om__author #tableMain .item_product_column {
+body.om__author #tableMain .item_product_column,
+body.om__contributor #tableMain .item_product_column {
   padding-left: 20px;
 }
+
 .om__editItemArtwork {
   left: calc(50% - 27px);
   transition: all 0.3s ease 0s;
@@ -874,6 +877,9 @@ input#fetchProductList {
 .om_displayOrderNotesGrid.om_no_notes_gridNote {
   justify-content: center;
 }
+body.om__author .om__orderShippingDetails {
+  pointer-events: none;
+}
 .om__orderShippingDetails {
   background-color: #f7f7f7;
   padding: 20px;
@@ -911,15 +917,19 @@ input#fetchProductList {
   margin-bottom: 10px;
 }
 .om__orderShippingDetailsItem {
-  width: calc(25% - 10px);
+  width: calc(33.33% - 7px);
   max-width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   margin-top: 10px;
 }
+.om__orderShippingDetailsItem.omShippingSubmitBtn {
+  float: left;
+  display: contents;
+}
 .om__orderShippingDetailsItem.orderShippingFieldLong {
-  width: calc(50% - 10px);
+  /* width: calc(50% - 10px); */
 }
 .om__orderShippingDetailsItem label {
   font-size: 14px;
@@ -948,17 +958,41 @@ input#fetchProductList {
   flex-basis: auto;
 }
 .om__orderSummeryItem {
-  flex: 1;
+  width: calc(33.33% - 7px);
 }
 .om_headin_cta_buttons {
   margin-bottom: 20px;
 }
 .om__orderSummeryOne {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
   padding-bottom: 8px;
+  position: relative;
+}
+.om__orderSummeryItem.om__orderSummeryItemFull {
+  display: block;
+  float: left;
+  width: 100%;
+  position: relative;
+}
+.content-client.om__change-client {
+  width: 325px;
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  bottom: -10px;
+}
+.om__change-client .om__client_update_btn {
+  display: none !important;
+}
+.om__change-client .om__client_update_btn.show {
+  display: flex !important;
+}
+.client_profile_URL.om__client_profile_edit {
+  right: 42px;
 }
 .om__orderSummeryItem h6 {
   display: flex;
@@ -1030,6 +1064,7 @@ body.om__author .om_addOrderNote {
 }
 span.om__client_update_btn img {
   max-width: 16px;
+  background-color: #fff;
 }
 .om_displayOrderNotesGrid div:nth-child(3) {
   border-top: 1px solid #efe2b3;
@@ -1051,7 +1086,14 @@ span.om__client_update_btn img {
   border-top: 0px transparent !important;
   position: relative;
 }
-span.delete-attachment {
+.toogle-select-client {
+  opacity: 1 !important;
+  z-index: 3;
+  left: -5px !important;
+  top: -5px !important;
+}
+span.delete-attachment,
+.toogle-select-client {
   display: inline-block;
   height: 15px;
   position: absolute;
@@ -1567,6 +1609,7 @@ td.mockups-row {
   display: flex;
   z-index: 99999999;
   flex-direction: column;
+  position: fixed;
 }
 .lds-spinner,
 .lds-spinner div,
