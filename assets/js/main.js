@@ -1748,6 +1748,7 @@
         }).showToast();
 
         $("#printLabelSendWebhook").removeClass("ml_loading");
+        $.magnificPopup.close();
       },
       error: function (xhr, status, error) {
         $("#printLabelSendWebhook").removeClass("ml_loading");
@@ -1756,6 +1757,20 @@
         alert("Failed to send webhook request. Please try again.");
       },
     });
+  });
+
+  // on click to #printLabelOpenModal open the #printLabelConfirmationModal modal for the print label confirmation with magnific popup and on click to #printLabelCancel close the modal
+  $("#printLabelOpenModal").magnificPopup({
+    items: {
+      src: "#printLabelConfirmationModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
+  // Close the modal on click of #printLabelCancel
+  $("#printLabelCancel").on("click", function () {
+    $.magnificPopup.close();
   });
 
   $(window).on("load", function () {});
@@ -2058,6 +2073,9 @@ document.addEventListener("DOMContentLoaded", function () {
     let mockupImageContainer = mockupColumn.querySelector(".mockup-image");
     const tableMain = mockupColumn.closest("table#tableMain");
     const tableBody = mockupColumn.closest("table#tableMain > tbody");
+    let noMockupCell = mockupColumn
+      .closest("tr.om__orderRow")
+      .querySelector(".no-mockup-state");
     let productTitle = mockupColumn
       .closest("tr")
       .querySelector(".product_item_title").innerText;
@@ -2091,6 +2109,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Add Last Mockup class
             mockupColumn.classList.add("last_send_version");
+
+            // Remove the no mockup state if it exists
+            if (noMockupCell) {
+              noMockupCell.remove();
+            }
 
             // Create new anchor tag with image
             const newAnchor = document.createElement("a");

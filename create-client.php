@@ -163,11 +163,10 @@ restrict_access_to_logged_in_users();
                         <div class="form-group">
                             <label for="logo_type">Logo Type:</label>
                             <select name="logo_type" id="logo_type">
-                                <option>-- Select Logo Type --</option>
+                                <option value="same">Same</option>
                                 <option value="chest_only">Chest only</option>
                                 <option value="big_front">Big front</option>
                                 <option value="custom_back">Custom back</option>
-                                <option value="same">Same</option>
                             </select>
                         </div>
                         <br>
