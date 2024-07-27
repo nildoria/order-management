@@ -50,7 +50,7 @@ class AllAroundClientsDB
         ?>
         <div class="allrnd--order-lists-modal white-popup-block">
             <div class="allrnd-client-order-list">
-                <h2><?php echo $full_name; ?>'s orders</h2>
+                <h4><?php echo $full_name; ?>'s orders</h4>
                 <ul>
                     <?php if (!empty($orders)): ?>
                         <?php foreach ($orders as $order):
@@ -266,7 +266,8 @@ class AllAroundClientsDB
         $email = isset($_POST['email']) ? sanitize_text_field($_POST['email']) : '';
         $client_type = isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal';
 
-        error_log(print_r($_POST, true));
+        $old_first_name = get_post_meta($client_id, 'first_name', true);
+        $old_last_name = get_post_meta($client_id, 'last_name', true);
 
         // check email empty or email not valid then return
         if (empty($client_id)) {
@@ -350,12 +351,14 @@ class AllAroundClientsDB
             }
         }
 
-        $old_first_name = get_post_meta($client_id, 'first_name', true);
-        $old_last_name = get_post_meta($client_id, 'last_name', true);
+        // Log old and new names for debugging
+        error_log("Old First Name: $old_first_name, New First Name: $first_name");
+        error_log("Old Last Name: $old_last_name, New Last Name: $last_name");
 
         // if name changed update post title
         if ($old_first_name !== $first_name || $old_last_name !== $last_name) {
             $name = $this->createFullName($first_name, $last_name);
+            error_log("Updating post title for Client ID: $client_id, New Title: $name");
             $this->update_post_title($client_id, $name);
         }
 

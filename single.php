@@ -60,16 +60,25 @@ $clients = $createOrder->fetch_clients_data();
                             <div class="om__orderSummeryOne">
                                 <div class="om__orderSummeryItem">
                                 <h6><?php echo esc_html__('Order Number:', 'hello-elementor'); ?><span><?php echo $order_number; ?></span></h6>
+
                                 </div>
 
-                                <?php if (!is_current_user_author()): ?>
+                                <?php if (is_current_user_admin() || ml_current_user_contributor()): ?>
+                                <div class="om__orderSummeryItem">
+                                <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?><span>
+                                <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
+                                    class="allaround--client-orders"><?php echo esc_html__('View Orders', 'hello-elementor'); ?></a></span></h6>
+                                </div>
+                                <?php endif; ?>
+
+                                <?php if (is_current_user_admin()): ?>
                                 <div class="om__orderSummeryItem">
                                 <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?><span><?php echo $order_status; ?></span></h6>
                                 </div>
                                 <?php endif; ?>
 
                                 <?php if (!empty($client_name) && is_current_user_admin()): ?>
-                                <div class="om__orderSummeryItem">
+                                <div class="om__orderSummeryItem om__orderSummeryItemFull">
                                     <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?><span class="om__orderedClientName"> <a target="_blank" href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a><span class="om__edit_clientButton"><img src="<?php echo get_template_directory_uri(); ?>/assets/images/edit.svg" alt=""></span></span></h6>
 
                                     <!-- Client Change -->
@@ -117,6 +126,7 @@ $clients = $createOrder->fetch_clients_data();
                                 <?php endif; ?>
                             </div>
                             <div class="om__orderSummeryTwo">
+                                <?php if (!ml_current_user_contributor()): ?>
                                 <div class="shipping_method_update_box">
                                     <div class="shipping_method_title">
                                         <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
@@ -144,6 +154,8 @@ $clients = $createOrder->fetch_clients_data();
                                         <?php endif; ?>
                                     </div>
                                 </div>
+                                <?php endif; ?>
+
                                 <?php if (is_current_user_admin()): ?>
                                 <div class="order_type_update_box">
                                     <div class="order_type_title">
@@ -174,6 +186,7 @@ $clients = $createOrder->fetch_clients_data();
                         </div>
                     </div>
 
+                    <?php if (!ml_current_user_contributor()): ?>
                     <div class="om__general_notes_cont">
                         <h4><?php echo esc_html__('Order Note', 'hello-elementor'); ?></h4>
                         <div
@@ -252,6 +265,11 @@ $clients = $createOrder->fetch_clients_data();
                                     value="<?php echo esc_html($order_shipping['last_name']); ?>">
                             </div>
                             <div class="om__orderShippingDetailsItem orderShippingFieldLong">
+                                <label for="shipping_first_name">Phone</label>
+                                <input type="text" id="shipping_phone" name="shipping_phone"
+                                    value="<?php echo esc_html($order_shipping['phone']); ?>">
+                            </div>
+                            <div class="om__orderShippingDetailsItem">
                                 <label for="shipping_first_name">Street Address</label>
                                 <input type="text" id="shipping_address_1" name="shipping_address_1"
                                     value="<?php echo esc_html($order_shipping['address_1']); ?>">
@@ -266,20 +284,16 @@ $clients = $createOrder->fetch_clients_data();
                                 <input type="text" id="shipping_city" name="shipping_city"
                                     value="<?php echo esc_html($order_shipping['city']); ?>">
                             </div>
-                            <div class="om__orderShippingDetailsItem">
-                                <label for="shipping_first_name">Phone</label>
-                                <input type="text" id="shipping_phone" name="shipping_phone"
-                                    value="<?php echo esc_html($order_shipping['phone']); ?>">
-                            </div>
                             <?php if (is_current_user_admin()): ?>
-                            <div class="om__orderShippingDetailsItem">
+                            <div class="om__orderShippingDetailsItem omShippingSubmitBtn">
                                 <button type="button" class="allarnd--regular-button ml_add_loading"
                                     id="update-shipping-details"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
                             </div>
                             <?php endif; ?>
                         </div>
-                    </div>
+                    </div><?php endif; ?>
 
+                    <?php if (!is_current_user_author()): ?>
                     <div class="om__ordernoteContainer">
                         <div class="om__designers_notes_cont">
                             <label><?php echo esc_html__('Designer Note', 'hello-elementor'); ?></label>
@@ -333,6 +347,7 @@ $clients = $createOrder->fetch_clients_data();
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
 
                 </div>
 
@@ -367,8 +382,8 @@ $clients = $createOrder->fetch_clients_data();
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         <?php endif; ?>
                         <?php if (ml_current_user_contributor() || is_current_user_admin()): ?>
-                            <button type="button" class="allarnd--regular-button ml_add_loading"
-                                id="mockupDoneSendWebhook"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
+                            <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
+                            <button type="button" data-status="Mockups Done" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
                         <?php endif; ?>
                         
                         <?php if (is_current_user_author() || is_current_user_admin()): ?>
@@ -380,12 +395,16 @@ $clients = $createOrder->fetch_clients_data();
 
                 <?php if (!is_current_user_author()): ?>
                 <div class="mockup-revision-activity-container">
+
+                    <?php if (!ml_current_user_contributor()): ?>
                     <div class="mockup-proof-admin-comments">
                         <div class="form-group">
                             <label for="mockup-proof-comments">Mockup Comments</label>
                             <input type="text" name="mockup-proof-comments" id="mockup-proof-comments" placeholder="Mockup Comments">
                         </div>
                     </div>
+                    <?php endif; ?>
+
                     <h4>היסטוריית שינויים</h4>
                     <div class="revision-activities-all">
                         <?php

@@ -1,6 +1,16 @@
 (function ($) {
   ("use strict");
 
+  // Function to check if the current user is an Employee
+  function isEmployee() {
+    return allaround_vars.user_role === "author";
+  }
+
+  // Function to check if the current user is an Designer
+  function isDesigner() {
+    return allaround_vars.user_role === "contributor";
+  }
+
   // ********** Order Management Scripts Start **********//
   const mainTable = document.getElementById("tableMain");
   // ********** Mockup Image Upload Post Request **********//
@@ -12,8 +22,7 @@
     let orderNumber = allaround_vars.order_number;
     let customerName = allaround_vars.customer_name;
     let customerEmail = allaround_vars.customer_email;
-    let commentText =
-      $("#mockup-proof-comments").val() || "A proof has been uploaded";
+    let commentText = $("#mockup-proof-comments").val() || "";
 
     let mainTable = document.getElementById("tableMain");
     if (!mainTable) {
@@ -1260,11 +1269,6 @@
     });
   });
 
-  // Function to check if the current user is an Employee
-  function isEmployee() {
-    return allaround_vars.user_role === "author";
-  }
-
   if (!isEmployee()) {
     $(".om_addOrderNote, .om__orderGeneralComment_text").magnificPopup({
       items: {
@@ -1412,80 +1416,82 @@
 
   // ********** Sortable Order List **********//
   if ($("#tableMain").length) {
-    $("#tableMain tbody").sortable({
-      update: function (event, ui) {
-        let new_order = [];
-        $("#tableMain tbody tr").each(function () {
-          new_order.push($(this).attr("id"));
-        });
+    if (!isDesigner() && !isEmployee()) {
+      $("#tableMain tbody").sortable({
+        update: function (event, ui) {
+          let new_order = [];
+          $("#tableMain tbody tr").each(function () {
+            new_order.push($(this).attr("id"));
+          });
 
-        let order_id = allaround_vars.order_id;
-        let order_domain = allaround_vars.order_domain;
+          let order_id = allaround_vars.order_id;
+          let order_domain = allaround_vars.order_domain;
 
-        console.log("New Order:", new_order);
-        console.log("Order ID:", order_id);
+          console.log("New Order:", new_order);
+          console.log("Order ID:", order_id);
 
-        let consumer_key, consumer_secret;
+          let consumer_key, consumer_secret;
 
-        if (order_domain.includes(".test")) {
-          consumer_key = "ck_fc4eb8c5ecaa7c8115294fe19433a9372fffb8a2";
-          consumer_secret = "cs_5f14e11d8f501bc7cd17800bcf90e9adb1d5412c";
-        } else {
-          consumer_key = "ck_c18ff0701de8832f6887537107b75afce3914b4c";
-          consumer_secret = "cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4";
-        }
+          if (order_domain.includes(".test")) {
+            consumer_key = "ck_fc4eb8c5ecaa7c8115294fe19433a9372fffb8a2";
+            consumer_secret = "cs_5f14e11d8f501bc7cd17800bcf90e9adb1d5412c";
+          } else {
+            consumer_key = "ck_c18ff0701de8832f6887537107b75afce3914b4c";
+            consumer_secret = "cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4";
+          }
 
-        let requestData = {
-          action: "update_order_transient",
-          order_id: order_id,
-        };
-
-        function handleResponse() {
-          Toastify({
-            text: `Items Rearranged successfully!`,
-            duration: 3000,
-            close: true,
-            gravity: "bottom", // `top` or `bottom`
-            position: "right", // `left`, `center` or `right`
-            stopOnFocus: true, // Prevents dismissing of toast on hover
-            style: {
-              background: "linear-gradient(to right, #00b09b, #96c93d)",
-            },
-          }).showToast();
-
-          // location.reload();
-        }
-
-        $.ajax({
-          url: `${order_domain}/wp-json/update-order/v1/rearrange-order-items`,
-          type: "POST",
-          contentType: "application/json",
-          data: JSON.stringify({
+          let requestData = {
+            action: "update_order_transient",
             order_id: order_id,
-            new_order: new_order,
-          }),
-          beforeSend: function (xhr) {
-            let auth = btoa(consumer_key + ":" + consumer_secret);
-            xhr.setRequestHeader("Authorization", "Basic " + auth);
-          },
-          success: function (response) {
-            console.log("Response:", response);
-            if (response.success) {
-              // alert(response.message);
-              ml_send_ajax(requestData, handleResponse);
-            } else {
-              alert("Error: " + response.message);
-              console.log("Error:", response);
-            }
-          },
-          error: function (xhr, status, error) {
-            console.error("Error:", error);
-            console.error("Response Text:", xhr.responseText);
-            alert("Failed to rearrange order items: " + xhr.responseText);
-          },
-        });
-      },
-    });
+          };
+
+          function handleResponse() {
+            Toastify({
+              text: `Items Rearranged successfully!`,
+              duration: 3000,
+              close: true,
+              gravity: "bottom", // `top` or `bottom`
+              position: "right", // `left`, `center` or `right`
+              stopOnFocus: true, // Prevents dismissing of toast on hover
+              style: {
+                background: "linear-gradient(to right, #00b09b, #96c93d)",
+              },
+            }).showToast();
+
+            // location.reload();
+          }
+
+          $.ajax({
+            url: `${order_domain}/wp-json/update-order/v1/rearrange-order-items`,
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+              order_id: order_id,
+              new_order: new_order,
+            }),
+            beforeSend: function (xhr) {
+              let auth = btoa(consumer_key + ":" + consumer_secret);
+              xhr.setRequestHeader("Authorization", "Basic " + auth);
+            },
+            success: function (response) {
+              console.log("Response:", response);
+              if (response.success) {
+                // alert(response.message);
+                ml_send_ajax(requestData, handleResponse);
+              } else {
+                alert("Error: " + response.message);
+                console.log("Error:", response);
+              }
+            },
+            error: function (xhr, status, error) {
+              console.error("Error:", error);
+              console.error("Response Text:", xhr.responseText);
+              alert("Failed to rearrange order items: " + xhr.responseText);
+            },
+          });
+        },
+      });
+    }
   }
 
   // Store the current value before any change
@@ -1605,17 +1611,24 @@
   });
 
   $(".om__edit_clientButton").on("click", function () {
-    $(".om__orderedClientName").slideUp();
+    $(".om__orderedClientName").css({
+      opacity: 0,
+      transition: "opacity 0.3s",
+    });
     $(".om__change-client").slideDown();
   });
 
   $(".toogle-select-client").on("click", function () {
-    $(".om__orderedClientName").slideDown();
+    $(".om__orderedClientName").css({
+      opacity: 1,
+      transition: "opacity 0.3s",
+    });
     $(".om__change-client").slideUp();
   });
 
-  $("#mockupDoneSendWebhook").on("click", function () {
+  $(".designerSendWebhook").on("click", function () {
     let order_id = allaround_vars.order_id;
+    let status = $(this).data("status");
     let root_domain = allaround_vars.redirecturl;
 
     $(this).addClass("ml_loading");
@@ -1635,7 +1648,7 @@
     // Data to send to the webhook
     let data = {
       order_id: order_id,
-      status: "mockups done",
+      om_status: status,
     };
 
     // AJAX request to send the data to the webhook
@@ -1659,9 +1672,10 @@
           },
         }).showToast();
 
-        $("#mockupDoneSendWebhook").removeClass("ml_loading");
+        $(".designerSendWebhook").removeClass("ml_loading");
       },
       error: function (xhr, status, error) {
+        $(".designerSendWebhook").removeClass("ml_loading");
         console.error("Error sending webhook request:", error);
         // Optionally, you can show an error message to the user
         alert("Failed to send webhook request. Please try again.");
@@ -1701,7 +1715,7 @@
     // Data to send to the webhook
     let data = {
       order_id: order_id,
-      status: "print label",
+      om_status: "Print Label",
       shipping_method: shipping_method,
       shipping_fullName: full_name,
       shipping_addressName: shipping_address_1,
@@ -1736,6 +1750,7 @@
         $("#printLabelSendWebhook").removeClass("ml_loading");
       },
       error: function (xhr, status, error) {
+        $("#printLabelSendWebhook").removeClass("ml_loading");
         console.error("Error sending webhook request:", error);
         // Optionally, you can show an error message to the user
         alert("Failed to send webhook request. Please try again.");
@@ -1756,6 +1771,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Function to check if the current user is an Employee
   function isEmployee() {
     return allaround_vars.user_role === "author";
+  }
+
+  // Function to check if the current user is an Designer
+  function isDesigner() {
+    return allaround_vars.user_role === "contributor";
   }
 
   console.log(allaround_vars.user_role);
@@ -1804,6 +1824,9 @@ document.addEventListener("DOMContentLoaded", function () {
             noMockupTd.className = "no-mockup-state";
             noMockupTd.innerHTML = `<span>No Mockups!</span>`;
             thisTr.appendChild(noMockupTd);
+            if (!isEmployee()) {
+              initialAddNewMockupColumn(thisTr, maxVersion + 1);
+            }
           } else {
             for (const mockup of data.data.mockup_versions) {
               maxVersion = Math.max(maxVersion, mockup.version);
@@ -1839,16 +1862,22 @@ document.addEventListener("DOMContentLoaded", function () {
               await fetchImageURLs(orderId, productId, mockupVersion, mockupTd);
             }
 
-            initialAddNewMockupColumn(thisTr, maxVersion + 1);
-            populateTableHeader();
-            if (maxVersion) {
+            if (!isEmployee()) {
+              initialAddNewMockupColumn(thisTr, maxVersion + 1);
+            }
+
+            if (maxVersion > 0) {
+              populateTableHeader();
               const maxColumn = thisTr.querySelector(
                 `td[data-version_number="${maxVersion}"]`
               );
-              maxColumn.classList.remove("om_expired_mockups");
-              maxColumn.classList.add("last_send_version");
-              if (!isEmployee()) {
-                createDeleteButton(maxColumn, "V" + maxVersion, productId);
+              if (maxColumn) {
+                maxColumn.classList.remove("om_expired_mockups");
+                maxColumn.classList.add("last_send_version");
+                if (!isEmployee()) {
+                  // Add delete button for the most recent version
+                  createDeleteButton(maxColumn, "V" + maxVersion, productId);
+                }
               }
             }
           }
@@ -2470,25 +2499,27 @@ document.addEventListener("DOMContentLoaded", function () {
     let mockupHead = headerRow.querySelector(".mockup-head");
     if (!mockupHead) return;
 
-    // Find the .mockup-head th element
-    let emptyTfootTd = table.querySelector(".tfoot_empty_column");
-    if (!mockupHead) return;
-
     // Set the colspan attribute
     mockupHead.setAttribute("colspan", maxMockupColumns);
+
+    // Find the .mockup-head th element
+    let emptyTfootTd = table.querySelector(".tfoot_empty_column");
+    if (!emptyTfootTd) return;
+
     emptyTfootTd.setAttribute("colspan", maxMockupColumns + 1);
   }
 
   // Remove specified elements after page load
+
   function removeElementsAfterLoad() {
     const selectors = [
-      ".om__editItemArtwork",
       ".om__DeleteArtwork",
       ".om_itemQuantPriceEdit",
       ".om__editItemMeta",
       ".om_duplicate_item",
       ".om_delete_item",
       ".delete-attachment",
+      ".om_addDesignerNote",
     ];
 
     selectors.forEach((selector) => {
@@ -2499,7 +2530,31 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Call the function to remove elements
-  if (isEmployee()) {
+  if (isEmployee() || isDesigner()) {
     removeElementsAfterLoad();
   }
+
+  // For Designer
+  // function removeElementsAfterLoadDesigner() {
+  //   const selectors = [
+  //     ".om__DeleteArtwork",
+  //     ".om_itemQuantPriceEdit",
+  //     ".om__editItemMeta",
+  //     ".om_duplicate_item",
+  //     ".om_delete_item",
+  //     ".delete-attachment",
+  //     ".om_addDesignerNote",
+  //   ];
+
+  //   selectors.forEach((selector) => {
+  //     document.querySelectorAll(selector).forEach((element) => {
+  //       element.remove();
+  //     });
+  //   });
+  // }
+
+  // Call the function to remove elements
+  // if (isDesigner()) {
+  //   removeElementsAfterLoadDesigner();
+  // }
 });
