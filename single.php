@@ -36,15 +36,19 @@ $clients = $createOrder->fetch_clients_data();
         $client_url = '';
         if (!empty($client_id)) {
             // get the post url for the client post with the id
+            $client_url = get_permalink($client_id);
             $first_name = get_post_meta($client_id, 'first_name', true);
             $last_name = get_post_meta($client_id, 'last_name', true);
+            $client_name = $first_name . ' ' . $last_name;
             $client_address = get_post_meta($client_id, 'address_1', true);
             $client_city = get_post_meta($client_id, 'city', true);
             $client_phone = get_post_meta($client_id, 'phone', true);
             $email = get_post_meta($client_id, 'email', true);
             $invoice_name = get_post_meta($client_id, 'invoice', true);
-            $client_name = $first_name . ' ' . $last_name;
-            $client_url = get_permalink($client_id);
+            $logo_type = get_post_meta($client_id, 'logo_type', true);
+            $mini_url = get_post_meta($client_id, 'mini_url', true);
+            $mini_header = get_post_meta($client_id, 'mini_header', true);
+            $client_type = get_post_meta($client_id, 'client_type', true);
         }
         ?>
 
@@ -100,27 +104,67 @@ $clients = $createOrder->fetch_clients_data();
                                     </div>
 
                                     <!-- Billing Information Form -->
-                                    <div id="billing-form-modal" class="mfp-hide billing-form">
+                                    <div id="billing-form-modal" class="mfp-hide billing-form om__billing-form-modal">
                                         <h5>Client Information</h5>
                                         <form id="billing-form">
-                                            <label for="billing_first_name">First Name:</label>
-                                            <input type="text" id="billing_first_name" name="billing_first_name" value="<?php echo esc_html($first_name); ?>" required>
-                                            <label for="billing_last_name">Last Name:</label>
-                                            <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_html($last_name); ?>">
-                                            <label for="billing_address_1">Address:</label>
-                                            <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_html($client_address); ?>" required>
-                                            <label for="billing_company">Invoice Name:</label>
-                                            <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_html($invoice_name); ?>">
-                                            <label for="billing_city">City:</label>
-                                            <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_html($client_city); ?>" required>
-                                            <label for="billing_country" style="display: none;">Country:</label>
-                                            <input type="hidden" id="billing_country" name="billing_country" value="Israel">
-                                            <label for="billing_email">Email:</label>
-                                            <input type="email" id="billing_email" name="billing_email" value="<?php echo esc_html($email); ?>" required>
-                                            <label for="billing_phone">Phone:</label>
-                                            <input type="text" id="billing_phone" name="billing_phone" value="<?php echo esc_html($client_phone); ?>" required>
+                                            <div class="om__client_personal_info">
+                                                <div class="form-group">
+                                                    <label for="billing_first_name">First Name:</label>
+                                                    <input type="text" id="billing_first_name" name="billing_first_name" value="<?php echo esc_attr($first_name); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_last_name">Last Name:</label>
+                                                    <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_attr($last_name); ?>">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_address_1">Address:</label>
+                                                    <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_attr($client_address); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_company">Invoice Name:</label>
+                                                    <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_attr($invoice_name); ?>">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_city">City:</label>
+                                                    <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_attr($client_city); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_country" style="display: none;">Country:</label>
+                                                    <input type="hidden" id="billing_country" name="billing_country" value="Israel">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_email">Email:</label>
+                                                    <input type="email" id="billing_email" name="billing_email" value="<?php echo esc_attr($email); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_phone">Phone:</label>
+                                                    <input type="text" id="billing_phone" name="billing_phone" value="<?php echo esc_attr($client_phone); ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="om__client_company_info">
+
+                                                <input type="hidden" name="client_type" id="client_type" value="<?php echo esc_attr($client_type); ?>">
+                                                
+                                                <div class="form-group">
+                                                    <label for="logo_type">Logo Type:</label>
+                                                        <select name="logo_type" id="logo_type">
+                                                            <option value="same" <?php selected($logo_type, 'same'); ?>>Same</option>
+                                                            <option value="chest_only" <?php selected($logo_type, 'chest_only'); ?>>Chest only</option>
+                                                            <option value="big_front" <?php selected($logo_type, 'big_front'); ?>>Big front</option>
+                                                            <option value="custom_back" <?php selected($logo_type, 'custom_back'); ?>>Custom back</option>
+                                                        </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="mini_url">Mini URL:</label>
+                                                    <input type="text" name="mini_url" id="mini_url" value="<?php echo esc_attr($mini_url); ?>" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="mini_header">Mini Header:</label>
+                                                    <input type="text" name="mini_header" id="mini_header" value="<?php echo esc_attr($mini_header); ?>" />
+                                                </div>
+                                            </div>
                                         </form>
-                                        <button type="button" id="update-order-client" class="ml_add_loading" data-client_id=""><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+                                        <button type="button" id="update-order-client" class="ml_add_loading" data-client_id="<?php echo esc_attr($client_id); ?>"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
                                     </div>
                                 </div>
                                 <?php endif; ?>

@@ -239,16 +239,21 @@ class AllAroundClientsDB
         $client_type = get_post_meta($client_id, 'client_type', true);
 
         // update client_type to client only if client_type is not company
-        if ('company' !== $client_type) {
-            update_post_meta($client_id, 'client_type', $order_type);
-        }
+        //TODO: update it later to set the condition
+        // if ('company' !== $client_type) {
+        update_post_meta($client_id, 'client_type', $order_type);
+        // }
 
         update_post_meta($post_id, 'order_type', $order_type);
+
+        $client_type = get_post_meta($client_id, 'client_type', true);
 
         wp_send_json_success(
             array(
                 "message_type" => 'reqular',
-                "message" => "Order #$post_id type successfully updated."
+                "message" => "Order #$post_id type successfully updated.",
+                "order_type" => $order_type,
+                "client_type" => $client_type
             )
         );
         wp_die();

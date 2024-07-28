@@ -42,6 +42,8 @@
   $("#order_type-form").on("submit", function (event) {
     event.preventDefault();
 
+    $(".om_order_type_submit").addClass("pulse");
+
     var $self = $(this),
       getData = $self.serializeArray(),
       order_id = $("#order_id").val();
@@ -64,9 +66,48 @@
       data: getData,
       success: function (response) {
         if (response.success === true) {
-          alert(response.data.message);
-          location.reload();
+          $(".om_order_type_submit").removeClass("pulse");
+          setTimeout(() => {
+            $(".om_order_type_submit").fadeOut();
+          }, 500);
+
+          // alert(response.data.message);
+          // location.reload();
+          Toastify({
+            text: `Order Type Updated Successfully!!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+
+          const order_type = response.data.order_type;
+          const client_type = response.data.client_type;
+
+          console.log("Order Type: ", order_type);
+          console.log("Client Type: ", client_type);
+
+          // Open Magnific Popup if #billing-form-modal exists
+          if (order_type == "company" && client_type == "company") {
+            $(".om__client_company_info").show();
+            if ($.magnificPopup && $("#billing-form-modal").length) {
+              $.magnificPopup.open({
+                items: {
+                  src: "#billing-form-modal",
+                  type: "inline",
+                },
+                closeBtnInside: true,
+              });
+            }
+          } else {
+            $(".om__client_company_info").hide();
+          }
         } else {
+          $(".om_order_type_submit").removeClass("pulse");
           alert(response.data.message);
         }
       },
@@ -190,7 +231,6 @@
     const $this = $(this);
     const client_id = $this.data("client_id");
     const order_post_id = $this.data("post_id");
-    const type = $this.data("type");
     let client_data = {
       client_type: $("#client_type").val(),
       first_name: $("#billing_first_name").val(),
@@ -200,6 +240,9 @@
       city: $("#billing_city").val(),
       phone: $("#billing_phone").val(),
       email: $("#billing_email").val(),
+      logo_type: $("#logo_type").val(),
+      mini_url: $("#mini_url").val(),
+      mini_header: $("#mini_header").val(),
       nonce: all_around_clients_vars.nonce,
     };
 
@@ -212,7 +255,6 @@
         action: "update_client",
         client_id: client_id,
         order_post_id: order_post_id,
-        type: type,
         ...client_data,
       },
       success: function (response) {

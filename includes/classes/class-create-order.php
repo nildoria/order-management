@@ -219,6 +219,9 @@ class AllAroundCreateOrder
             'city' => isset($client_meta['city'][0]) ? $client_meta['city'][0] : '',
             'email' => isset($client_meta['email'][0]) ? $client_meta['email'][0] : '',
             'phone' => isset($client_meta['phone'][0]) ? $client_meta['phone'][0] : '',
+            'logo_type' => isset($client_meta['logo_type'][0]) ? $client_meta['logo_type'][0] : '',
+            'mini_url' => isset($client_meta['mini_url'][0]) ? $client_meta['mini_url'][0] : '',
+            'mini_header' => isset($client_meta['mini_header'][0]) ? $client_meta['mini_header'][0] : '',
         );
 
         return $client;

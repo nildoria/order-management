@@ -617,7 +617,7 @@ jQuery(document).ready(function ($) {
     validateCheckout();
     const clientId = $(this).val();
 
-    console.log("Selected client ID:", clientId);
+    console.log("Selected client IDs:", clientId);
 
     if (clientId) {
       // Fetch client details via AJAX
@@ -654,6 +654,18 @@ jQuery(document).ready(function ($) {
             $("#billing-form #billing_email").val(client.email);
             $("#billing-form #billing_phone").val(client.phone);
             $("#update-order-client").data("client_id", clientId);
+
+            if ($(".om__billing-form-modal").length) {
+              if (client.client_type === "company") {
+                $(".om__client_company_info").show();
+              } else {
+                $(".om__client_company_info").hide();
+              }
+              $("#billing-form #logo_type").val(client.logo_type);
+              $("#billing-form #mini_url").val(client.mini_url);
+              $("#billing-form #mini_header").val(client.mini_header);
+            }
+
             // $(".client_profile_URL a").attr("href", client.url);
           } else {
             alert("Failed to fetch client details");
