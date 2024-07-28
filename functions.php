@@ -310,9 +310,9 @@ if (is_admin()) {
 // Allow active/inactive via the Experiments
 require get_template_directory() . '/includes/elementor-functions.php';
 require get_template_directory() . '/includes/classes/class-rules.php';
-require get_template_directory() . '/includes/classes/class-utility.php';
 // require get_template_directory() . '/includes/classes/class-ajax.php';
 
+require_once get_template_directory() . '/includes/classes/class-utility.php';
 require_once get_template_directory() . '/includes/classes/class-clients.php';
 require_once get_template_directory() . '/includes/classes/class-create-order.php';
 require_once get_template_directory() . '/includes/classes/class-add-item.php';

@@ -382,7 +382,7 @@ $clients = $createOrder->fetch_clients_data();
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         <?php endif; ?>
                         <?php if (ml_current_user_contributor() || is_current_user_admin()): ?>
-                            <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
+                            <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
                             <button type="button" data-status="Mockups Done" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
                         <?php endif; ?>
                         

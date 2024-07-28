@@ -1,161 +1,156 @@
 <?php
 
-
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+if (!defined('ABSPATH')) {
+    exit;
 }
 
 /*
- * Utilities class - singleton class
+ * Utilities class
  *
  * @since 2.0
  */
 
-class Alarnd_Utility {
-
-	/**
-	 * Private constructor so nobody else can instantiate it
-	 *
-	 */
-	private function __construct() {
-
-	}
+class Alarnd_Utility
+{
 
     /**
-	 * Call this method to get singleton
-	 *
-	 * @return singleton instance of Alarnd_Utility
-	 */
-	public static function instance() {
-
-		static $instance = null;
-		if ( is_null( $instance ) ) {
-			$instance = new Alarnd_Utility();
-		}
-
-		return $instance;
-	}
-
-	public function logger( $message ) {
-		if ( WP_DEBUG === true ) {
-			if ( is_array( $message ) || is_object( $message ) ) {
-				error_log( print_r( $message, true ) );
-			} else {
-				error_log( $message );
-			}
-		}
-	}
-
-    function get_prev($hash = array(), $key = '') {
-        $keys = array_keys($hash);
-        $found_index = array_search($key, $keys);
-        if ($found_index === false || $found_index === 0)
-            return false;
-        return $hash[$keys[$found_index-1]];
+     * Constructor
+     *
+     */
+    public function __construct()
+    {
+        add_action('admin_menu', array($this, 'add_translation_options_page'));
+        add_action('admin_init', array($this, 'initialize_translation_options'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_translation_script'));
     }
 
-    public function remap_setps( $discount_steps ) {
-        $remap_steps = [];
-        $i = 0;
-        $len = count($discount_steps);
-        foreach( $discount_steps as $key => $step ) {
-            $prev_item = $this->get_prev( $discount_steps, $key );
-            $remap_steps[$key]['quantity'] = $step['quantity'];
-            $remap_steps[$key]['amount'] = $step['amount'];
-            if( ! empty( $prev_item ) ) {
-                $remap_steps[$key]['min'] = $prev_item['quantity'];
+    public function add_translation_options_page()
+    {
+        add_menu_page(
+            'Translations',
+            'Translations',
+            'manage_options',
+            'translation-options',
+            array($this, 'render_translation_options_page')
+        );
+    }
+
+    public function render_translation_options_page()
+    {
+        ?>
+        <div class="wrap">
+            <h1><?php _e('Translations', 'your-textdomain'); ?></h1>
+            <form method="post" action="options.php">
+                <?php
+                settings_fields('translation_options_group');
+                do_settings_sections('translation-options');
+                submit_button();
+                ?>
+            </form>
+        </div>
+        <?php
+    }
+
+    public function initialize_translation_options()
+    {
+        add_settings_section(
+            'translation_section',
+            'Translation Settings',
+            array($this, 'render_translation_section'),
+            'translation-options'
+        );
+
+        add_settings_field(
+            'translations',
+            'Translations',
+            array($this, 'render_translations_fields'),
+            'translation-options',
+            'translation_section'
+        );
+
+        register_setting('translation_options_group', 'translations', array($this, 'sanitize_translations'));
+    }
+
+    public function render_translation_section()
+    {
+        echo '<p>Enter the translations below:</p>';
+    }
+
+    public function render_translations_fields()
+    {
+        $translations = get_option('translations', array());
+        ?>
+        <div id="translations-wrapper">
+            <?php if (empty($translations)): ?>
+                <div class="translation-pair">
+                    <input type="text" name="translations[hebrew][]" placeholder="Hebrew Text">
+                    <input type="text" name="translations[english][]" placeholder="English Translation">
+                </div>
+            <?php else: ?>
+                <?php foreach ($translations['hebrew'] as $index => $hebrew): ?>
+                    <div class="translation-pair">
+                        <input type="text" name="translations[hebrew][]" value="<?php echo esc_attr($hebrew); ?>"
+                            placeholder="Hebrew Text">
+                        <input type="text" name="translations[english][]"
+                            value="<?php echo esc_attr($translations['english'][$index]); ?>" placeholder="English Translation">
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+        <button type="button" id="add-translation"><?php _e('Add New Translation', 'your-textdomain'); ?></button>
+        <?php
+    }
+
+    public function sanitize_translations($input)
+    {
+        $output = array(
+            'hebrew' => array(),
+            'english' => array()
+        );
+
+        if (isset($input['hebrew']) && is_array($input['hebrew'])) {
+            foreach ($input['hebrew'] as $hebrew) {
+                $output['hebrew'][] = sanitize_text_field($hebrew);
             }
-            if ($i == $len - 1) {
-                $remap_steps[$key]['last'] = true;
-            }
-            $i++;
         }
 
-        return $remap_steps;
-    }
-
-    public function get_the_key( $remap_steps, $totalqty ) {
-        $filtered = array_filter($remap_steps, function($step) use ($totalqty) : int {
-            if( isset( $step['min'] ) && isset( $step['last'] ) ) {
-                return ( $step['quantity'] >= $totalqty && $step['min'] < $totalqty ) || $step['min'] <= $totalqty;
-            } elseif( isset( $step['min'] ) ) {
-                return $step['quantity'] >= $totalqty && $step['min'] < $totalqty;
-            }
-            
-            return $step['quantity'] >= $totalqty && 1 <= $totalqty;
-        });
-        
-        $keys = array_keys($filtered);
-        return $keys[0];
-    }
-    public function get_all_keys( $remap_steps, $totalqty ) {
-        
-        $filtered = [];
-        foreach( $remap_steps as $key => $step ) {
-            if($step['quantity'] <= $totalqty){
-                $filtered[] = $step['amount'];
+        if (isset($input['english']) && is_array($input['english'])) {
+            foreach ($input['english'] as $english) {
+                $output['english'][] = sanitize_text_field($english);
             }
         }
 
-        end($filtered); 
-        $key = key($filtered);
-        return $key;
+        return $output;
     }
 
-    public function get_final_amount( $product_id, $total_qty, $regular_price ) {
-        if( empty( $total_qty ) )
-            return $regular_price;
-
-        $discount_steps = get_field( 'discount_steps', $product_id );
-        if( empty( $discount_steps ) )
-            return $regular_price;
-
-        $remap_steps = $this->remap_setps( $discount_steps );
-        $the_key = $this->get_the_key( $remap_steps, $total_qty );
-        if( ! isset( $discount_steps[$the_key] ) )
-            return $regular_price;
-
-        if( empty( $discount_steps[$the_key]['amount'] ) || 0 ==  $discount_steps[$the_key]['amount'] )
-            return $regular_price;
-
-        return $discount_steps[$the_key]['amount'];
-    }
-    
-    public function get_custom_amount( $product_id, $total_qty, $regular_price ) {
-        if( empty( $total_qty ) )
-            return $regular_price;
-
-        $discount_steps = get_field( 'quantity_steps', $product_id );
-        if( empty( $discount_steps ) )
-            return $regular_price;
-
-        $the_key = $this->get_all_keys( $discount_steps, $total_qty );
-        if( ! isset( $discount_steps[$the_key] ) )
-            return $regular_price;
-
-        if( empty( $discount_steps[$the_key]['amount'] ) || 0 ==  $discount_steps[$the_key]['amount'] )
-            return $regular_price;
-
-        return $discount_steps[$the_key]['amount'];
-    }
-
-    public function qty_price( $product_id, $item ) {
-
-        $product    = wc_get_product( $product_id );
-
-        $steps = get_field( 'quantity_steps', $product_id );
-        $sp_quanity = get_field( 'custom_quanity', $product_id );
-
-        if( isset( $item['alarnd_custom_quantity'] ) && ! empty( $item['alarnd_custom_quantity'] ) ) {
-            return (int) $item['alarnd_step_key'];
+    public function enqueue_admin_scripts($hook)
+    {
+        if ($hook !== 'toplevel_page_translation-options') {
+            return;
         }
 
-        if( isset( $steps[$item['alarnd_step_key']] ) ) {
-            return (int) $steps[$item['alarnd_step_key']]['price'];
-        }
-
-        return $product->get_regular_price();
+        wp_enqueue_script('translation-admin-script', get_template_directory_uri() . '/assets/js/translation-admin.js', array('jquery'), null, true);
     }
-	
+
+    public function enqueue_translation_script()
+    {
+        if ($this->is_current_user_contributor()) {
+            wp_enqueue_script('translation-script', get_template_directory_uri() . '/assets/js/translation.js', array('jquery'), null, true);
+
+            $translations = get_option('translations', array('hebrew' => array(), 'english' => array()));
+            wp_localize_script('translation-script', 'translationData', $translations);
+        }
+    }
+
+    private function is_current_user_contributor()
+    {
+        $current_user = wp_get_current_user();
+        return in_array('contributor', (array) $current_user->roles);
+    }
+
 }
+
+// Initialize the class
+new Alarnd_Utility();

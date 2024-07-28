@@ -876,6 +876,12 @@ input#fetchProductList {
   padding: 20px;
   border-radius: 7px;
 }
+.allarnd--regular-button.warning_btn {
+  background-color: #ff9966 !important;
+}
+.allarnd--regular-button.warning_btn:hover {
+  background-color: #ffcc00 !important;
+}
 .om__designers_notes_cont label {
   font-size: 15px;
   font-weight: 600;
