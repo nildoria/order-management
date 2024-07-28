@@ -21,4 +21,10 @@ jQuery(document).ready(function ($) {
       });
     }
   };
+
+  // Target post titles in the admin post list
+  $("#the-list .row-actions .view a").each(function () {
+    var href = $(this).attr("href");
+    $(this).attr("target", "_blank");
+  });
 });

@@ -834,7 +834,8 @@ input#fetchProductList {
   display: none;
 }
 .om__orderNote_container,
-.om__designerNote_container {
+.om__designerNote_container,
+.printLabelConfirmationModal {
   position: relative;
   background-color: #fff;
   width: 600px;
@@ -844,13 +845,42 @@ input#fetchProductList {
   margin: 0 auto;
 }
 .om__orderNote_container button.mfp-close,
-.om__designerNote_container button.mfp-close {
+.om__designerNote_container button.mfp-close,
+.printLabelConfirmationModal button.mfp-close {
   top: -10px;
+}
+.printLabelConfirmationModal {
+  text-align: center;
+}
+.printLabelConfirmationModal h5 {
+  color: #2673e7;
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.printLabelConfirmationModal p {
+  font-size: 16px;
+  margin-bottom: 25px;
+}
+#printLabelCancel {
+  background-color: #a91d3a;
+  min-width: 100px;
+  margin-left: 10px;
+  color: #fff;
+}
+#printLabelCancel:hover {
+  background-color: #c93652 !important;
 }
 .om_headin_titles {
   background-color: #f7f7f7;
   padding: 20px;
   border-radius: 7px;
+}
+.allarnd--regular-button.warning_btn {
+  background-color: #ff9966 !important;
+}
+.allarnd--regular-button.warning_btn:hover {
+  background-color: #ffcc00 !important;
 }
 .om__designers_notes_cont label {
   font-size: 15px;

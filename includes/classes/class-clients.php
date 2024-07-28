@@ -724,11 +724,10 @@ class AllAroundClientsDB
             <p>
                 <label for="logo_type">Logo Type:</label><br>
                 <select name="logo_type" id="logo_type">
-                    <option>-- Select Logo Type --</option>
+                    <option value="same" <?php selected($fields['logo_type'], 'same'); ?>>Same</option>
                     <option value="chest_only" <?php selected($fields['logo_type'], 'chest_only'); ?>>Chest only</option>
                     <option value="big_front" <?php selected($fields['logo_type'], 'big_front'); ?>>Big front</option>
                     <option value="custom_back" <?php selected($fields['logo_type'], 'custom_back'); ?>>Custom back</option>
-                    <option value="same" <?php selected($fields['logo_type'], 'same'); ?>>Same</option>
                 </select>
             </p>
             <p>

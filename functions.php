@@ -310,9 +310,9 @@ if (is_admin()) {
 // Allow active/inactive via the Experiments
 require get_template_directory() . '/includes/elementor-functions.php';
 require get_template_directory() . '/includes/classes/class-rules.php';
-require get_template_directory() . '/includes/classes/class-utility.php';
 // require get_template_directory() . '/includes/classes/class-ajax.php';
 
+require_once get_template_directory() . '/includes/classes/class-utility.php';
 require_once get_template_directory() . '/includes/classes/class-clients.php';
 require_once get_template_directory() . '/includes/classes/class-create-order.php';
 require_once get_template_directory() . '/includes/classes/class-add-item.php';
@@ -1217,7 +1217,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         $thumbnail_url = isset($item->image->src) && !empty($item->image->src) ? $item->image->src : get_template_directory_uri() . '/assets/images/allaround-logo.png';
         echo '<span class="om_item_thumb_cont"><img width="100" src="' . esc_url($thumbnail_url) . '" /></span>';
         echo '<span class="item_name_variations">';
-        echo '<strong class="product_item_title">' . esc_html($item->name) . '</strong>';
+        echo '<strong class="product_item_title">' . esc_html(__($item->name, 'hello-elementor')) . '</strong>';
         echo '<ul>';
         foreach ($item->meta_data as $meta) {
             if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_artwork_id2", "_allaround_art_pos_key"])) {
