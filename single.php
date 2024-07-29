@@ -67,7 +67,7 @@ $clients = $createOrder->fetch_clients_data();
 
                                 </div>
 
-                                <?php if (is_current_user_admin() || ml_current_user_contributor()): ?>
+                                <?php if (is_current_user_admin() || is_current_user_contributor()): ?>
                                 <div class="om__orderSummeryItem">
                                 <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?><span>
                                 <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
@@ -170,7 +170,7 @@ $clients = $createOrder->fetch_clients_data();
                                 <?php endif; ?>
                             </div>
                             <div class="om__orderSummeryTwo">
-                                <?php if (!ml_current_user_contributor()): ?>
+                                <?php if (!is_current_user_contributor()): ?>
                                 <div class="shipping_method_update_box">
                                     <div class="shipping_method_title">
                                         <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
@@ -230,7 +230,7 @@ $clients = $createOrder->fetch_clients_data();
                         </div>
                     </div>
 
-                    <?php if (!ml_current_user_contributor()): ?>
+                    <?php if (!is_current_user_contributor()): ?>
                     <div class="om__general_notes_cont">
                         <h4><?php echo esc_html__('Order Note', 'hello-elementor'); ?></h4>
                         <div
@@ -425,15 +425,23 @@ $clients = $createOrder->fetch_clients_data();
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal"><?php echo esc_html__('Add Product', 'hello-elementor'); ?></button>
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         <?php endif; ?>
-                        <?php if (ml_current_user_contributor() || is_current_user_admin()): ?>
-                            <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
+                        <?php if (is_current_user_contributor() || is_current_user_admin()): ?>
+                            <button type="button" id="missingInfoOpenModal" class=" allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
                             <button type="button" data-status="Mockups Done" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
+                            <div id="missingInfoConfirmationModal" class="om__ConfirmationModal mfp-hide">
+                                <h5><?php echo esc_html__('Describe what informations are missing.', 'hello-elementor'); ?></h5>
+                                <textarea name="missing-info" class="designer_missing_info_text" placeholder="Write your message"></textarea><br><br>
+                                <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('SEND', 'hello-elementor'); ?></button>
+
+                                <button type="button" class="allarnd--regular-button"
+                                    id="printLabelCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                            </div>
                         <?php endif; ?>
                         
                         <?php if (is_current_user_author() || is_current_user_admin()): ?>
                             <button type="button" class="allarnd--regular-button ml_add_loading"
                                 id="printLabelOpenModal"><?php echo esc_html__('Print Label', 'hello-elementor'); ?></button>
-                            <div id="printLabelConfirmationModal" class="printLabelConfirmationModal mfp-hide">
+                            <div id="printLabelConfirmationModal" class="om__ConfirmationModal mfp-hide">
                                 <h5>Are you sure the order is 100% finalized? </h5>
                                 <p>Please re-check all the order.</p>
                                 <button type="button" class="allarnd--regular-button ml_add_loading" id="printLabelSendWebhook"><?php echo esc_html__('YES - IT\'S READY', 'hello-elementor'); ?></button>
@@ -443,17 +451,15 @@ $clients = $createOrder->fetch_clients_data();
                     </div>
                 </div>
 
-                <?php if (!is_current_user_author()): ?>
+                <?php if (is_current_user_admin()): ?>
                 <div class="mockup-revision-activity-container">
 
-                    <?php if (!ml_current_user_contributor()): ?>
                     <div class="mockup-proof-admin-comments">
                         <div class="form-group">
                             <label for="mockup-proof-comments">Mockup Comments</label>
                             <input type="text" name="mockup-proof-comments" id="mockup-proof-comments" placeholder="Mockup Comments">
                         </div>
                     </div>
-                    <?php endif; ?>
 
                     <h4>היסטוריית שינויים</h4>
                     <div class="revision-activities-all">

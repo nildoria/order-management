@@ -56,6 +56,7 @@ class AllAroundAddItem
         if ($cached_products === false) {
             global $post;
 
+            $current_domain = $_SERVER['SERVER_NAME'];
             $post_id = is_singular('post') && isset($post) ? $post->ID : null;
             $order_domain = '';
 
@@ -65,7 +66,9 @@ class AllAroundAddItem
 
             // Set default order_domain if not set or empty
             $order_domain = !empty($order_domain) ? $order_domain : 'https://main.lukpaluk.xyz';
-            $products_api_url = "https://allaround.co.il/wp-json/alarnd-main/v1/products";
+            $products_api_url = strpos($current_domain, '.test') !== false ?
+                'https://allaround.test/wp-json/alarnd-main/v1/products' :
+                'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
 
             // Transient does not exist or expired, fetch data from API
             $response = wp_remote_get(

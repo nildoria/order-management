@@ -966,6 +966,59 @@
     dropdown.closest(".form-group").hide();
   }
 
+  // ********** Sending Data to Make.com Webhook **********//
+  function sendDataToWebhook(data) {
+    let root_domain = allaround_vars.redirecturl;
+    let webhook_url = "";
+
+    if (root_domain.includes(".test")) {
+      // Webhook URL for test environment
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+    } else {
+      // Webhook URL for production environment
+      webhook_url =
+        "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    }
+
+    fetch(webhook_url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.text().then((text) => {
+            throw new Error(text);
+          });
+        }
+        return response.json().catch(() => {
+          // Handle non-JSON response
+          return { message: "Accepted" };
+        });
+      })
+      .then((result) => {
+        console.log("Webhook response:", result);
+        Toastify({
+          text: `Data sent to Make.com webhook successfully!`,
+          duration: 3000,
+          close: true,
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
+      })
+      .catch((error) => {
+        alert("Error sending data to webhook: " + error.message);
+        console.error("Error sending data to webhook:", error);
+      });
+  }
+
   // ********** Add New Item to the Existing Order **********//
   $("#new_product_artwork").on("change", function (event) {
     let files = event.target.files;
@@ -1067,6 +1120,27 @@
           setTimeout(() => {
             $(".om_shipping_submit").fadeOut();
           }, 500);
+
+          const webhookData = {
+            om_status: "Shipping Method Updated",
+            order_id: order_id,
+            shipping_method: shipping_method,
+          };
+
+          Toastify({
+            text: `Shipping Method Updated Successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+
+          // Call the function to send data to the webhook
+          sendDataToWebhook(webhookData);
         } else {
           alert("Failed to update shipping method: " + data.data);
         }
@@ -1630,6 +1704,7 @@
     let order_id = allaround_vars.order_id;
     let status = $(this).data("status");
     let root_domain = allaround_vars.redirecturl;
+    let missing_info_details = $(".designer_missing_info_text").val();
 
     $(this).addClass("ml_loading");
 
@@ -1650,6 +1725,11 @@
       order_id: order_id,
       om_status: status,
     };
+
+    // Conditionally add missing_info_details if it is available
+    if (missing_info_details) {
+      data.missing_info_details = missing_info_details;
+    }
 
     // AJAX request to send the data to the webhook
     $.ajax({
@@ -1673,6 +1753,9 @@
         }).showToast();
 
         $(".designerSendWebhook").removeClass("ml_loading");
+        // clear .designer_missing_info_text
+        $(".designer_missing_info_text").val("");
+        $.magnificPopup.close();
       },
       error: function (xhr, status, error) {
         $(".designerSendWebhook").removeClass("ml_loading");
@@ -1759,7 +1842,16 @@
     });
   });
 
-  // on click to #printLabelOpenModal open the #printLabelConfirmationModal modal for the print label confirmation with magnific popup and on click to #printLabelCancel close the modal
+  // Open Modal on click of #printLabelOpenModal
+  $("#missingInfoOpenModal").magnificPopup({
+    items: {
+      src: "#missingInfoConfirmationModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
+  // Open Modal on click of #printLabelOpenModal
   $("#printLabelOpenModal").magnificPopup({
     items: {
       src: "#printLabelConfirmationModal",

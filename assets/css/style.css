@@ -835,7 +835,7 @@ input#fetchProductList {
 }
 .om__orderNote_container,
 .om__designerNote_container,
-.printLabelConfirmationModal {
+.om__ConfirmationModal {
   position: relative;
   background-color: #fff;
   width: 600px;
@@ -846,19 +846,19 @@ input#fetchProductList {
 }
 .om__orderNote_container button.mfp-close,
 .om__designerNote_container button.mfp-close,
-.printLabelConfirmationModal button.mfp-close {
+.om__ConfirmationModal button.mfp-close {
   top: -10px;
 }
-.printLabelConfirmationModal {
+.om__ConfirmationModal {
   text-align: center;
 }
-.printLabelConfirmationModal h5 {
+.om__ConfirmationModal h5 {
   color: #2673e7;
   font-size: 22px;
   font-weight: 600;
   margin-bottom: 20px;
 }
-.printLabelConfirmationModal p {
+.om__ConfirmationModal p {
   font-size: 16px;
   margin-bottom: 25px;
 }
