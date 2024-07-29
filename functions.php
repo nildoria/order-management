@@ -397,17 +397,6 @@ function redirect_to_login_if_not_logged_in()
 add_action('template_redirect', 'redirect_to_login_if_not_logged_in');
 
 
-function reset_user_contributor_transient($user_id)
-{
-    delete_transient('user_is_contributor_' . $user_id);
-}
-
-add_action('wp_login', 'reset_user_contributor_transient');
-add_action('wp_logout', 'reset_user_contributor_transient');
-add_action('set_user_role', 'reset_user_contributor_transient');
-add_action('profile_update', 'reset_user_contributor_transient');
-
-
 function change_post_type_labels()
 {
     global $wp_post_types;
@@ -1109,7 +1098,7 @@ function create_order(WP_REST_Request $request)
     // Get the order data from the request
     $order_data = $request->get_json_params();
 
-    error_log(print_r($order_data, true));
+    // error_log(print_r($order_data, true));
 
     $order_number = isset($order_data['order_number']) ? str_replace(' ', '', sanitize_text_field($order_data['order_number'])) : '';
     $order_id = isset($order_data['order_id']) ? str_replace(' ', '', sanitize_text_field($order_data['order_id'])) : '';
@@ -1152,12 +1141,75 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'payment_method', $order_data['payment_method'] ? $order_data['payment_method'] : []);
     update_post_meta($post_id, 'payment_method_title', $order_data['payment_method_title'] ? $order_data['payment_method_title'] : []);
     update_post_meta($post_id, 'site_url', $order_data['site_url'] ? $order_data['site_url'] : []);
-    update_post_meta($post_id, 'order_type', $order_data['order_type'] ? $order_data['order_type'] : []);
+    if (isset($order_data['order_type'])) {
+        update_post_meta($post_id, 'order_type', $order_data['order_type'] ? $order_data['order_type'] : []);
+    }
     do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
+
+    // Send data to webhook
+    send_order_data_to_webhook($order_id, $order_number, $order_data, get_permalink($post_id));
 
     // Return the ID of the new post
     return new WP_REST_Response($post_id, 200);
 }
+
+/**
+ * Send Order Data Webhook after Order.
+ */
+function send_order_data_to_webhook($order_id, $order_number, $order_data, $post_url)
+{
+
+    $root_domain = home_url();
+    $webhook_url = "";
+
+    if (strpos($root_domain, '.test') !== false) {
+        $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+    } else {
+        $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    }
+
+    $client_details = isset($order_data['billing']) ? $order_data['billing'] : array();
+    $total_price = 0;
+
+    if (isset($order_data['items']) && is_array($order_data['items'])) {
+        foreach ($order_data['items'] as $item) {
+            if (isset($item['total'])) {
+                $total_price += floatval($item['total']);
+            }
+        }
+    }
+
+    $webhook_data = array(
+        'order_id' => $order_id,
+        'order_number' => $order_number,
+        'client_details' => array(
+            'firstName' => isset($client_details['first_name']) ? $client_details['first_name'] : '',
+            'lastName' => isset($client_details['last_name']) ? $client_details['last_name'] : '',
+            'email' => isset($client_details['email']) ? $client_details['email'] : '',
+            'phone' => isset($client_details['phone']) ? $client_details['phone'] : '',
+        ),
+        'total_price' => $total_price,
+        'post_url' => $post_url
+    );
+
+    $response = wp_remote_post(
+        $webhook_url,
+        array(
+            'method' => 'POST',
+            'timeout' => 30,
+            'sslverify' => false,
+            'headers' => array('Content-Type' => 'application/json'),
+            'body' => wp_json_encode($webhook_data),
+        )
+    );
+
+    if (is_wp_error($response)) {
+        error_log('Webhook request failed: ' . $response->get_error_message());
+    } else {
+        error_log('Webhook request successful: ' . $response['message']);
+    }
+}
+
 
 function add_cors_http_header()
 {
@@ -1192,7 +1244,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     echo '<table id="tableMain">';
     echo '<thead><tr>';
     echo '<th class="head"><strong>Product</strong></th>';
-    if (!ml_current_user_contributor()):
+    if (!is_current_user_contributor()):
         echo '<th class="head"><strong>Quantity</strong></th>';
     endif;
     echo '<th class="head"><strong>Graphics</strong></th>';
@@ -1339,7 +1391,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '</tr>';
     }
     echo '</tbody><tfoot>';
-    if (!ml_current_user_contributor()):
+    if (is_current_user_admin()):
         echo '<tr>';
         echo '<td class="subtotals_titles" colspan="1"><span>Items Subtotal:</span><br>';
         echo '<span>Shipping:</span><br>';
@@ -1636,30 +1688,11 @@ function send_proof_version_cb()
     wp_die();
 }
 
-function ml_current_user_contributor()
+
+function is_current_user_contributor()
 {
-    // Check if the user is logged in
-    if (!is_user_logged_in()) {
-        return false;
-    }
-
-    // Get the current user
-    $user = wp_get_current_user();
-
-    // Define transient key
-    $transient_key = 'user_is_contributor_' . $user->ID;
-
-    // Check if the transient exists
-    $is_contributor = get_transient($transient_key);
-
-    // If the transient does not exist, calculate and set it
-    if ($is_contributor === false) {
-        $is_contributor = in_array('contributor', (array) $user->roles) ? '1' : '0';
-        set_transient($transient_key, $is_contributor, HOUR_IN_SECONDS);
-    }
-
-    // Return the result
-    return $is_contributor === '1';
+    $current_user = wp_get_current_user();
+    return in_array('contributor', (array) $current_user->roles);
 }
 
 function is_current_user_author()

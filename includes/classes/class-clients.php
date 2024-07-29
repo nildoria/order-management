@@ -245,10 +245,14 @@ class AllAroundClientsDB
 
         update_post_meta($post_id, 'order_type', $order_type);
 
+        $client_type = get_post_meta($client_id, 'client_type', true);
+
         wp_send_json_success(
             array(
                 "message_type" => 'reqular',
-                "message" => "Order #$post_id type successfully updated."
+                "message" => "Order #$post_id type successfully updated.",
+                "order_type" => $order_type,
+                "client_type" => $client_type
             )
         );
         wp_die();
@@ -519,13 +523,13 @@ class AllAroundClientsDB
             // update client_id to the order post
             update_post_meta($post_id, 'client_id', $client_id);
 
-            wp_send_json_success(
-                array(
-                    "message_type" => 'reqular',
-                    "message" => "Client $client_id successfully updated."
-                )
-            );
-            wp_die();
+            // wp_send_json_success(
+            //     array(
+            //         "message_type" => 'reqular',
+            //         "message" => "Client $client_id successfully updated."
+            //     )
+            // );
+            // wp_die();
         }
 
         $name = $this->createFullName($first_name, $last_name);

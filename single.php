@@ -36,15 +36,19 @@ $clients = $createOrder->fetch_clients_data();
         $client_url = '';
         if (!empty($client_id)) {
             // get the post url for the client post with the id
+            $client_url = get_permalink($client_id);
             $first_name = get_post_meta($client_id, 'first_name', true);
             $last_name = get_post_meta($client_id, 'last_name', true);
+            $client_name = $first_name . ' ' . $last_name;
             $client_address = get_post_meta($client_id, 'address_1', true);
             $client_city = get_post_meta($client_id, 'city', true);
             $client_phone = get_post_meta($client_id, 'phone', true);
             $email = get_post_meta($client_id, 'email', true);
             $invoice_name = get_post_meta($client_id, 'invoice', true);
-            $client_name = $first_name . ' ' . $last_name;
-            $client_url = get_permalink($client_id);
+            $logo_type = get_post_meta($client_id, 'logo_type', true);
+            $mini_url = get_post_meta($client_id, 'mini_url', true);
+            $mini_header = get_post_meta($client_id, 'mini_header', true);
+            $client_type = get_post_meta($client_id, 'client_type', true);
         }
         ?>
 
@@ -63,7 +67,7 @@ $clients = $createOrder->fetch_clients_data();
 
                                 </div>
 
-                                <?php if (is_current_user_admin() || ml_current_user_contributor()): ?>
+                                <?php if (is_current_user_admin() || is_current_user_contributor()): ?>
                                 <div class="om__orderSummeryItem">
                                 <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?><span>
                                 <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
@@ -100,33 +104,73 @@ $clients = $createOrder->fetch_clients_data();
                                     </div>
 
                                     <!-- Billing Information Form -->
-                                    <div id="billing-form-modal" class="mfp-hide billing-form">
+                                    <div id="billing-form-modal" class="mfp-hide billing-form om__billing-form-modal">
                                         <h5>Client Information</h5>
                                         <form id="billing-form">
-                                            <label for="billing_first_name">First Name:</label>
-                                            <input type="text" id="billing_first_name" name="billing_first_name" value="<?php echo esc_html($first_name); ?>" required>
-                                            <label for="billing_last_name">Last Name:</label>
-                                            <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_html($last_name); ?>">
-                                            <label for="billing_address_1">Address:</label>
-                                            <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_html($client_address); ?>" required>
-                                            <label for="billing_company">Invoice Name:</label>
-                                            <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_html($invoice_name); ?>">
-                                            <label for="billing_city">City:</label>
-                                            <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_html($client_city); ?>" required>
-                                            <label for="billing_country" style="display: none;">Country:</label>
-                                            <input type="hidden" id="billing_country" name="billing_country" value="Israel">
-                                            <label for="billing_email">Email:</label>
-                                            <input type="email" id="billing_email" name="billing_email" value="<?php echo esc_html($email); ?>" required>
-                                            <label for="billing_phone">Phone:</label>
-                                            <input type="text" id="billing_phone" name="billing_phone" value="<?php echo esc_html($client_phone); ?>" required>
+                                            <div class="om__client_personal_info">
+                                                <div class="form-group">
+                                                    <label for="billing_first_name">First Name:</label>
+                                                    <input type="text" id="billing_first_name" name="billing_first_name" value="<?php echo esc_attr($first_name); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_last_name">Last Name:</label>
+                                                    <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_attr($last_name); ?>">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_address_1">Address:</label>
+                                                    <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_attr($client_address); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_company">Invoice Name:</label>
+                                                    <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_attr($invoice_name); ?>">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_city">City:</label>
+                                                    <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_attr($client_city); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_country" style="display: none;">Country:</label>
+                                                    <input type="hidden" id="billing_country" name="billing_country" value="Israel">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_email">Email:</label>
+                                                    <input type="email" id="billing_email" name="billing_email" value="<?php echo esc_attr($email); ?>" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="billing_phone">Phone:</label>
+                                                    <input type="text" id="billing_phone" name="billing_phone" value="<?php echo esc_attr($client_phone); ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="om__client_company_info">
+
+                                                <input type="hidden" name="client_type" id="client_type" value="<?php echo esc_attr($client_type); ?>">
+                                                
+                                                <div class="form-group">
+                                                    <label for="logo_type">Logo Type:</label>
+                                                        <select name="logo_type" id="logo_type">
+                                                            <option value="same" <?php selected($logo_type, 'same'); ?>>Same</option>
+                                                            <option value="chest_only" <?php selected($logo_type, 'chest_only'); ?>>Chest only</option>
+                                                            <option value="big_front" <?php selected($logo_type, 'big_front'); ?>>Big front</option>
+                                                            <option value="custom_back" <?php selected($logo_type, 'custom_back'); ?>>Custom back</option>
+                                                        </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="mini_url">Mini URL:</label>
+                                                    <input type="text" name="mini_url" id="mini_url" value="<?php echo esc_attr($mini_url); ?>" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="mini_header">Mini Header:</label>
+                                                    <input type="text" name="mini_header" id="mini_header" value="<?php echo esc_attr($mini_header); ?>" />
+                                                </div>
+                                            </div>
                                         </form>
-                                        <button type="button" id="update-order-client" class="ml_add_loading" data-client_id=""><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+                                        <button type="button" id="update-order-client" class="ml_add_loading" data-client_id="<?php echo esc_attr($client_id); ?>"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
                                     </div>
                                 </div>
                                 <?php endif; ?>
                             </div>
                             <div class="om__orderSummeryTwo">
-                                <?php if (!ml_current_user_contributor()): ?>
+                                <?php if (!is_current_user_contributor()): ?>
                                 <div class="shipping_method_update_box">
                                     <div class="shipping_method_title">
                                         <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
@@ -186,7 +230,7 @@ $clients = $createOrder->fetch_clients_data();
                         </div>
                     </div>
 
-                    <?php if (!ml_current_user_contributor()): ?>
+                    <?php if (!is_current_user_contributor()): ?>
                     <div class="om__general_notes_cont">
                         <h4><?php echo esc_html__('Order Note', 'hello-elementor'); ?></h4>
                         <div
@@ -381,15 +425,23 @@ $clients = $createOrder->fetch_clients_data();
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal"><?php echo esc_html__('Add Product', 'hello-elementor'); ?></button>
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         <?php endif; ?>
-                        <?php if (ml_current_user_contributor() || is_current_user_admin()): ?>
-                            <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
+                        <?php if (is_current_user_contributor() || is_current_user_admin()): ?>
+                            <button type="button" id="missingInfoOpenModal" class=" allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
                             <button type="button" data-status="Mockups Done" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
+                            <div id="missingInfoConfirmationModal" class="om__ConfirmationModal mfp-hide">
+                                <h5><?php echo esc_html__('Describe what informations are missing.', 'hello-elementor'); ?></h5>
+                                <textarea name="missing-info" class="designer_missing_info_text" placeholder="Write your message"></textarea><br><br>
+                                <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('SEND', 'hello-elementor'); ?></button>
+
+                                <button type="button" class="allarnd--regular-button"
+                                    id="printLabelCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                            </div>
                         <?php endif; ?>
                         
                         <?php if (is_current_user_author() || is_current_user_admin()): ?>
                             <button type="button" class="allarnd--regular-button ml_add_loading"
                                 id="printLabelOpenModal"><?php echo esc_html__('Print Label', 'hello-elementor'); ?></button>
-                            <div id="printLabelConfirmationModal" class="printLabelConfirmationModal mfp-hide">
+                            <div id="printLabelConfirmationModal" class="om__ConfirmationModal mfp-hide">
                                 <h5>Are you sure the order is 100% finalized? </h5>
                                 <p>Please re-check all the order.</p>
                                 <button type="button" class="allarnd--regular-button ml_add_loading" id="printLabelSendWebhook"><?php echo esc_html__('YES - IT\'S READY', 'hello-elementor'); ?></button>
@@ -399,17 +451,15 @@ $clients = $createOrder->fetch_clients_data();
                     </div>
                 </div>
 
-                <?php if (!is_current_user_author()): ?>
+                <?php if (is_current_user_admin()): ?>
                 <div class="mockup-revision-activity-container">
 
-                    <?php if (!ml_current_user_contributor()): ?>
                     <div class="mockup-proof-admin-comments">
                         <div class="form-group">
                             <label for="mockup-proof-comments">Mockup Comments</label>
                             <input type="text" name="mockup-proof-comments" id="mockup-proof-comments" placeholder="Mockup Comments">
                         </div>
                     </div>
-                    <?php endif; ?>
 
                     <h4>היסטוריית שינויים</h4>
                     <div class="revision-activities-all">
