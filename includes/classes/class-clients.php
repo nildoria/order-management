@@ -106,7 +106,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'address_number',
+            'postcode',
             'phone',
             'city',
             'status',
@@ -314,7 +314,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'address_number',
+            'postcode',
             'phone',
             'city',
             'status',
@@ -523,13 +523,7 @@ class AllAroundClientsDB
             // update client_id to the order post
             update_post_meta($post_id, 'client_id', $client_id);
 
-            // wp_send_json_success(
-            //     array(
-            //         "message_type" => 'reqular',
-            //         "message" => "Client $client_id successfully updated."
-            //     )
-            // );
-            // wp_die();
+            return;
         }
 
         $name = $this->createFullName($first_name, $last_name);
@@ -595,6 +589,7 @@ class AllAroundClientsDB
             'subscribed' => !empty($subscribed) ? $subscribed : 'yes',
             'token' => get_post_meta($post->ID, 'token', true),
             'address_1' => get_post_meta($post->ID, 'address_1', true),
+            'postcode' => get_post_meta($post->ID, 'postcode', true),
             'city' => get_post_meta($post->ID, 'city', true),
             'dark_logo' => get_post_meta($post->ID, 'dark_logo', true),
             'lighter_logo' => get_post_meta($post->ID, 'lighter_logo', true),
@@ -668,8 +663,12 @@ class AllAroundClientsDB
         <p><b>Shipping details:</b></p>
         <hr>
         <p>
-            <label for="address_1">Address:</label><br>
+            <label for="address_1">Street Address:</label><br>
             <input type="text" name="address_1" id="address_1" value="<?php echo esc_attr($fields['address_1']); ?>" />
+        </p>
+        <p>
+            <label for="postcode">Street Number:</label><br>
+            <input type="text" name="postcode" id="postcode" value="<?php echo esc_attr($fields['postcode']); ?>" />
         </p>
         <p>
             <label for="city">City:</label><br>
@@ -785,6 +784,7 @@ class AllAroundClientsDB
             'subscribed',
             'token',
             'address_1',
+            'postcode',
             'city',
             'dark_logo',
             'lighter_logo',

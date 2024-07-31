@@ -1842,10 +1842,28 @@
     });
   });
 
-  // Open Modal on click of #printLabelOpenModal
+  // Open Modal on click of #sendProofOpenModal
+  $("#sendProofOpenModal").magnificPopup({
+    items: {
+      src: "#sendProofConfirmationModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
+  // Open Modal on click of #missingInfoOpenModal
   $("#missingInfoOpenModal").magnificPopup({
     items: {
       src: "#missingInfoConfirmationModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
+  // Open Modal on click of #mockupDoneOpenModal
+  $("#mockupDoneOpenModal").magnificPopup({
+    items: {
+      src: "#mockupDoneConfirmationModal",
       type: "inline",
     },
     closeBtnInside: true,
@@ -1858,6 +1876,11 @@
       type: "inline",
     },
     closeBtnInside: true,
+  });
+
+  // Close the modal on click of #printLabelCancel
+  $(".confmodalCancel").on("click", function () {
+    $.magnificPopup.close();
   });
 
   // Close the modal on click of #printLabelCancel

@@ -24,6 +24,7 @@ restrict_access_to_logged_in_users();
             'subscribed' => !empty($subscribed) ? $subscribed : 'yes',
             'token' => get_post_meta($client_id, 'token', true),
             'address_1' => get_post_meta($client_id, 'address_1', true),
+            'postcode' => get_post_meta($client_id, 'postcode', true),
             'city' => get_post_meta($client_id, 'city', true),
             'dark_logo' => get_post_meta($client_id, 'dark_logo', true),
             'lighter_logo' => get_post_meta($client_id, 'lighter_logo', true),
@@ -86,9 +87,16 @@ restrict_access_to_logged_in_users();
                         <br>
 
                         <div class="form-group">
-                            <label for="address">Address:</label>
+                            <label for="address">Street Address:</label>
                             <input type="text" id="address" name="address_1"
                                 value="<?php echo esc_attr($fields['address_1']); ?>">
+                        </div>
+                        <br>
+
+                        <div class="form-group">
+                            <label for="postcode">Street Number:</label>
+                            <input type="text" id="postcode" name="postcode"
+                                value="<?php echo esc_attr($fields['postcode']); ?>">
                         </div>
                         <br>
 
