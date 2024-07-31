@@ -47,8 +47,13 @@ restrict_access_to_logged_in_users();
                     </div>
                     <br>
                     <div class="form-group">
-                        <label for="address">Address:</label>
+                        <label for="address">Street Address:</label>
                         <input type="text" id="address" name="address_1">
+                    </div>
+                    <br>
+                    <div class="form-group">
+                        <label for="postcode">Street Number:</label>
+                        <input type="text" id="postcode" name="postcode">
                     </div>
                     <br>
 

@@ -304,27 +304,27 @@ $clients = $createOrder->fetch_clients_data();
                                     value="<?php echo esc_html($order_shipping['first_name']); ?>">
                             </div>
                             <div class="om__orderShippingDetailsItem">
-                                <label for="shipping_first_name">Last Name</label>
+                                <label for="shipping_last_name">Last Name</label>
                                 <input type="text" id="shipping_last_name" name="shipping_last_name"
                                     value="<?php echo esc_html($order_shipping['last_name']); ?>">
                             </div>
                             <div class="om__orderShippingDetailsItem orderShippingFieldLong">
-                                <label for="shipping_first_name">Phone</label>
+                                <label for="shipping_phone">Phone</label>
                                 <input type="text" id="shipping_phone" name="shipping_phone"
                                     value="<?php echo esc_html($order_shipping['phone']); ?>">
                             </div>
                             <div class="om__orderShippingDetailsItem">
-                                <label for="shipping_first_name">Street Address</label>
+                                <label for="shipping_address_1">Street Address</label>
                                 <input type="text" id="shipping_address_1" name="shipping_address_1"
                                     value="<?php echo esc_html($order_shipping['address_1']); ?>">
                             </div>
                             <div class="om__orderShippingDetailsItem">
-                                <label for="shipping_first_name">Street Number</label>
+                                <label for="shipping_postcode">Street Number</label>
                                 <input type="text" id="shipping_postcode" name="shipping_postcode"
                                     value="<?php echo esc_html($order_shipping['postcode']); ?>">
                             </div>
                             <div class="om__orderShippingDetailsItem">
-                                <label for="shipping_first_name">City</label>
+                                <label for="shipping_city">City</label>
                                 <input type="text" id="shipping_city" name="shipping_city"
                                     value="<?php echo esc_html($order_shipping['city']); ?>">
                             </div>
@@ -423,18 +423,36 @@ $clients = $createOrder->fetch_clients_data();
                     <div class="om__afterTable_buttonSet">
                         <?php if (is_current_user_admin()): ?>
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal"><?php echo esc_html__('Add Product', 'hello-elementor'); ?></button>
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" id="sendProofOpenModal"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                            
+                            <div id="sendProofConfirmationModal" class="om__ConfirmationModal mfp-hide">
+                                <h5><?php echo esc_html__('Are you sure the proofs are ready?', 'hello-elementor'); ?></h5>
+                                <p>Please confirm before sending.</p>
+                                <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                            
+                                <button type="button"
+                                    class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                            </div>
                         <?php endif; ?>
                         <?php if (is_current_user_contributor() || is_current_user_admin()): ?>
-                            <button type="button" id="missingInfoOpenModal" class=" allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
-                            <button type="button" data-status="Mockups Done" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
+                            <button type="button" id="missingInfoOpenModal" class="allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
+                            
                             <div id="missingInfoConfirmationModal" class="om__ConfirmationModal mfp-hide">
                                 <h5><?php echo esc_html__('Describe what informations are missing.', 'hello-elementor'); ?></h5>
-                                <textarea name="missing-info" class="designer_missing_info_text" placeholder="Write your message"></textarea><br><br>
-                                <button type="button" data-status="Missing info" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('SEND', 'hello-elementor'); ?></button>
+                                <textarea name="missing-info" class="designer_missing_info_text"
+                                    placeholder="Write your message"></textarea><br><br>
+                                <button type="button" data-status="Missing info"
+                                    class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('SEND', 'hello-elementor'); ?></button>
+                            
+                                <button type="button" class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                            </div>
+                            <button type="button" id="mockupDoneOpenModal" class="allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
 
-                                <button type="button" class="allarnd--regular-button"
-                                    id="printLabelCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                            <div id="mockupDoneConfirmationModal" class="om__ConfirmationModal mfp-hide">
+                                <h5><?php echo esc_html__('Are you sure All Mockups Uploaded successfully?', 'hello-elementor'); ?></h5><br>
+                                <button type="button" data-status="Mockups Done" class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('YES UPLOADED', 'hello-elementor'); ?></button>
+
+                                <button type="button" class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
                             </div>
                         <?php endif; ?>
                         

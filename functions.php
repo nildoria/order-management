@@ -1171,10 +1171,20 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
     $client_details = isset($order_data['billing']) ? $order_data['billing'] : array();
     $total_price = 0;
 
+    // Calculate total price from items
     if (isset($order_data['items']) && is_array($order_data['items'])) {
         foreach ($order_data['items'] as $item) {
             if (isset($item['total'])) {
                 $total_price += floatval($item['total']);
+            }
+        }
+    }
+
+    // Add shipping cost if available
+    if (isset($order_data['shipping_lines']) && is_array($order_data['shipping_lines'])) {
+        foreach ($order_data['shipping_lines'] as $shipping_line) {
+            if (isset($shipping_line['total'])) {
+                $total_price += floatval($shipping_line['total']);
             }
         }
     }

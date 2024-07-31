@@ -862,13 +862,15 @@ input#fetchProductList {
   font-size: 16px;
   margin-bottom: 25px;
 }
-#printLabelCancel {
-  background-color: #a91d3a;
-  min-width: 100px;
-  margin-left: 10px;
-  color: #fff;
+#printLabelCancel,
+.confmodalCancel {
+  background-color: #a91d3a !important;
+  min-width: 100px !important;
+  margin-left: 10px !important;
+  color: #fff !important;
 }
-#printLabelCancel:hover {
+#printLabelCancel:hover,
+.confmodalCancel:hover {
   background-color: #c93652 !important;
 }
 .om_headin_titles {

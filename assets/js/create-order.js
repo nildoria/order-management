@@ -468,6 +468,7 @@ jQuery(document).ready(function ($) {
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
+      postcode: $("#billing_postcode").val(),
       company: $("#billing_company").val(),
       city: $("#billing_city").val(),
       country: $("#billing_country").val() || "Israel",
@@ -524,6 +525,7 @@ jQuery(document).ready(function ($) {
       first_name: billing.first_name,
       last_name: billing.last_name,
       address_1: billing.address_1,
+      postcode: billing.postcode,
       company: billing.company,
       city: billing.city,
       country: billing.country,
@@ -540,9 +542,6 @@ jQuery(document).ready(function ($) {
       data: orderData,
       success: function (response) {
         if (response.success) {
-          alert(
-            "Order created successfully. Order ID: " + response.data.order_id
-          );
           // Clear the cart
           $(".content-cart ul").empty();
           $(".cart-total-number").text("0");
@@ -577,7 +576,7 @@ jQuery(document).ready(function ($) {
     if (root_domain.includes(".test")) {
       // Webhook URL for test environment
       jwtToken =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjE4MTg4ODcsIm5iZiI6MTcyMTgxODg4NywiZXhwIjoxNzIyNDIzNjg3LCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.yVDwkfyLoFGakhbH6bGfrptsu3_AQRMlZ37nIN7D6Y4";
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjI0MjQzOTUsIm5iZiI6MTcyMjQyNDM5NSwiZXhwIjoxNzIzMDI5MTk1LCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.GqYWpHlTYURZtx45zsV6TZV6-FXK7IJHvmHFPXJPwIQ";
     } else {
       // Webhook URL for production environment
       jwtToken =
@@ -596,8 +595,8 @@ jQuery(document).ready(function ($) {
       },
       success: function (response) {
         console.log("Order post created successfully:", response);
-        alert("Order post created successfully!");
-        // location.reload();
+        alert("New Order created successfully!");
+        location.reload();
       },
       error: function (xhr, status, error) {
         console.error("Error creating order post:", error);
@@ -650,6 +649,7 @@ jQuery(document).ready(function ($) {
             );
             $("#billing-form #billing_company").val(client.invoice);
             $("#billing-form #billing_address_1").val(client.address_1);
+            $("#billing-form #billing_postcode").val(client.postcode);
             $("#billing-form #billing_city").val(client.city);
             $("#billing-form #billing_email").val(client.email);
             $("#billing-form #billing_phone").val(client.phone);
