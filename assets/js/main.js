@@ -30,6 +30,8 @@
       return;
     }
 
+    $("#send-proof-button").addClass("ml_loading");
+
     // Select the first <tr> element
     let firstTr = document.querySelector("tbody > tr");
 
@@ -73,6 +75,14 @@
     let imageUrlString = imageUrls.join(",");
     console.log(imageUrlString); // Outputs: url1,url2,url3...
 
+    const webhookData = {
+      om_status: "proof_sent_successfully",
+      order_id: orderId,
+      order_number: orderNumber,
+      customer_name: customerName,
+      customer_email: customerEmail,
+    };
+
     let data = {
       comment_text: commentText,
       order_id: orderId,
@@ -112,6 +122,7 @@
             background: "linear-gradient(to right, #00b09b, #96c93d)",
           },
         }).showToast();
+        $("#send-proof-button").removeClass("ml_loading");
         setTimeout(function () {
           location.reload();
         }, 1200);
@@ -127,6 +138,11 @@
     })
       .then((response) => response.json())
       .then((data) => {
+        // add the post url to the webhook data
+        webhookData.post_url = data.post_url;
+
+        // Call the function to send data to the webhook
+        sendDataToWebhook(webhookData);
         ml_send_ajax(requestData, handleResponse);
       })
       .catch((error) => {

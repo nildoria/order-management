@@ -24,7 +24,7 @@ restrict_access_to_logged_in_users();
                     <div class="form-group">
                         <label for="type">Type</label>
                         <select name="client_type" id="client_type">
-                            <option value="client">Personal</option>
+                            <option value="personal">Personal</option>
                             <option value="company">Company</option>
                         </select>
                     </div>

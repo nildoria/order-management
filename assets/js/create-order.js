@@ -580,7 +580,7 @@ jQuery(document).ready(function ($) {
     } else {
       // Webhook URL for production environment
       jwtToken =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29tLmx1a3BhbHVrLnh5eiIsImlhdCI6MTcyMTgyMzE4NywibmJmIjoxNzIxODIzMTg3LCJleHAiOjE3MjI0Mjc5ODcsImRhdGEiOnsidXNlciI6eyJpZCI6IjEifX19.r3xwKH_5RAY_JJZ-njLl7Cse_tvS8b7ng4ShUMG-1sg";
+        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29tLmx1a3BhbHVrLnh5eiIsImlhdCI6MTcyMjQ0NjkyOCwibmJmIjoxNzIyNDQ2OTI4LCJleHAiOjE3MjMwNTE3MjgsImRhdGEiOnsidXNlciI6eyJpZCI6IjEifX19.wfPM587bBd1Wljs319eJatqtbAvshWuXQj99xzb5gGE";
     }
 
     orderData.order_type = orderType;
