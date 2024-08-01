@@ -161,6 +161,9 @@ class AllAroundClientsDB
                 $this->update_post_title($client_id, $new_name);
             }
 
+            // Send data to webhook
+            $this->send_client_data_to_webhook($client_id, $filteredPostData, $old_client_type, $client_type);
+
             wp_send_json_success(
                 array(
                     "message_type" => 'reqular',
@@ -196,6 +199,9 @@ class AllAroundClientsDB
 
         update_post_meta($client_id, 'full_name', $name);
 
+        // Send data to webhook
+        $this->send_client_data_to_webhook($client_id, $filteredPostData);
+
         wp_send_json_success(
             array(
                 "message_type" => 'reqular',
@@ -204,6 +210,68 @@ class AllAroundClientsDB
         );
         wp_die();
 
+    }
+
+    /**
+     * Send client data to webhook
+     */
+    private function send_client_data_to_webhook($client_id, $client_data, $old_client_type = '', $client_type = '')
+    {
+        $root_domain = home_url();
+        $webhook_url = "";
+
+        if (strpos($root_domain, '.test') !== false) {
+            $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+        } else {
+            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+        }
+
+        // Set default om_status
+        $om_status = 'client_created';
+
+        // Include all company fields if the client type is "company"
+        if ($client_type === 'company' && $old_client_type !== $client_type) {
+            $company_specific_fields = [
+                'dark_logo',
+                'lighter_logo',
+                'back_light',
+                'back_dark',
+                'logo_type',
+                'mini_url',
+                'mini_header',
+                'logo'
+            ];
+
+            foreach ($company_specific_fields as $field) {
+                $client_data[$field] = get_post_meta($client_id, $field, true);
+            }
+
+            // Set om_status to client_updated if the client type changes to company
+            $om_status = 'client_updated';
+        }
+
+        $webhook_data = array(
+            'om_status' => $om_status,
+            'client_id' => $client_id,
+            'client_details' => $client_data,
+        );
+
+        $response = wp_remote_post(
+            $webhook_url,
+            array(
+                'method' => 'POST',
+                'timeout' => 30,
+                'sslverify' => false,
+                'headers' => array('Content-Type' => 'application/json'),
+                'body' => wp_json_encode($webhook_data),
+            )
+        );
+
+        if (is_wp_error($response)) {
+            error_log('Webhook request failed: ' . $response->get_error_message());
+        } else {
+            error_log('Webhook request successful: ' . $response['message']);
+        }
     }
 
     public function update_order_type_ajax()
@@ -365,6 +433,10 @@ class AllAroundClientsDB
             error_log("Updating post title for Client ID: $client_id, New Title: $name");
             $this->update_post_title($client_id, $name);
         }
+
+        // Send data to webhook
+        $this->send_client_data_to_webhook($client_id, $filteredPostData, $old_client_type, $client_type);
+
 
         wp_send_json_success(
             array(
@@ -557,6 +629,9 @@ class AllAroundClientsDB
 
         // update client_id to the order post
         update_post_meta($post_id, 'client_id', $client_id);
+
+        // Send data to webhook
+        $this->send_client_data_to_webhook($client_id, $filteredPostData);
     }
 
     public function add_custom_metabox()

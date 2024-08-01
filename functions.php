@@ -1098,7 +1098,7 @@ function create_order(WP_REST_Request $request)
     // Get the order data from the request
     $order_data = $request->get_json_params();
 
-    // error_log(print_r($order_data, true));
+    error_log(print_r($order_data, true));
 
     $order_number = isset($order_data['order_number']) ? str_replace(' ', '', sanitize_text_field($order_data['order_number'])) : '';
     $order_id = isset($order_data['order_id']) ? str_replace(' ', '', sanitize_text_field($order_data['order_id'])) : '';
@@ -1169,27 +1169,12 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
     }
 
     $client_details = isset($order_data['billing']) ? $order_data['billing'] : array();
-    $total_price = 0;
+    $total_price = isset($order_data['total']) ? $order_data['total'] : 0;
 
-    // Calculate total price from items
-    if (isset($order_data['items']) && is_array($order_data['items'])) {
-        foreach ($order_data['items'] as $item) {
-            if (isset($item['total'])) {
-                $total_price += floatval($item['total']);
-            }
-        }
-    }
-
-    // Add shipping cost if available
-    if (isset($order_data['shipping_lines']) && is_array($order_data['shipping_lines'])) {
-        foreach ($order_data['shipping_lines'] as $shipping_line) {
-            if (isset($shipping_line['total'])) {
-                $total_price += floatval($shipping_line['total']);
-            }
-        }
-    }
+    error_log('Total price: ' . $total_price);
 
     $webhook_data = array(
+        'om_status' => 'new_order',
         'order_id' => $order_id,
         'order_number' => $order_number,
         'client_details' => array(
