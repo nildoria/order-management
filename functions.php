@@ -1683,13 +1683,22 @@ function send_proof_version_cb()
     wp_die();
 }
 
-
+// ** Designer Role check ** //
 function is_current_user_contributor()
 {
     $current_user = wp_get_current_user();
     return in_array('contributor', (array) $current_user->roles);
 }
+function enable_contributor_uploads()
+{
+    $contributor = get_role('contributor');
+    $contributor->add_cap('upload_files');
+}
+add_action('admin_init', 'enable_contributor_uploads');
 
+
+
+// ** Employee Role check ** //
 function is_current_user_author()
 {
     if (current_user_can('author')) {

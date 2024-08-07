@@ -869,6 +869,38 @@ input#fetchProductList {
   margin-left: 10px !important;
   color: #fff !important;
 }
+.om__companyLogoUpload {
+  width: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  background-color: #f7f7f7;
+  padding: 20px;
+  border-radius: 7px;
+  position: relative;
+}
+.om__companyLogoUpload .om_company_logoInput_group {
+  flex: none;
+  width: calc(50% - 5px);
+}
+.om__companyLogoUpload .om_company_logoInput_group input.upload-image-button,
+.om__companyLogoUpload .om_company_logoInput_group input.remove-image-button {
+  background-image: url(../images/upload.svg);
+  background-repeat: no-repeat;
+  min-width: 46px;
+  width: 46px;
+  background-position: center;
+  background-size: 16px auto;
+}
+.om__companyLogoUpload .om_company_logoInput_group input.remove-image-button {
+  background: url(../images/bin-white.svg) no-repeat center;
+  background-color: #c93652;
+  background-size: 16px auto;
+}
+.om__companyLogoUpload .om_company_logoInput_group label {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
 #printLabelCancel:hover,
 .confmodalCancel:hover {
   background-color: #c93652 !important;
