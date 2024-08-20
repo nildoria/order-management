@@ -45,7 +45,8 @@ class AllAroundCreateOrder
         $current_domain = $_SERVER['SERVER_NAME'];
         $products_api_url = strpos($current_domain, '.test') !== false ?
             'https://allaround.test/wp-json/alarnd-main/v1/products' :
-            'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
+            'https://allaround.co.il/wp-json/alarnd-main/v1/products';
+        //TODO: For Staging 'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
 
         wp_localize_script(
             'create-order-script',
@@ -110,7 +111,9 @@ class AllAroundCreateOrder
             $current_domain = $_SERVER['SERVER_NAME'];
             $products_api_url = strpos($current_domain, '.test') !== false ?
                 'https://allaround.test/wp-json/alarnd-main/v1/products' :
-                'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
+                'https://allaround.co.il/wp-json/alarnd-main/v1/products';
+            //TODO: For Staging 
+            // 'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
 
             // Transient does not exist or expired, fetch data from API
             $response = wp_remote_get(
@@ -235,106 +238,122 @@ class AllAroundCreateOrder
 
     public function create_order_from_form()
     {
-        check_ajax_referer('create_order_nonce', 'security');
+        try {
+            check_ajax_referer('create_order_nonce', 'security');
 
-        // Get the current site URL
-        $site_url = site_url();
+            $site_url = site_url();
 
-        //TODO: This is for local testing only and for staging
-        // Set domain and credentials based on the site URL
-        if (strpos($site_url, '.test') !== false) {
-            $domain = 'https://allaround.test';
-            $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
-            $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
-        } else {
-            $domain = 'https://main.lukpaluk.xyz';
-            $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-            $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-        }
+            if (strpos($site_url, '.test') !== false) {
+                $domain = 'https://allaround.test';
+                $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
+                $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
+            } elseif (strpos($site_url, 'lukpaluk.xyz') !== false) {
+                $domain = 'https://main.lukpaluk.xyz';
+                $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+                $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+            } else {
+                $domain = 'https://allaround.co.il';
+                $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+                $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+            }
 
-        $billing = array(
-            'first_name' => sanitize_text_field($_POST['first_name']),
-            'last_name' => sanitize_text_field($_POST['last_name']),
-            'address_1' => sanitize_text_field($_POST['address_1']),
-            'postcode' => sanitize_text_field($_POST['postcode']),
-            'company' => sanitize_text_field($_POST['company']),
-            'city' => sanitize_text_field($_POST['city']),
-            'country' => !empty($_POST['country']) ? sanitize_text_field($_POST['country']) : 'Israel',
-            'email' => sanitize_email($_POST['email']),
-            'phone' => sanitize_text_field($_POST['phone']),
-        );
-        $shipping = $billing;
-        $line_items = json_decode(stripslashes($_POST['line_items']), true);
-        $shipping_method = sanitize_text_field($_POST['shipping_method']);
-        $shipping_method_title = sanitize_text_field($_POST['shipping_method_title']);
+            if (empty($domain) || empty($consumer_key) || empty($consumer_secret)) {
+                throw new Exception('Invalid environment configuration');
+            }
 
-        $shipping_total = sanitize_text_field($_POST['shipping_total']);
+            $billing = array(
+                'first_name' => sanitize_text_field($_POST['first_name']),
+                'last_name' => sanitize_text_field($_POST['last_name']),
+                'address_1' => sanitize_text_field($_POST['address_1']),
+                'postcode' => sanitize_text_field($_POST['postcode']),
+                'company' => sanitize_text_field($_POST['company']),
+                'city' => sanitize_text_field($_POST['city']),
+                'country' => !empty($_POST['country']) ? sanitize_text_field($_POST['country']) : 'Israel',
+                'email' => sanitize_email($_POST['email']),
+                'phone' => sanitize_text_field($_POST['phone']),
+            );
+            $shipping = $billing;
+            $line_items = json_decode(stripslashes($_POST['line_items']), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Error decoding line items: ' . json_last_error_msg());
+            }
+            $shipping_method = sanitize_text_field($_POST['shipping_method']);
+            $shipping_method_title = sanitize_text_field($_POST['shipping_method_title']);
+            $shipping_total = sanitize_text_field($_POST['shipping_total']);
 
-        foreach ($line_items as &$item) {
-            foreach ($item['meta_data'] as &$meta) {
-                if ($meta['key'] === 'Attachment') {
-                    $artwork_urls = json_decode($meta['value'], true);
-                    // Check if the value is an array and not empty
-                    if (!empty($artwork_urls) && is_array($artwork_urls)) {
-                        $meta['value'] = ''; // Initialize as empty string to concatenate multiple artworks
-                        foreach ($artwork_urls as $artwork_url) {
-                            // Extract the file extension
-                            $extension = pathinfo($artwork_url, PATHINFO_EXTENSION);
-                            // Create the HTML content for each artwork with dynamic class based on file extension
-                            $meta['value'] .= "<p>" . basename($artwork_url) . "</p><a href=\"" . $artwork_url . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_url . "\" /></a>";
+            foreach ($line_items as &$item) {
+                foreach ($item['meta_data'] as &$meta) {
+                    if ($meta['key'] === 'Attachment') {
+                        $artwork_urls = json_decode($meta['value'], true);
+                        if (!empty($artwork_urls) && is_array($artwork_urls)) {
+                            $meta['value'] = '';
+                            foreach ($artwork_urls as $artwork_url) {
+                                $extension = pathinfo($artwork_url, PATHINFO_EXTENSION);
+                                $meta['value'] .= "<p>" . basename($artwork_url) . "</p><a href=\"" . esc_url($artwork_url) . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . esc_url($artwork_url) . "\" /></a>";
+                            }
+                        } elseif (!empty($artwork_urls)) {
+                            $extension = pathinfo($artwork_urls, PATHINFO_EXTENSION);
+                            $meta['value'] = "<p>" . basename($artwork_urls) . "</p><a href=\"" . esc_url($artwork_urls) . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . esc_url($artwork_urls) . "\" /></a>";
                         }
-                    } elseif (!empty($artwork_urls)) { // Handle single artwork URL (not an array)
-                        // Extract the file extension for single URL
-                        $extension = pathinfo($artwork_urls, PATHINFO_EXTENSION);
-                        $meta['value'] = "<p>" . basename($artwork_urls) . "</p><a href=\"" . $artwork_urls . "\" target=\"_blank\"><img class=\"alarnd__artwork_img\" src=\"" . $artwork_urls . "\" /></a>";
                     }
                 }
             }
-        }
 
-        $order_data = array(
-            'payment_method' => 'zcredit_checkout_payment',
-            'payment_method_title' => 'Secure Credit Card Payment',
-            'set_paid' => true,
-            'billing' => $billing,
-            'shipping' => $shipping,
-            'line_items' => $line_items,
-            'shipping_lines' => array(
-                array(
-                    'method_id' => $shipping_method,
-                    'method_title' => $shipping_method_title,
-                    'total' => strval($shipping_total)
+            $order_data = array(
+                'payment_method' => 'zcredit_checkout_payment',
+                'payment_method_title' => 'Secure Credit Card Payment',
+                'set_paid' => true,
+                'billing' => $billing,
+                'shipping' => $shipping,
+                'line_items' => $line_items,
+                'shipping_lines' => array(
+                    array(
+                        'method_id' => $shipping_method,
+                        'method_title' => $shipping_method_title,
+                        'total' => strval($shipping_total)
+                    )
                 )
-            )
-        );
+            );
 
-        // Send order data to the specified domain
-        $response = wp_remote_post(
-            "$domain/wp-json/wc/v3/orders",
-            array(
-                'method' => 'POST',
-                'headers' => array(
-                    'Content-Type' => 'application/json',
-                    'Authorization' => 'Basic ' . base64_encode("$consumer_key:$consumer_secret")
-                ),
-                'body' => json_encode($order_data),
-                'sslverify' => false
-            )
-        );
+            $response = wp_remote_post(
+                "$domain/wp-json/wc/v3/orders",
+                array(
+                    'method' => 'POST',
+                    'headers' => array(
+                        'Content-Type' => 'application/json',
+                        'Authorization' => 'Basic ' . base64_encode("$consumer_key:$consumer_secret")
+                    ),
+                    'body' => json_encode($order_data),
+                    'sslverify' => false
+                )
+            );
 
-        if (is_wp_error($response)) {
-            wp_send_json_error('Error creating order: ' . $response->get_error_message());
-        } else {
+            if (is_wp_error($response)) {
+                throw new Exception('Error creating order: ' . $response->get_error_message());
+            }
+
             $body = wp_remote_retrieve_body($response);
             $data = json_decode($body, true);
-            if (isset($data['id'])) {
-                $data['order_id'] = $data['id'];
-                $data['order_number'] = $data['number'];
-                $data['site_url'] = $domain;
-                wp_send_json_success($data);
-            } else {
-                wp_send_json_error('Failed to create order: ' . $data['message']);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Error decoding API response: ' . json_last_error_msg());
             }
+
+            if (!isset($data['id']) || !isset($data['number'])) {
+                throw new Exception('Invalid response from WooCommerce API: Missing order ID or number');
+            }
+
+            $result = array(
+                'order_id' => $data['id'],
+                'order_number' => $data['number'],
+                'site_url' => $domain
+            );
+
+            wp_send_json_success($result);
+
+        } catch (Exception $e) {
+            error_log('Error in create_order_from_form: ' . $e->getMessage());
+            wp_send_json_error('An error occurred while processing your order. Please try again later.');
         }
     }
 

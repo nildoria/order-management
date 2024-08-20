@@ -499,6 +499,10 @@ jQuery(document).ready(function ($) {
     event.preventDefault();
     const modal = $(this).closest(".product-details-modal");
 
+    const post_id = $("#post_id").val();
+    const client_id = $("#add-item-modal").data("client_id");
+    const order_source = $("#om__order_source").data("order_source");
+
     $("#addNewItemButton").addClass("ml_loading");
 
     const isGroupedProduct = $(this).hasClass(
@@ -551,7 +555,6 @@ jQuery(document).ready(function ($) {
         quantity: quantity,
         alarnd_color: selectedColor,
         subtotal: subTotalPrice,
-        // allaround_art_pos: $("#new_product_art_pos").val(),
         allaround_instruction_note: instructionNote,
         alarnd_artwork: artworkUrl,
         order_id: alarnd_add_item_vars.order_id,
@@ -583,15 +586,43 @@ jQuery(document).ready(function ($) {
     })
       .then((response) => {
         if (response.ok) {
-          ml_send_ajax(requestData, handleResponse);
+          return response.json(); // Parse the JSON response
         } else {
-          return response.json();
+          return response.json().then((data) => {
+            throw new Error(data.message || "Something went wrong");
+          });
         }
       })
       .then((data) => {
-        if (data) {
-          alert("Failed to add item: " + data.message);
-        }
+        // Use the message and newly_added_total from the response
+        // console.log("Client ID:", client_id);
+        // console.log("Order Source:", order_source);
+
+        // console.log("Response message:", data.message);
+        // console.log("Newly Added Total:", data.newly_added_total);
+
+        // Prepare data to send to the server to handle order source
+        const handleOrderSourceData = {
+          action: "handle_order_source_action",
+          post_id: post_id,
+          client_id: client_id,
+          order_source: order_source,
+          total_price: data.newly_added_total,
+        };
+
+        // Send data to the server via AJAX
+        $.post(
+          alarnd_add_item_vars.ajax_url,
+          handleOrderSourceData,
+          function (response) {
+            console.log("Order source handled successfully:", response);
+          }
+        ).fail(function (error) {
+          console.error("Error handling order source:", error);
+          alert("Error handling order source: " + error.statusText);
+        });
+
+        ml_send_ajax(requestData, handleResponse);
       })
       .catch((error) => {
         console.error("Error:", error);

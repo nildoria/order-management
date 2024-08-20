@@ -24,7 +24,6 @@
     let customerEmail = allaround_vars.customer_email;
     let commentText = $("#mockup-proof-comments").val() || "";
 
-    let mainTable = document.getElementById("tableMain");
     if (!mainTable) {
       alert("Nothing to send! Please add Mockup to the order.");
       return;
@@ -179,6 +178,10 @@
     let item_id = $(this).siblings('input[name="item_id"]').val();
     let order_domain = allaround_vars.order_domain;
 
+    const post_id = allaround_vars.post_id;
+    const client_id = $("#client-select").val();
+    const order_source = $("#om__order_source").data("order_source");
+
     $(".sitewide_spinner").addClass("loading");
 
     // Debugging
@@ -213,15 +216,43 @@
     })
       .then((response) => {
         if (response.ok) {
-          ml_send_ajax(requestData, handleResponse);
+          return response.json(); // Parse the JSON response
         } else {
-          return response.json();
+          return response.json().then((data) => {
+            throw new Error(data.message || "Something went wrong");
+          });
         }
       })
       .then((data) => {
-        if (data) {
-          alert("Failed to duplicate item: " + data.message);
-        }
+        // Use the message and newly_added_total from the response
+        console.log("Client ID:", client_id);
+        console.log("Order Source:", order_source);
+
+        console.log("Response message:", data.message);
+        console.log("Newly Added Total:", data.newly_added_total);
+
+        // Prepare data to send to the server to handle order source
+        const handleOrderSourceData = {
+          action: "handle_order_source_action",
+          post_id: post_id,
+          client_id: client_id,
+          order_source: order_source,
+          total_price: data.newly_added_total,
+        };
+
+        // Send data to the server via AJAX
+        $.post(
+          allaround_vars.ajax_url,
+          handleOrderSourceData,
+          function (response) {
+            console.log("Order source handled successfully:", response);
+          }
+        ).fail(function (error) {
+          console.error("Error handling order source:", error);
+          alert("Error handling order source: " + error.statusText);
+        });
+
+        ml_send_ajax(requestData, handleResponse);
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -237,6 +268,10 @@
     let order_id = allaround_vars.order_id;
     let item_id = $(this).siblings('input[name="item_id"]').val();
     let order_domain = allaround_vars.order_domain;
+
+    const post_id = allaround_vars.post_id;
+    const client_id = $("#client-select").val();
+    const order_source = $("#om__order_source").data("order_source");
 
     $(".sitewide_spinner").addClass("loading");
 
@@ -272,15 +307,43 @@
     })
       .then((response) => {
         if (response.ok) {
-          ml_send_ajax(requestData, handleResponse);
+          return response.json(); // Parse the JSON response
         } else {
-          return response.json();
+          return response.json().then((data) => {
+            throw new Error(data.message || "Something went wrong");
+          });
         }
       })
       .then((data) => {
-        if (data) {
-          alert("Failed to delete item: " + data.message);
-        }
+        // Use the message and deleted_item_total from the response
+        console.log("Client ID:", client_id);
+        console.log("Order Source:", order_source);
+
+        console.log("Response message:", data.message);
+        console.log("Newly Added Total:", data.deleted_item_total);
+
+        // Prepare data to send to the server to handle order source
+        const handleOrderSourceData = {
+          action: "handle_order_source_action",
+          post_id: post_id,
+          client_id: client_id,
+          order_source: order_source,
+          total_price: data.deleted_item_total,
+        };
+
+        // Send data to the server via AJAX
+        $.post(
+          allaround_vars.ajax_url,
+          handleOrderSourceData,
+          function (response) {
+            console.log("Order source handled successfully:", response);
+          }
+        ).fail(function (error) {
+          console.error("Error handling order source:", error);
+          alert("Error handling order source: " + error.statusText);
+        });
+
+        ml_send_ajax(requestData, handleResponse);
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -1859,12 +1922,36 @@
   });
 
   // Open Modal on click of #sendProofOpenModal
-  $("#sendProofOpenModal").magnificPopup({
-    items: {
-      src: "#sendProofConfirmationModal",
-      type: "inline",
-    },
-    closeBtnInside: true,
+  $("#sendProofOpenModal").on("click", function (e) {
+    e.preventDefault();
+
+    var orderType = $("#order_type").val();
+
+    // Check if #order_type value is empty
+    if (!orderType) {
+      alert("Select an Order Type first to proceed.");
+      return;
+    }
+
+    // If #order_type value is 'company', check #mini_url and #mini_header fields
+    if (orderType === "company") {
+      var miniUrl = $("#mini_url").val();
+      var miniHeader = $("#mini_header").val();
+
+      if (!miniUrl || !miniHeader) {
+        alert("Fill the client's Business fields.");
+        return;
+      }
+    }
+
+    // Open the modal if all checks pass
+    $.magnificPopup.open({
+      items: {
+        src: "#sendProofConfirmationModal",
+        type: "inline",
+      },
+      closeBtnInside: true,
+    });
   });
 
   // Open Modal on click of #missingInfoOpenModal
@@ -1877,12 +1964,36 @@
   });
 
   // Open Modal on click of #mockupDoneOpenModal
-  $("#mockupDoneOpenModal").magnificPopup({
-    items: {
-      src: "#mockupDoneConfirmationModal",
-      type: "inline",
-    },
-    closeBtnInside: true,
+  $("#mockupDoneOpenModal").on("click", function (e) {
+    e.preventDefault();
+
+    var orderType = $("#order_type").val();
+
+    // Check if #order_type value is empty
+    if (!orderType) {
+      alert("Select an Order Type first to proceed.");
+      return;
+    }
+
+    // If #order_type value is 'company', check #mini_url and #mini_header fields
+    if (orderType === "company") {
+      var miniUrl = $("#mini_url").val();
+      var miniHeader = $("#mini_header").val();
+
+      if (!miniUrl || !miniHeader) {
+        alert("Fill the client's Business fields.");
+        return;
+      }
+    }
+
+    // Open the modal if all checks pass
+    $.magnificPopup.open({
+      items: {
+        src: "#mockupDoneConfirmationModal",
+        type: "inline",
+      },
+      closeBtnInside: true,
+    });
   });
 
   // Open Modal on click of #printLabelOpenModal
@@ -1904,6 +2015,28 @@
     $.magnificPopup.close();
   });
 
+  // check the length of tableMain
+  if ($("#tableMain").length) {
+    // Disable OM events if status is 'completed' or 'static'
+    if (
+      tableMain.getAttribute("data-order_status") === "completed" ||
+      tableMain.getAttribute("data-order_status") === "static"
+    ) {
+      $(".om__orderShippingDetails").hide();
+      $(".om__companyLogoUpload").hide();
+      $(".om__ordernoteContainer").hide();
+
+      $("#order_mngmnt_headings").css("pointer-events", "none");
+      $("#order_mngmnt_headings").css("opacity", "0.6");
+
+      $(".om__afterTable_buttonSet").css("pointer-events", "none");
+      $(".om__afterTable_buttonSet").css("opacity", "0.6");
+
+      $("#tableMain .om__orderRow").css("pointer-events", "none");
+      // $("#tableMain .om__orderRow").css("opacity", "0.6");
+    }
+  }
+
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/
 
@@ -1911,8 +2044,20 @@
 document.addEventListener("DOMContentLoaded", function () {
   // Use a parent element that exists when the DOM is loaded
   let orderId = allaround_vars.order_id;
+  let selfHostedManualOrder = document.querySelector(
+    ".om__selfHostedManualOrder"
+  );
   let mainTable = document.getElementById("tableMain");
-  if (!mainTable) return;
+  if (!mainTable || selfHostedManualOrder) return;
+
+  // Get the data-order_status attribute value
+  var orderStatus = tableMain.getAttribute("data-order_status");
+
+  // Set the text content of the element with the ID 'om__orderStatus'
+  var orderStatusElement = document.getElementById("om__orderStatus");
+  if (orderStatusElement) {
+    orderStatusElement.textContent = orderStatus;
+  }
 
   // Function to check if the current user is an Employee
   function isEmployee() {

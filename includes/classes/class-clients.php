@@ -143,7 +143,10 @@ class AllAroundClientsDB
                 $this->update_post_title($client_id, $name);
             }
 
-            $this->send_client_data_to_webhook($client_id, $filteredPostData, $old_client_type, $client_type);
+            // Set om_status
+            $om_status = 'client_profile_updated';
+
+            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
 
             return new WP_REST_Response(
                 array(
@@ -168,7 +171,10 @@ class AllAroundClientsDB
 
         update_post_meta($client_id, 'full_name', $name);
 
-        $this->send_client_data_to_webhook($client_id, $filteredPostData);
+        // Set om_status
+        $om_status = 'client_profile_created';
+
+        $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status);
 
         return new WP_REST_Response(
             array(
@@ -189,8 +195,14 @@ class AllAroundClientsDB
             return new WP_Error('invalid_client', 'Invalid client ID.', array('status' => 400));
         }
 
+
         // Update the minisite_id in the client meta
         update_post_meta($client_id, 'minisite_id', $minisite_id);
+
+        //Update Minisite Created Meta
+        if ($minisite_id || $client_id) {
+            update_post_meta($client_id, 'minisite_created', 'yes');
+        }
 
         // Return success response
         return new WP_REST_Response(
@@ -338,8 +350,11 @@ class AllAroundClientsDB
                 $this->update_post_title($client_id, $new_name);
             }
 
+            // Set om_status
+            $om_status = 'client_profile_updated';
+
             // Send data to webhook
-            $this->send_client_data_to_webhook($client_id, $filteredPostData, $old_client_type, $client_type);
+            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
 
             wp_send_json_success(
                 array(
@@ -376,8 +391,11 @@ class AllAroundClientsDB
 
         update_post_meta($client_id, 'full_name', $name);
 
+        // Set om_status
+        $om_status = 'client_profile_created';
+
         // Send data to webhook
-        $this->send_client_data_to_webhook($client_id, $filteredPostData);
+        $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status);
 
         wp_send_json_success(
             array(
@@ -392,7 +410,7 @@ class AllAroundClientsDB
     /**
      * Send client data to webhook
      */
-    private function send_client_data_to_webhook($client_id, $client_data, $old_client_type = '', $client_type = '')
+    private function send_client_data_to_webhook($client_id, $client_data, $om_status, $old_client_type = '', $client_type = '')
     {
         $root_domain = home_url();
         $webhook_url = "";
@@ -400,11 +418,8 @@ class AllAroundClientsDB
         if (strpos($root_domain, '.test') !== false) {
             $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
         } else {
-            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3----xxxx";
         }
-
-        // Set default om_status
-        $om_status = 'client_created';
 
         // Include all company fields if the client type is "company"
         if ($client_type === 'company' && $old_client_type !== $client_type) {
@@ -422,9 +437,6 @@ class AllAroundClientsDB
             foreach ($company_specific_fields as $field) {
                 $client_data[$field] = get_post_meta($client_id, $field, true);
             }
-
-            // Set om_status to client_updated if the client type changes to company
-            $om_status = 'client_updated';
         }
 
         // Remove the 'token' field from client_data if it exists
@@ -514,6 +526,7 @@ class AllAroundClientsDB
         check_ajax_referer('client_nonce', 'nonce');
 
         $client_id = intval($_POST['client_id']);
+        $post_id = intval($_POST['post_id']);
         $dark_logo = sanitize_text_field($_POST['dark_logo']);
         $lighter_logo = sanitize_text_field($_POST['lighter_logo']);
         $back_light = sanitize_text_field($_POST['back_light']);
@@ -553,6 +566,35 @@ class AllAroundClientsDB
             update_post_meta($client_id, 'back_light', $back_light);
             update_post_meta($client_id, 'back_dark', $back_dark);
 
+            // If post_id exists, update _order_designer_extra_attachments
+            if ($post_id) {
+                // Fetch attachment IDs for dark and lighter logos
+                $dark_logo_id = attachment_url_to_postid($dark_logo);
+                $lighter_logo_id = attachment_url_to_postid($lighter_logo);
+
+                // Prepare the attachments array
+                $order_extra_attachments = array();
+
+                if ($dark_logo_id) {
+                    $order_extra_attachments[] = array(
+                        'id' => $dark_logo_id,
+                        'name' => 'Dark Logo',
+                        'url' => $dark_logo,
+                    );
+                }
+
+                if ($lighter_logo_id) {
+                    $order_extra_attachments[] = array(
+                        'id' => $lighter_logo_id,
+                        'name' => 'Lighter Logo',
+                        'url' => $lighter_logo,
+                    );
+                }
+
+                // Update _order_designer_extra_attachments meta for the post
+                update_post_meta($post_id, '_order_designer_extra_attachments', $order_extra_attachments);
+            }
+
             wp_send_json_success(
                 array(
                     "message_type" => 'regular',
@@ -569,7 +611,18 @@ class AllAroundClientsDB
         }
     }
 
-
+    // Function to retrieve attachment ID from a URL
+    private function get_attachment_id_from_url($url)
+    {
+        global $wpdb;
+        $attachment_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE guid=%s AND post_type='attachment'",
+                $url
+            )
+        );
+        return $attachment_id ? intval($attachment_id) : 0;
+    }
 
     public function update_client_ajax()
     {
@@ -657,13 +710,18 @@ class AllAroundClientsDB
         // Filter the $_POST array to include only the allowed fields
         $filteredPostData = array_intersect_key($_POST, array_flip($allowedFields));
 
+        $changedFields = array();
+
         if (isset($filteredPostData) && !empty($filteredPostData)) {
-            // error_log( print_r( $filteredPostData, true ) );
             foreach ((array) $filteredPostData as $key => $value) {
-                if ("client_type" === $key && "company" === $old_client_type) {
-                    continue;
+                $old_value = get_post_meta($client_id, $key, true);
+                if ($value !== $old_value) {
+                    $changedFields[$key] = $value;
+                    if ("client_type" === $key && "company" === $old_client_type) {
+                        continue;
+                    }
+                    $this->ml_update_postmeta($client_id, $key, $value);
                 }
-                $this->ml_update_postmeta($client_id, $key, $value);
             }
         }
 
@@ -678,8 +736,11 @@ class AllAroundClientsDB
             $this->update_post_title($client_id, $name);
         }
 
+        // Set om_status
+        $om_status = 'client_profile_updated';
+
         // Send data to webhook
-        $this->send_client_data_to_webhook($client_id, $filteredPostData, $old_client_type, $client_type);
+        $this->send_client_data_to_webhook($client_id, $changedFields, $om_status, $old_client_type, $client_type);
 
 
         wp_send_json_success(
@@ -793,6 +854,10 @@ class AllAroundClientsDB
         $first_name = isset($order_data['billing']['first_name']) ? $order_data['billing']['first_name'] : '';
         $last_name = isset($order_data['billing']['last_name']) ? $order_data['billing']['last_name'] : '';
         $email = isset($order_data['billing']['email']) ? $order_data['billing']['email'] : '';
+        // Check if order_data contains client_type, if not fall back to $_POST or default to 'personal'
+        $client_type = isset($order_data['client_type']) ? sanitize_text_field($order_data['client_type']) : (isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal');
+
+        // $client_type = isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal';
 
         $filteredPostData = $order_data['billing'];
 
@@ -835,9 +900,17 @@ class AllAroundClientsDB
 
             // Update the status to "client"
             $this->ml_update_postmeta($client_id, 'status', 'client');
+            // Update client_type meta
+            update_post_meta($client_id, 'client_type', $client_type);
 
             // update client_id to the order post
             update_post_meta($post_id, 'client_id', $client_id);
+
+            // Set om_status
+            $om_status = 'client_profile_updated';
+
+            // Send data to webhook
+            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
 
             return;
         }
@@ -870,12 +943,17 @@ class AllAroundClientsDB
 
         // Update the status to "client"
         update_post_meta($client_id, 'status', 'client');
+        // Set client_type meta
+        update_post_meta($client_id, 'client_type', $client_type);
 
         // update client_id to the order post
         update_post_meta($post_id, 'client_id', $client_id);
 
+        // Set om_status
+        $om_status = 'client_profile_created';
+
         // Send data to webhook
-        $this->send_client_data_to_webhook($client_id, $filteredPostData);
+        $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status);
     }
 
     public function add_custom_metabox()
@@ -896,6 +974,7 @@ class AllAroundClientsDB
         wp_nonce_field(basename(__FILE__), 'nonce');
 
         $subscribed = get_post_meta($post->ID, 'subscribed', true);
+        $minisite_created = get_post_meta($post->ID, 'minisite_created', true);
 
         // Get existing values
         $fields = [
@@ -920,6 +999,13 @@ class AllAroundClientsDB
             'invoice' => get_post_meta($post->ID, 'invoice', true),
             'logo' => get_post_meta($post->ID, 'logo', true),
             'minisite_id' => get_post_meta($post->ID, 'minisite_id', true),
+            'minisite_created' => !empty($minisite_created) ? $minisite_created : 'no',
+            'mainSite_orders' => get_post_meta($post->ID, 'mainSite_orders', true),
+            'mainSite_order_value' => get_post_meta($post->ID, 'mainSite_order_value', true),
+            'miniSite_orders' => get_post_meta($post->ID, 'miniSite_orders', true),
+            'miniSite_order_value' => get_post_meta($post->ID, 'miniSite_order_value', true),
+            'manual_orders' => get_post_meta($post->ID, 'manual_orders', true),
+            'manual_order_value' => get_post_meta($post->ID, 'manual_order_value', true),
         ];
 
         $token = esc_attr($fields['token']);
@@ -1073,10 +1159,55 @@ class AllAroundClientsDB
                 <img id="logo_preview" src="<?php echo esc_attr($fields['logo']); ?>"
                     style="max-width: 300px; display: <?php echo $fields['logo'] ? 'block' : 'none'; ?>;" />
             </p>
+
+            <hr>
+            <p><b>Client Table Data:</b></p>
+            <hr>
             <p>
                 <label for="minisite_id">MiniSite ID:</label><br>
                 <input type="text" name="minisite_id" id="minisite_id"
                     value="<?php echo esc_attr($fields['minisite_id']); ?>" />
+            </p>
+
+            <p>
+                <label>Minisite Created:</label><br>
+                <label><input type="radio" name="minisite_created" value="yes" <?php checked($fields['minisite_created'], 'yes'); ?> />
+                    Yes</label>
+                <label><input type="radio" name="minisite_created" value="no" <?php checked($fields['minisite_created'], 'no', true); ?> /> No</label>
+            </p>
+
+            <hr>
+            <p>
+                <label for="mainSite_orders">Main Site Orders:</label><br>
+                <input type="text" name="mainSite_orders" id="mainSite_orders"
+                    value="<?php echo esc_attr($fields['mainSite_orders']); ?>" />
+            </p>
+            <p>
+                <label for="mainSite_order_value">Main Site Order Value:</label><br>
+                <input type="text" name="mainSite_order_value" id="mainSite_order_value"
+                    value="<?php echo esc_attr($fields['mainSite_order_value']); ?>" />
+            </p>
+            <hr>
+            <p>
+                <label for="miniSite_orders">Mini Site Orders:</label><br>
+                <input type="text" name="miniSite_orders" id="miniSite_orders"
+                    value="<?php echo esc_attr($fields['miniSite_orders']); ?>" />
+            </p>
+            <p>
+                <label for="miniSite_order_value">Mini Site Order Value:</label><br>
+                <input type="text" name="miniSite_order_value" id="miniSite_order_value"
+                    value="<?php echo esc_attr($fields['miniSite_order_value']); ?>" />
+            </p>
+            <hr>
+            <p>
+                <label for="manual_orders">Manual Orders:</label><br>
+                <input type="text" name="manual_orders" id="manual_orders"
+                    value="<?php echo esc_attr($fields['manual_orders']); ?>" />
+            </p>
+            <p>
+                <label for="manual_order_value">Manual Order Value:</label><br>
+                <input type="text" name="manual_order_value" id="manual_order_value"
+                    value="<?php echo esc_attr($fields['manual_order_value']); ?>" />
             </p>
         </div>
         <?php
@@ -1121,6 +1252,13 @@ class AllAroundClientsDB
             'invoice',
             'logo',
             'minisite_id',
+            'minisite_created',
+            'mainSite_orders',
+            'mainSite_order_value',
+            'miniSite_orders',
+            'miniSite_order_value',
+            'manual_orders',
+            'manual_order_value',
         ];
 
         foreach ($fields as $field) {
