@@ -197,6 +197,13 @@ td.mockups-row {
   padding-left: 42px;
   transition: all ease 0.3s;
 }
+.om__selfHostedManualOrder td.item_quantity_column {
+  text-align: center;
+}
+.om__selfHostedManualOrder .item_total_pricee {
+  text-align: center;
+  vertical-align: middle;
+}
 /* #tableMain .item_product_column:hover {
   padding-left: 42px;
 } */
@@ -869,6 +876,38 @@ input#fetchProductList {
   margin-left: 10px !important;
   color: #fff !important;
 }
+.om__companyLogoUpload {
+  width: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  background-color: #f7f7f7;
+  padding: 20px;
+  border-radius: 7px;
+  position: relative;
+}
+.om__companyLogoUpload .om_company_logoInput_group {
+  flex: none;
+  width: calc(50% - 5px);
+}
+.om__companyLogoUpload .om_company_logoInput_group input.upload-image-button,
+.om__companyLogoUpload .om_company_logoInput_group input.remove-image-button {
+  background-image: url(../images/upload.svg);
+  background-repeat: no-repeat;
+  min-width: 46px;
+  width: 46px;
+  background-position: center;
+  background-size: 16px auto;
+}
+.om__companyLogoUpload .om_company_logoInput_group input.remove-image-button {
+  background: url(../images/bin-white.svg) no-repeat center;
+  background-color: #c93652;
+  background-size: 16px auto;
+}
+.om__companyLogoUpload .om_company_logoInput_group label {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
 #printLabelCancel:hover,
 .confmodalCancel:hover {
   background-color: #c93652 !important;
@@ -908,6 +947,26 @@ input#fetchProductList {
 }
 .om_displayOrderNotesGrid.om_no_notes_gridNote {
   justify-content: center;
+}
+.miniCustomer_note {
+  background-color: #f7f7f7;
+  padding: 20px 20px 10px;
+  border-radius: 7px;
+  max-width: 100%;
+  position: relative;
+  width: calc(50% - 10px);
+}
+.miniCustomer_note:before {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  bottom: -60px;
+  border: 30px solid transparent;
+  left: 70px;
+  border-bottom-color: transparent;
+  border-top-color: #f7f7f7;
+  background: transparent;
 }
 body.om__author .om__orderShippingDetails {
   pointer-events: none;
@@ -976,14 +1035,17 @@ body.om__author .om__orderShippingDetails {
   border-radius: 0px;
   background-color: transparent;
 }
-.om__orderShippingDetailsItem button#update-shipping-details {
+.om__orderShippingDetailsItem button#update-shipping-details,
+.om__companyLogoUpload button#submitOmCompanyLogo {
   width: 100%;
   padding: 8px 20px;
   border-radius: 7px;
   font-weight: 600;
   font-size: 15px;
 }
-
+.om__companyLogoUploadSubmit {
+  width: 100%;
+}
 .om__summeryContainer,
 .om__ordernoteContainer {
   width: calc(50% - 10px);
@@ -1005,10 +1067,22 @@ body.om__author .om__orderShippingDetails {
   position: relative;
 }
 .om__orderSummeryItem.om__orderSummeryItemFull {
-  display: block;
+  display: flex;
   float: left;
   width: 100%;
   position: relative;
+  justify-content: space-between;
+}
+.om__clientThatOrdered,
+.om__orderSource,
+.om__orderEmptyItem {
+  width: calc(33.33% - 7px);
+}
+.om__orderSource {
+  min-width: 154px;
+}
+#om__orderStatus {
+  text-transform: capitalize;
 }
 .content-client.om__change-client {
   width: 325px;

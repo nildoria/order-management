@@ -462,6 +462,7 @@ jQuery(document).ready(function ($) {
     $(".sitewide_spinner").addClass("loading");
 
     let orderType = $("#order_type").val();
+    let clientID = $("#client-select").val();
 
     // Collect billing and shipping information
     const billing = {
@@ -563,6 +564,11 @@ jQuery(document).ready(function ($) {
       error: function (xhr, status, error) {
         $(".sitewide_spinner").removeClass("loading");
         console.error("AJAX Error:", error);
+        console.log("XHR:", xhr);
+        console.log("Status:", status);
+        console.log("Error:", error);
+        console.log("Response Headers:", xhr.getAllResponseHeaders());
+        console.log("Response Body:", xhr.responseText);
         alert("An error occurred while creating the order. Please try again.");
       },
     });
@@ -571,32 +577,50 @@ jQuery(document).ready(function ($) {
   function createOrderPost(orderData, orderType) {
     let root_domain = alarnd_create_order_vars.redirecturl;
 
-    let jwtToken = "";
+    // Username and password for Basic Authentication
+    const username = "OmAdmin";
 
-    if (root_domain.includes(".test")) {
-      // Webhook URL for test environment
-      jwtToken =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29yZGVybWFuYWdlLnRlc3QiLCJpYXQiOjE3MjI0MjQzOTUsIm5iZiI6MTcyMjQyNDM5NSwiZXhwIjoxNzIzMDI5MTk1LCJkYXRhIjp7InVzZXIiOnsiaWQiOiIxIn19fQ.GqYWpHlTYURZtx45zsV6TZV6-FXK7IJHvmHFPXJPwIQ";
+    // Determine the password based on the root_domain
+    let password = "";
+
+    if (root_domain == "https://om.allaround.co.il") {
+      password = "Vlh4 F7Sw Zu26 ShUG 6AYu DuRI";
     } else {
-      // Webhook URL for production environment
-      jwtToken =
-        "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL29tLmx1a3BhbHVrLnh5eiIsImlhdCI6MTcyMjQ0NjkyOCwibmJmIjoxNzIyNDQ2OTI4LCJleHAiOjE3MjMwNTE3MjgsImRhdGEiOnsidXNlciI6eyJpZCI6IjEifX19.wfPM587bBd1Wljs319eJatqtbAvshWuXQj99xzb5gGE";
+      password = "Qj0p rsPu eU2i Fzco pwpX eCPD";
+    }
+
+    // TODO: For Staging and Local
+    // if (root_domain == "https://om.lukpaluk.xyz") {
+    //   password = "vZmm GYw4 LKDg 4ry5 BMYC 4TMw";
+    // } else {
+    //   password = "Qj0p rsPu eU2i Fzco pwpX eCPD";
+    // }
+
+    // Check if the request is to the same origin
+    let headers = {};
+    if (window.location.origin !== root_domain) {
+      const basicAuth = btoa(`${username}:${password}`);
+      headers.Authorization = "Basic " + basicAuth;
     }
 
     orderData.order_type = orderType;
+    orderData.order_source = "manual_order";
 
     $.ajax({
       url: `${root_domain}/wp-json/manage-order/v1/create`,
       method: "POST",
       contentType: "application/json",
       data: JSON.stringify(orderData),
-      headers: {
-        Authorization: "Bearer " + jwtToken,
-      },
+      headers: headers,
       success: function (response) {
         console.log("Order post created successfully:", response);
         alert("New Order created successfully!");
-        location.reload();
+        // Redirect to the newly created order post
+        if (response && response.post_url) {
+          window.location.href = response.post_url;
+        } else {
+          console.error("Post URL not returned in response.");
+        }
       },
       error: function (xhr, status, error) {
         console.error("Error creating order post:", error);

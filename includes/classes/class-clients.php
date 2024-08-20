@@ -18,6 +18,8 @@ class AllAroundClientsDB
         add_action('wp_ajax_update_order_type', array($this, 'update_order_type_ajax'));
         add_action('wp_ajax_get_client_orders', array($this, 'get_client_orders'));
 
+        add_action('wp_ajax_om_update_client_company_logos', array($this, 'om_update_client_company_logos'));
+
         add_action('init', [$this, 'register_post_type_cb'], 0);
         add_filter('post_type_link', [$this, 'client_post_type_link'], 1, 2);
         add_action('init', [$this, 'client_rewrite_rules']);
@@ -25,7 +27,194 @@ class AllAroundClientsDB
 
         add_shortcode('allaround_client_lists', [$this, 'client_lists_shortcode']);
 
+        // Register the REST API route
+        add_action('rest_api_init', [$this, 'register_rest_api_endpoints']);
+
     }
+
+    public function register_rest_api_endpoints()
+    {
+        register_rest_route(
+            'manage-client/v1',
+            '/create-client',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_rest_create_client'],
+                'permission_callback' => [$this, 'check_basic_auth'],
+                // 'permission_callback' => function () {
+                //     return current_user_can('edit_posts'); // Adjust permissions as needed
+                // },
+            )
+        );
+        // Register the new endpoint for setting minisite_id
+        register_rest_route(
+            'manage-order/v1',
+            '/set-minisite-data',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_set_minisite_data'],
+                'permission_callback' => function () {
+                    return current_user_can('edit_posts'); // Adjust permissions as needed
+                },
+            )
+        );
+    }
+
+    public function check_basic_auth($request)
+    {
+        $authorization = $request->get_header('Authorization');
+
+        if (strpos($authorization, 'Basic ') === 0) {
+            // Get the username and password from the Authorization header
+            $credentials = base64_decode(substr($authorization, 6));
+            list($username, $password) = explode(':', $credentials);
+
+            // Authenticate the user
+            $user = wp_authenticate($username, $password);
+            if (is_wp_error($user)) {
+                return new WP_Error('unauthorized', 'Invalid credentials', array('status' => 401));
+            }
+
+            // Set the current user
+            wp_set_current_user($user->ID);
+
+            return true;
+        }
+
+        return new WP_Error('unauthorized', 'Authorization header not found', array('status' => 401));
+    }
+
+    public function handle_rest_create_client(WP_REST_Request $request)
+    {
+        $first_name = sanitize_text_field($request->get_param('first_name'));
+        $last_name = sanitize_text_field($request->get_param('last_name'));
+        $email = sanitize_email($request->get_param('email'));
+        $client_type = sanitize_text_field($request->get_param('client_type')) ?: 'personal';
+
+        if (empty($email) || !is_email($email)) {
+            return new WP_Error('invalid_email', 'Please enter a valid email address.', array('status' => 400));
+        }
+
+        $name = $this->createFullName($first_name, $last_name);
+
+        $allowedFields = [
+            'client_type',
+            'first_name',
+            'last_name',
+            'email',
+            'address_1',
+            'postcode',
+            'phone',
+            'city',
+            'status',
+            'token',
+            'subscribed',
+            'invoice'
+        ];
+
+        if ('company' === $client_type) {
+            $addition_fields = [
+                'dark_logo',
+                'lighter_logo',
+                'back_light',
+                'back_dark',
+                'logo_type',
+                'mini_url',
+                'mini_header',
+                'logo'
+            ];
+
+            $allowedFields = array_merge($allowedFields, $addition_fields);
+        }
+
+        $filteredPostData = array_intersect_key($request->get_params(), array_flip($allowedFields));
+
+        if ($client_id = $this->clientExistsByEmail($email)) {
+            $old_client_type = get_post_meta($client_id, 'client_type', true);
+
+            foreach ($filteredPostData as $key => $value) {
+                if ("client_type" === $key && "company" === $old_client_type) {
+                    continue;
+                }
+                $this->ml_update_postmeta($client_id, $key, $value);
+            }
+
+            if ($this->createFullName($first_name, $last_name) !== get_post_meta($client_id, 'full_name', true)) {
+                $this->update_post_title($client_id, $name);
+            }
+
+            // Set om_status
+            $om_status = 'client_profile_updated';
+
+            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
+
+            return new WP_REST_Response(
+                array(
+                    'message' => "Client $client_id successfully updated."
+                ),
+                200
+            );
+        }
+
+        $client_id = wp_insert_post(
+            array(
+                'post_title' => $name,
+                'post_status' => 'publish',
+                'post_author' => 1,
+                'post_type' => 'client',
+            )
+        );
+
+        foreach ($filteredPostData as $key => $value) {
+            update_post_meta($client_id, $key, $value);
+        }
+
+        update_post_meta($client_id, 'full_name', $name);
+
+        // Set om_status
+        $om_status = 'client_profile_created';
+
+        $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status);
+
+        return new WP_REST_Response(
+            array(
+                'message' => "Client successfully created with ID: $client_id."
+            ),
+            201
+        );
+    }
+
+    public function handle_set_minisite_data(WP_REST_Request $request)
+    {
+        // Get the parameters from the request
+        $client_id = absint($request->get_param('client_id'));
+        $minisite_id = absint($request->get_param('minisite_id'));
+
+        // Validate client_id
+        if (!$client_id || !get_post($client_id) || get_post_type($client_id) !== 'client') {
+            return new WP_Error('invalid_client', 'Invalid client ID.', array('status' => 400));
+        }
+
+
+        // Update the minisite_id in the client meta
+        update_post_meta($client_id, 'minisite_id', $minisite_id);
+
+        //Update Minisite Created Meta
+        if ($minisite_id || $client_id) {
+            update_post_meta($client_id, 'minisite_created', 'yes');
+        }
+
+        // Return success response
+        return new WP_REST_Response(
+            array(
+                'message' => "Minisite ID successfully set for client $client_id.",
+                'client_id' => $client_id,
+                'minisite_id' => $minisite_id
+            ),
+            200
+        );
+    }
+
 
     public function get_client_orders()
     {
@@ -161,8 +350,11 @@ class AllAroundClientsDB
                 $this->update_post_title($client_id, $new_name);
             }
 
+            // Set om_status
+            $om_status = 'client_profile_updated';
+
             // Send data to webhook
-            $this->send_client_data_to_webhook($client_id, $filteredPostData, $old_client_type, $client_type);
+            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
 
             wp_send_json_success(
                 array(
@@ -199,8 +391,11 @@ class AllAroundClientsDB
 
         update_post_meta($client_id, 'full_name', $name);
 
+        // Set om_status
+        $om_status = 'client_profile_created';
+
         // Send data to webhook
-        $this->send_client_data_to_webhook($client_id, $filteredPostData);
+        $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status);
 
         wp_send_json_success(
             array(
@@ -215,7 +410,7 @@ class AllAroundClientsDB
     /**
      * Send client data to webhook
      */
-    private function send_client_data_to_webhook($client_id, $client_data, $old_client_type = '', $client_type = '')
+    private function send_client_data_to_webhook($client_id, $client_data, $om_status, $old_client_type = '', $client_type = '')
     {
         $root_domain = home_url();
         $webhook_url = "";
@@ -223,11 +418,8 @@ class AllAroundClientsDB
         if (strpos($root_domain, '.test') !== false) {
             $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
         } else {
-            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3----xxxx";
         }
-
-        // Set default om_status
-        $om_status = 'client_created';
 
         // Include all company fields if the client type is "company"
         if ($client_type === 'company' && $old_client_type !== $client_type) {
@@ -245,9 +437,11 @@ class AllAroundClientsDB
             foreach ($company_specific_fields as $field) {
                 $client_data[$field] = get_post_meta($client_id, $field, true);
             }
+        }
 
-            // Set om_status to client_updated if the client type changes to company
-            $om_status = 'client_updated';
+        // Remove the 'token' field from client_data if it exists
+        if (isset($client_data['token'])) {
+            unset($client_data['token']);
         }
 
         $webhook_data = array(
@@ -325,6 +519,109 @@ class AllAroundClientsDB
         );
         wp_die();
 
+    }
+
+    public function om_update_client_company_logos()
+    {
+        check_ajax_referer('client_nonce', 'nonce');
+
+        $client_id = intval($_POST['client_id']);
+        $post_id = intval($_POST['post_id']);
+        $dark_logo = sanitize_text_field($_POST['dark_logo']);
+        $lighter_logo = sanitize_text_field($_POST['lighter_logo']);
+        $back_light = sanitize_text_field($_POST['back_light']);
+        $back_dark = sanitize_text_field($_POST['back_dark']);
+
+        if (empty($client_id)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'regular',
+                    "message" => esc_html__("Invalid client ID.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        if (empty($dark_logo) || empty($lighter_logo)) {
+            $missing_fields = array();
+            if (empty($dark_logo)) {
+                $missing_fields[] = 'Dark Logo';
+            }
+            if (empty($lighter_logo)) {
+                $missing_fields[] = 'Lighter Logo';
+            }
+
+            wp_send_json_error(
+                array(
+                    "message_type" => 'regular',
+                    "message" => esc_html__("The following fields are mandatory: " . implode(', ', $missing_fields) . ".", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        if ($client_id) {
+            update_post_meta($client_id, 'dark_logo', $dark_logo);
+            update_post_meta($client_id, 'lighter_logo', $lighter_logo);
+            update_post_meta($client_id, 'back_light', $back_light);
+            update_post_meta($client_id, 'back_dark', $back_dark);
+
+            // If post_id exists, update _order_designer_extra_attachments
+            if ($post_id) {
+                // Fetch attachment IDs for dark and lighter logos
+                $dark_logo_id = attachment_url_to_postid($dark_logo);
+                $lighter_logo_id = attachment_url_to_postid($lighter_logo);
+
+                // Prepare the attachments array
+                $order_extra_attachments = array();
+
+                if ($dark_logo_id) {
+                    $order_extra_attachments[] = array(
+                        'id' => $dark_logo_id,
+                        'name' => 'Dark Logo',
+                        'url' => $dark_logo,
+                    );
+                }
+
+                if ($lighter_logo_id) {
+                    $order_extra_attachments[] = array(
+                        'id' => $lighter_logo_id,
+                        'name' => 'Lighter Logo',
+                        'url' => $lighter_logo,
+                    );
+                }
+
+                // Update _order_designer_extra_attachments meta for the post
+                update_post_meta($post_id, '_order_designer_extra_attachments', $order_extra_attachments);
+            }
+
+            wp_send_json_success(
+                array(
+                    "message_type" => 'regular',
+                    "message" => esc_html__("Client logos updated successfully.", "hello-elementor")
+                )
+            );
+        } else {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'regular',
+                    "message" => esc_html__("An unexpected error occurred while updating the client logos.", "hello-elementor")
+                )
+            );
+        }
+    }
+
+    // Function to retrieve attachment ID from a URL
+    private function get_attachment_id_from_url($url)
+    {
+        global $wpdb;
+        $attachment_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE guid=%s AND post_type='attachment'",
+                $url
+            )
+        );
+        return $attachment_id ? intval($attachment_id) : 0;
     }
 
     public function update_client_ajax()
@@ -413,13 +710,18 @@ class AllAroundClientsDB
         // Filter the $_POST array to include only the allowed fields
         $filteredPostData = array_intersect_key($_POST, array_flip($allowedFields));
 
+        $changedFields = array();
+
         if (isset($filteredPostData) && !empty($filteredPostData)) {
-            // error_log( print_r( $filteredPostData, true ) );
             foreach ((array) $filteredPostData as $key => $value) {
-                if ("client_type" === $key && "company" === $old_client_type) {
-                    continue;
+                $old_value = get_post_meta($client_id, $key, true);
+                if ($value !== $old_value) {
+                    $changedFields[$key] = $value;
+                    if ("client_type" === $key && "company" === $old_client_type) {
+                        continue;
+                    }
+                    $this->ml_update_postmeta($client_id, $key, $value);
                 }
-                $this->ml_update_postmeta($client_id, $key, $value);
             }
         }
 
@@ -434,8 +736,11 @@ class AllAroundClientsDB
             $this->update_post_title($client_id, $name);
         }
 
+        // Set om_status
+        $om_status = 'client_profile_updated';
+
         // Send data to webhook
-        $this->send_client_data_to_webhook($client_id, $filteredPostData, $old_client_type, $client_type);
+        $this->send_client_data_to_webhook($client_id, $changedFields, $om_status, $old_client_type, $client_type);
 
 
         wp_send_json_success(
@@ -549,6 +854,10 @@ class AllAroundClientsDB
         $first_name = isset($order_data['billing']['first_name']) ? $order_data['billing']['first_name'] : '';
         $last_name = isset($order_data['billing']['last_name']) ? $order_data['billing']['last_name'] : '';
         $email = isset($order_data['billing']['email']) ? $order_data['billing']['email'] : '';
+        // Check if order_data contains client_type, if not fall back to $_POST or default to 'personal'
+        $client_type = isset($order_data['client_type']) ? sanitize_text_field($order_data['client_type']) : (isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal');
+
+        // $client_type = isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal';
 
         $filteredPostData = $order_data['billing'];
 
@@ -591,9 +900,17 @@ class AllAroundClientsDB
 
             // Update the status to "client"
             $this->ml_update_postmeta($client_id, 'status', 'client');
+            // Update client_type meta
+            update_post_meta($client_id, 'client_type', $client_type);
 
             // update client_id to the order post
             update_post_meta($post_id, 'client_id', $client_id);
+
+            // Set om_status
+            $om_status = 'client_profile_updated';
+
+            // Send data to webhook
+            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
 
             return;
         }
@@ -626,12 +943,17 @@ class AllAroundClientsDB
 
         // Update the status to "client"
         update_post_meta($client_id, 'status', 'client');
+        // Set client_type meta
+        update_post_meta($client_id, 'client_type', $client_type);
 
         // update client_id to the order post
         update_post_meta($post_id, 'client_id', $client_id);
 
+        // Set om_status
+        $om_status = 'client_profile_created';
+
         // Send data to webhook
-        $this->send_client_data_to_webhook($client_id, $filteredPostData);
+        $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status);
     }
 
     public function add_custom_metabox()
@@ -652,6 +974,7 @@ class AllAroundClientsDB
         wp_nonce_field(basename(__FILE__), 'nonce');
 
         $subscribed = get_post_meta($post->ID, 'subscribed', true);
+        $minisite_created = get_post_meta($post->ID, 'minisite_created', true);
 
         // Get existing values
         $fields = [
@@ -675,6 +998,14 @@ class AllAroundClientsDB
             'mini_header' => get_post_meta($post->ID, 'mini_header', true),
             'invoice' => get_post_meta($post->ID, 'invoice', true),
             'logo' => get_post_meta($post->ID, 'logo', true),
+            'minisite_id' => get_post_meta($post->ID, 'minisite_id', true),
+            'minisite_created' => !empty($minisite_created) ? $minisite_created : 'no',
+            'mainSite_orders' => get_post_meta($post->ID, 'mainSite_orders', true),
+            'mainSite_order_value' => get_post_meta($post->ID, 'mainSite_order_value', true),
+            'miniSite_orders' => get_post_meta($post->ID, 'miniSite_orders', true),
+            'miniSite_order_value' => get_post_meta($post->ID, 'miniSite_order_value', true),
+            'manual_orders' => get_post_meta($post->ID, 'manual_orders', true),
+            'manual_order_value' => get_post_meta($post->ID, 'manual_order_value', true),
         ];
 
         $token = esc_attr($fields['token']);
@@ -828,6 +1159,56 @@ class AllAroundClientsDB
                 <img id="logo_preview" src="<?php echo esc_attr($fields['logo']); ?>"
                     style="max-width: 300px; display: <?php echo $fields['logo'] ? 'block' : 'none'; ?>;" />
             </p>
+
+            <hr>
+            <p><b>Client Table Data:</b></p>
+            <hr>
+            <p>
+                <label for="minisite_id">MiniSite ID:</label><br>
+                <input type="text" name="minisite_id" id="minisite_id"
+                    value="<?php echo esc_attr($fields['minisite_id']); ?>" />
+            </p>
+
+            <p>
+                <label>Minisite Created:</label><br>
+                <label><input type="radio" name="minisite_created" value="yes" <?php checked($fields['minisite_created'], 'yes'); ?> />
+                    Yes</label>
+                <label><input type="radio" name="minisite_created" value="no" <?php checked($fields['minisite_created'], 'no', true); ?> /> No</label>
+            </p>
+
+            <hr>
+            <p>
+                <label for="mainSite_orders">Main Site Orders:</label><br>
+                <input type="text" name="mainSite_orders" id="mainSite_orders"
+                    value="<?php echo esc_attr($fields['mainSite_orders']); ?>" />
+            </p>
+            <p>
+                <label for="mainSite_order_value">Main Site Order Value:</label><br>
+                <input type="text" name="mainSite_order_value" id="mainSite_order_value"
+                    value="<?php echo esc_attr($fields['mainSite_order_value']); ?>" />
+            </p>
+            <hr>
+            <p>
+                <label for="miniSite_orders">Mini Site Orders:</label><br>
+                <input type="text" name="miniSite_orders" id="miniSite_orders"
+                    value="<?php echo esc_attr($fields['miniSite_orders']); ?>" />
+            </p>
+            <p>
+                <label for="miniSite_order_value">Mini Site Order Value:</label><br>
+                <input type="text" name="miniSite_order_value" id="miniSite_order_value"
+                    value="<?php echo esc_attr($fields['miniSite_order_value']); ?>" />
+            </p>
+            <hr>
+            <p>
+                <label for="manual_orders">Manual Orders:</label><br>
+                <input type="text" name="manual_orders" id="manual_orders"
+                    value="<?php echo esc_attr($fields['manual_orders']); ?>" />
+            </p>
+            <p>
+                <label for="manual_order_value">Manual Order Value:</label><br>
+                <input type="text" name="manual_order_value" id="manual_order_value"
+                    value="<?php echo esc_attr($fields['manual_order_value']); ?>" />
+            </p>
         </div>
         <?php
     }
@@ -870,6 +1251,14 @@ class AllAroundClientsDB
             'mini_header',
             'invoice',
             'logo',
+            'minisite_id',
+            'minisite_created',
+            'mainSite_orders',
+            'mainSite_order_value',
+            'miniSite_orders',
+            'miniSite_order_value',
+            'manual_orders',
+            'manual_order_value',
         ];
 
         foreach ($fields as $field) {

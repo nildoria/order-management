@@ -21,6 +21,8 @@
         target.val(image_url);
         preview.attr("src", image_url).show();
         button.nextAll(".remove-image-button").show();
+
+        checkLogos();
       });
   });
 
@@ -35,6 +37,8 @@
     target.val("");
     preview.hide();
     button.hide();
+
+    checkLogos();
 
     return false;
   });
@@ -160,6 +164,80 @@
     return false;
   });
 
+  // check if .om_company_logoInput_group img src is empty or not, if not empty then implement show() function
+  $(".om_company_logoInput_group img").each(function () {
+    if ($(this).attr("src") !== "") {
+      $(this).show();
+      $(this)
+        .closest(".om_company_logoInput_group")
+        .find(".remove-image-button")
+        .show();
+    }
+  });
+
+  function checkLogos() {
+    var dark_logo = $("#dark_logo").val();
+    var lighter_logo = $("#lighter_logo").val();
+
+    if (dark_logo && lighter_logo) {
+      $("#submitOmCompanyLogo").prop("disabled", false);
+    } else {
+      $("#submitOmCompanyLogo").prop("disabled", true);
+    }
+  }
+
+  // Initial check
+  checkLogos();
+
+  // OM Company Logo Uploads
+  $("#submitOmCompanyLogo").on("click", function () {
+    var client_id = $(this).data("client_id");
+    var dark_logo = $("#dark_logo").val();
+    var lighter_logo = $("#lighter_logo").val();
+    var back_light = $("#back_light").val();
+    var back_dark = $("#back_dark").val();
+    var post_id = $("#post_id").val();
+
+    // add .ml_loading class to the button
+    $(this).addClass("ml_loading");
+
+    $.ajax({
+      url: all_around_clients_vars.ajax_url,
+      type: "POST",
+      data: {
+        action: "om_update_client_company_logos",
+        client_id: client_id,
+        post_id: post_id,
+        dark_logo: dark_logo,
+        lighter_logo: lighter_logo,
+        back_light: back_light,
+        back_dark: back_dark,
+        nonce: all_around_clients_vars.nonce,
+      },
+      success: function (response) {
+        if (response.success) {
+          // remove loading class
+          $("#submitOmCompanyLogo").removeClass("ml_loading");
+          alert("Logos updated successfully!");
+          location.reload();
+        } else {
+          if (response.data && response.data.message) {
+            // remove loading class
+            $("#submitOmCompanyLogo").removeClass("ml_loading");
+            alert(response.data.message);
+          } else {
+            alert("Failed to update logos.");
+          }
+        }
+      },
+      error: function () {
+        // remove loading class
+        $("#submitOmCompanyLogo").removeClass("ml_loading");
+        alert("An unexpected error occurred.");
+      },
+    });
+  });
+
   $("#order_type").on("change", function () {
     // if option has value then show om_order_type_submit otherwise hide it
     if ($(this).val()) {
@@ -236,6 +314,7 @@
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
+      postcode: $("#billing_postcode").val(),
       invoice: $("#billing_company").val(),
       city: $("#billing_city").val(),
       phone: $("#billing_phone").val(),
@@ -301,4 +380,23 @@
       },
     });
   });
+
+  // Check if #addClientForm is available
+  if ($("#addClientForm").length) {
+    // Listen for changes on the #status select element
+    $("#status").on("change", function () {
+      var statusValue = $(this).val();
+
+      if (statusValue === "company_prospect") {
+        // Change the select value of #client_type to company
+        $("#client_type").val("company");
+
+        // Disable the #client_type select element to prevent changes
+        $("#client_type").prop("disabled", true);
+      } else {
+        // Enable the #client_type select element if status is not company_prospect
+        $("#client_type").prop("disabled", false);
+      }
+    });
+  }
 })(jQuery); /*End document ready*/
