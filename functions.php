@@ -878,6 +878,7 @@ function update_order_shipping_method()
             } else {
                 $post_id = find_post_id_by_order_id($order_id);
                 update_post_meta($post_id, 'shipping_method', sanitize_text_field($shipping_method));
+                update_post_meta($post_id, 'shipping_method_title', sanitize_text_field($shipping_method_title));
 
                 // Delete the transient to reset cached data
                 $transient_key = 'order_details_' . $order_id;
@@ -1022,6 +1023,7 @@ function order_details_metabox_content($post)
     $order_id = get_post_meta($post->ID, 'order_id', true);
     $client_id = get_post_meta($post->ID, 'client_id', true);
     $shipping_method = get_post_meta($post->ID, 'shipping_method', true);
+    $shipping_method_title = get_post_meta($post->ID, 'shipping_method_title', true);
     $order_source = get_post_meta($post->ID, 'order_source', true);
     $items = get_post_meta($post->ID, 'items', true);
     $billing = get_post_meta($post->ID, 'billing', true);
@@ -1045,6 +1047,9 @@ function order_details_metabox_content($post)
 
     echo '<label for="shipping_method">Shipping Method:</label>';
     echo '<input type="text" readonly id="shipping_method" name="shipping_method" value="' . esc_attr($shipping_method) . '" /><br>';
+
+    echo '<label for="shipping_method_title">Shipping Method Title:</label>';
+    echo '<input type="text" readonly id="shipping_method_title" name="shipping_method_title" value="' . esc_attr($shipping_method_title) . '" /><br>';
 
     echo '<label for="order_source">Order Source:</label>';
     echo '<select disabled name="order_source" id="order_source">';
@@ -1126,6 +1131,10 @@ function save_order_details_meta($post_id)
         update_post_meta($post_id, 'shipping_method', sanitize_text_field($_POST['shipping_method']));
     }
 
+    if (isset($_POST['shipping_method_title'])) {
+        update_post_meta($post_id, 'shipping_method_title', sanitize_text_field($_POST['shipping_method_title']));
+    }
+
     if (isset($_POST['order_source'])) {
         update_post_meta($post_id, 'order_source', sanitize_text_field($_POST['order_source']));
     }
@@ -1188,10 +1197,12 @@ function create_order(WP_REST_Request $request)
     $order_date = isset($order_data['date_created']) ? $order_data['date_created'] : current_time('mysql');
 
     $shipping_method_id = '';
+    $shipping_method_title = '';
     if (!empty($order_data['shipping_lines']) && is_array($order_data['shipping_lines'])) {
         foreach ($order_data['shipping_lines'] as $shipping_line) {
             if (isset($shipping_line['method_id'])) {
                 $shipping_method_id = $shipping_line['method_id'];
+                $shipping_method_title = $shipping_line['method_title'];
                 break; // Assuming you want the first shipping method ID
             }
         }
@@ -1229,6 +1240,7 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'order_id', $order_id);
     update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $shipping_method_id);
+    update_post_meta($post_id, 'shipping_method_title', $shipping_method_title);
     update_post_meta($post_id, 'items', isset($order_data['items']) ? $order_data['items'] : []);
     update_post_meta($post_id, 'billing', $order_data['billing'] ? $order_data['billing'] : []);
     update_post_meta($post_id, 'shipping', $order_data['shipping'] ? $order_data['shipping'] : []);
@@ -1551,7 +1563,19 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     $items_subtotal = $order_data['items_subtotal'];
     $currency_symbol = $order_data['currency_symbol'];
     $shipping_total = $order_data['shipping_total'];
+    $shipping_text = $order->shipping_lines[0]->method_title;
+    $shipping_method_id = $order->shipping_lines[0]->method_id;
 
+    $shipping_method_title = get_post_meta($post_id, 'shipping_method_title', true);
+    $shipping_method_value = get_post_meta($post_id, 'shipping_method', true);
+    // if shipping_method_value is empty then update it with shipping_method_id
+    if (empty($shipping_method_value)) {
+        update_post_meta($post_id, 'shipping_method', $shipping_method_id);
+    }
+    if (empty($shipping_method_title)) {
+        // update shipping_method_title meta with shipping_text
+        update_post_meta($post_id, 'shipping_method_title', $shipping_text);
+    }
     ob_start();
 
     echo '<table id="tableMain" data-order_status="' . esc_attr($status) . '">';
@@ -1601,7 +1625,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         $size_found = false;
         $artPosition_found = false;
         foreach ($item->meta_data as $meta) {
-            if ($meta->key === "Color") {
+            if ($meta->key === "Color" || $meta->key === "צבע") {
                 echo '<span class="om__item_metaData_updateCon">';
                 echo '<label for="color-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
                 echo '<select id="color-input_' . $item_id . '">';
@@ -1610,7 +1634,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '</span>';
                 $color_found = true;
             }
-            if ($meta->key === "Size") {
+            if ($meta->key === "Size" || $meta->key === "מידה") {
                 echo '<label for="size-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
                 echo '<select id="size-input_' . $item_id . '">';
                 echo '<option value="' . esc_html(strip_tags($meta->value)) . '">' . esc_html(strip_tags($meta->value)) . '</option>';
@@ -2211,28 +2235,28 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-        <div class="revision-activity customer-message mockup-approved-comment">
-            <div class="revision-activity-avatar">
-                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-            </div>
-            <div class="revision-activity-content">
-                <div class="revision-activity-title">
-                    <h5>AllAround</h5>
-                    <span>
-                        <?php
-                        if (!empty($proof_approved_time)) {
-                            echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                        }
-                        ?>
-                    </span>
-                </div>
-                <div class="revision-activity-description">
-                    <span class="revision-comment-title">ההדמיות אושרו על ידי הלקוח <img
-                            src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt=""></span>
-                </div>
-            </div>
-        </div>
-        <?php
+                                                <div class="revision-activity customer-message mockup-approved-comment">
+                                                    <div class="revision-activity-avatar">
+                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                    </div>
+                                                    <div class="revision-activity-content">
+                                                        <div class="revision-activity-title">
+                                                            <h5>AllAround</h5>
+                                                            <span>
+                                                                <?php
+                                                                if (!empty($proof_approved_time)) {
+                                                                    echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                                                                }
+                                                                ?>
+                                                            </span>
+                                                        </div>
+                                                        <div class="revision-activity-description">
+                                                            <span class="revision-comment-title">ההדמיות אושרו על ידי הלקוח <img
+                                                                    src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt=""></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2261,29 +2285,29 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
             }
 
             ?>
-            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                <div class="revision-activity-avatar">
-                    <?php if ($comment_name === 'AllAround'): ?>
-                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                    <?php else: ?>
-                        <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                    <?php endif; ?>
-                </div>
-                <div class="revision-activity-content">
-                    <div class="revision-activity-title">
-                        <h5><?php echo esc_html($comment_name); ?></h5>
-                        <span><?php echo esc_html($comment_date); ?></span>
-                    </div>
-                    <div class="revision-activity-description">
-                        <span class="revision-comment-title">
-                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                        </span>
-                        <?php echo $image_html; ?>
-                        <div><?php echo $comment_text; ?></div>
-                    </div>
-                </div>
-            </div>
-            <?php
+                                                                        <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                                                                            <div class="revision-activity-avatar">
+                                                                                <?php if ($comment_name === 'AllAround'): ?>
+                                                                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                                <?php else: ?>
+                                                                                                        <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                                                                                <?php endif; ?>
+                                                                            </div>
+                                                                            <div class="revision-activity-content">
+                                                                                <div class="revision-activity-title">
+                                                                                    <h5><?php echo esc_html($comment_name); ?></h5>
+                                                                                    <span><?php echo esc_html($comment_date); ?></span>
+                                                                                </div>
+                                                                                <div class="revision-activity-description">
+                                                                                    <span class="revision-comment-title">
+                                                                                        <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                                                                                    </span>
+                                                                                    <?php echo $image_html; ?>
+                                                                                    <div><?php echo $comment_text; ?></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <?php
         }
     }
 
@@ -2323,11 +2347,11 @@ function search_posts()
             // get the order_status meta
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
             ?>
-            <div class="post-item">
-                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                <p><?php echo esc_html($order_status); ?></p>
-            </div>
-            <?php
+                                                                        <div class="post-item">
+                                                                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                                                                            <p><?php echo esc_html($order_status); ?></p>
+                                                                        </div>
+                                                                        <?php
         }
     } else {
         echo '<p>No posts found.</p>';

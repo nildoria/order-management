@@ -914,56 +914,91 @@ jQuery(document).ready(function ($) {
     }
   };
 
-  const sizeInputs = document.querySelectorAll('input[name="product_size"]');
-  const quantitySelect = document.querySelector(".variable-quantity");
+  // New variable product code
+  function initializeVariableProduct() {
+    $(".product-variable-quantity-wrapper").each(function () {
+      const wrapper = $(this);
+      const quantitySelect = wrapper.find(".variable-quantity");
+      const hasSize = quantitySelect.data("has-size") === true;
+      const sizeInputs = wrapper.find('input[name="product_size"]');
 
-  function updateQuantityOptions(steps) {
-    quantitySelect.innerHTML = "";
-    steps.forEach((step) => {
-      const option = document.createElement("option");
-      option.value = step.quantity;
-      option.dataset.amount = step.amount;
-      option.textContent = `${step.quantity} - ${step.amount}₪`;
-      quantitySelect.appendChild(option);
-    });
-  }
+      function updatePrice() {
+        const selectedOption = quantitySelect.find("option:selected");
+        const totalPrice = parseFloat(selectedOption.data("amount"));
+        wrapper.find(".item-total-number").text(totalPrice.toFixed(2));
+        wrapper.find(".item_total_price").val(totalPrice.toFixed(2));
+      }
 
-  function updatePrice() {
-    const selectedOption = quantitySelect.options[quantitySelect.selectedIndex];
-    const totalPrice = parseFloat(selectedOption.dataset.amount);
-    document.querySelector(".item-total-number").textContent =
-      totalPrice.toFixed(2);
-    document.querySelector(".item_total_price").value = totalPrice.toFixed(2);
-  }
+      function updateQuantityOptions(steps) {
+        quantitySelect.empty();
+        steps.forEach((step) => {
+          const option = $("<option>", {
+            value: step.quantity || step.name,
+            "data-amount": step.quantity ? step.amount : step.steps[0].amount,
+            text: `${step.quantity || step.name} - ${
+              step.quantity ? step.amount : step.steps[0].amount
+            }₪`,
+          });
+          quantitySelect.append(option);
+        });
+      }
 
-  sizeInputs.forEach((input) => {
-    input.addEventListener("change", function () {
-      const steps = JSON.parse(this.dataset.steps);
-      updateQuantityOptions(steps);
+      if (hasSize) {
+        sizeInputs.on("change", function () {
+          const steps = $(this).data("steps");
+          updateQuantityOptions(steps);
+          updatePrice();
+        });
+
+        // Initialize with the first selected size
+        sizeInputs.filter(":checked").trigger("change");
+      } else {
+        // For products without size, initialize quantity options directly
+        const steps = quantitySelect.data("steps");
+        if (steps) {
+          updateQuantityOptions(steps);
+        } else {
+          console.error("No steps data found for product without size");
+        }
+      }
+
+      quantitySelect.on("change", updatePrice);
+
+      // Initial price update
       updatePrice();
     });
-  });
-
-  if (quantitySelect) {
-    quantitySelect.addEventListener("change", updatePrice);
-    // Initial setup
-    updatePrice();
   }
+
+  // Rest of your code (initialize on page load, modal open, add to cart button click)
+
+  // Initialize on page load
+  initializeVariableProduct();
+
+  // Re-initialize when a modal opens (if you're using a modal)
+  $(document).on("mfpOpen", initializeVariableProduct);
 
   // Handle Add to Cart button click for variable products
   $(".variable_add_to_cart_button").on("click", function (e) {
     e.preventDefault();
-    const modal = $(this).closest(".product-details-modal");
-    const productId = modal.data("product_id");
-    const productName = modal.find(".modal-title").text();
-    const productThumbnail = modal.find(".product-thumb").val();
-    const selectedSize = modal.find('input[name="product_size"]:checked');
-    const selectedQuantity = modal.find(".variable-quantity").val();
-    const subTotalPrice = modal.find(".item_total_price").val();
-    const artworkUrl = modal.find(".uploaded_file_path").val();
-    const instructionNote = modal.find(".new_product_instruction_note").val();
-    var artworkHTML = "";
-    modal.find(".uploaded_artwork").each(function () {
+    const wrapper = $(this).closest(".product-variable-quantity-wrapper");
+    const productId = $(this).val();
+    const productName = wrapper
+      .closest(".product-details-modal")
+      .find(".modal-title")
+      .text();
+    const productThumbnail = wrapper
+      .closest(".product-details-modal")
+      .find(".product-thumb")
+      .val();
+    const sizeInput = wrapper.find('input[name="product_size"]:checked');
+    const selectedSize = sizeInput.length ? sizeInput.next("label").text() : "";
+    const selectedQuantity = wrapper.find(".variable-quantity").val();
+    const subTotalPrice = wrapper.find(".item_total_price").val();
+    const artworkUrl = wrapper.find(".uploaded_file_path").val();
+    const instructionNote = wrapper.find(".new_product_instruction_note").val();
+
+    let artworkHTML = "";
+    wrapper.find(".uploaded_artwork").each(function () {
       artworkHTML += $(this).prop("outerHTML");
     });
 
@@ -981,18 +1016,18 @@ jQuery(document).ready(function ($) {
 
     // Add product details to cart
     var cartItem = `
-        <li class="single-cart-item" data-product-id="${productId}">
-            <button class="remove-cart-item">×</button>
-            <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
-            <span class="cart-item-contents">
-            <span class="product-name">${productName}</span>
-            <span class="product-quantity">Quantity: <span class="product-quantity-number">${selectedQuantity}</span></span>
-            <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
-            <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
-            <span class="product-size">Size: ${selectedSize
-              .next("label")
-              .text()}</span>
-        `;
+      <li class="single-cart-item" data-product-id="${productId}">
+          <button class="remove-cart-item">×</button>
+          <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
+          <span class="cart-item-contents">
+          <span class="product-name">${productName}</span>
+          <span class="product-quantity">Quantity: <span class="product-quantity-number">${selectedQuantity}</span></span>
+          <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
+          <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
+      `;
+    if (selectedSize) {
+      cartItem += `<span class="product-size">Size: ${selectedSize}</span>`;
+    }
     if (instructionNote) {
       cartItem += `<span class="product-instruction-note">Instruction Note: ${instructionNote}</span>`;
     }
@@ -1006,10 +1041,10 @@ jQuery(document).ready(function ($) {
     $(".content-cart ul").append(cartItem);
 
     // Update cart total
-    updateCartTotal();
-    validateCheckout();
+    if (typeof updateCartTotal === "function") updateCartTotal();
+    if (typeof validateCheckout === "function") validateCheckout();
 
-    // Close the modal
+    // Close the modal (if you're using one)
     $.magnificPopup.close();
   });
 });

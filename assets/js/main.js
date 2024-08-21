@@ -1243,6 +1243,9 @@
 
           // Call the function to send data to the webhook
           sendDataToWebhook(webhookData);
+
+          // location reload
+          location.reload();
         } else {
           alert("Failed to update shipping method: " + data.data);
         }
@@ -1258,7 +1261,7 @@
 
   $("#shipping-method-list").on("change", function () {
     // Check if the selected value is not equal to the current value
-    if ($(this).val() !== currentValue && $(this).val() !== "") {
+    if ($(this).val() !== "") {
       $(".om_shipping_submit").show();
     } else {
       // Optionally, hide the button if the selected value is the current value
@@ -2040,23 +2043,25 @@
 
   // check the length of tableMain
   if ($("#tableMain").length) {
-    // Disable OM events if status is 'completed' or 'static'
-    if (
-      tableMain.getAttribute("data-order_status") === "completed" ||
-      tableMain.getAttribute("data-order_status") === "static"
-    ) {
-      $(".om__orderShippingDetails").hide();
-      $(".om__companyLogoUpload").hide();
-      $(".om__ordernoteContainer").hide();
+    if (isEmployee() || isDesigner()) {
+      // Disable OM events if status is 'completed' or 'static'
+      if (
+        tableMain.getAttribute("data-order_status") === "completed" ||
+        tableMain.getAttribute("data-order_status") === "static"
+      ) {
+        $(".om__orderShippingDetails").hide();
+        $(".om__companyLogoUpload").hide();
+        $(".om__ordernoteContainer").hide();
 
-      $("#order_mngmnt_headings").css("pointer-events", "none");
-      $("#order_mngmnt_headings").css("opacity", "0.6");
+        $("#order_mngmnt_headings").css("pointer-events", "none");
+        $("#order_mngmnt_headings").css("opacity", "0.6");
 
-      $(".om__afterTable_buttonSet").css("pointer-events", "none");
-      $(".om__afterTable_buttonSet").css("opacity", "0.6");
+        $(".om__afterTable_buttonSet").css("pointer-events", "none");
+        $(".om__afterTable_buttonSet").css("opacity", "0.6");
 
-      $("#tableMain .om__orderRow").css("pointer-events", "none");
-      // $("#tableMain .om__orderRow").css("opacity", "0.6");
+        $("#tableMain .om__orderRow").css("pointer-events", "none");
+        // $("#tableMain .om__orderRow").css("opacity", "0.6");
+      }
     }
   }
 
