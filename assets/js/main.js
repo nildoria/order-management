@@ -20,8 +20,11 @@
   $("#send-proof-button").on("click", function () {
     let orderId = allaround_vars.order_id;
     let orderNumber = allaround_vars.order_number;
-    let customerName = allaround_vars.customer_name;
-    let customerEmail = allaround_vars.customer_email;
+    let root_domain = allaround_vars.redirecturl;
+    let customerName =
+      $("#billing_first_name").val() + " " + $("#billing_last_name").val();
+    let customerEmail = $("#billing_email").val();
+    let customerPhone = $("#billing_phone").val();
     let commentText = $("#mockup-proof-comments").val() || "";
 
     if (!mainTable) {
@@ -80,6 +83,7 @@
       order_number: orderNumber,
       customer_name: customerName,
       customer_email: customerEmail,
+      customer_phone: customerPhone,
     };
 
     let data = {
@@ -90,7 +94,14 @@
       proof_status: proofStatus,
       customer_name: customerName,
       customer_email: customerEmail,
+      customer_phone: customerPhone,
     };
+
+    // Check if the order type is "company"
+    if ($("#order_type").val() === "company") {
+      data.dark_logo = $("#dark_logo").val();
+      data.lighter_logo = $("#lighter_logo").val();
+    }
 
     let requestData = {
       action: "send_proof_version",
@@ -128,7 +139,19 @@
       }
     }
 
-    fetch("https://artwork.lukpaluk.xyz/wp-json/artwork-review/v1/add-proof", {
+    let proof_api =
+      "https://artwork.lukpaluk.xyz/wp-json/artwork-review/v1/add-proof";
+    // if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
+    //   // Proof API for test environment
+    //   proof_api =
+    //     "https://artwork.lukpaluk.xyz/wp-json/artwork-review/v1/add-proof";
+    // } else {
+    //   // Proof API for production environment
+    //   proof_api =
+    //     "https://artwork.allaround.co.il/wp-json/artwork-review/v1/add-proof";
+    // }
+
+    fetch(proof_api, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1048,9 +1071,9 @@
   // ********** Sending Data to Make.com Webhook **********//
   function sendDataToWebhook(data) {
     let root_domain = allaround_vars.redirecturl;
-    let webhook_url = "";
+    let webhook_url;
 
-    if (root_domain.includes(".test")) {
+    if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
@@ -1789,7 +1812,7 @@
 
     let webhook_url = "";
 
-    if (root_domain.includes(".test")) {
+    if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
@@ -1864,7 +1887,7 @@
 
     let webhook_url = "";
 
-    if (root_domain.includes(".test")) {
+    if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";

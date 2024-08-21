@@ -585,16 +585,11 @@ jQuery(document).ready(function ($) {
 
     if (root_domain == "https://om.allaround.co.il") {
       password = "Vlh4 F7Sw Zu26 ShUG 6AYu DuRI";
+    } else if (root_domain == "https://om.lukpaluk.xyz") {
+      password = "vZmm GYw4 LKDg 4ry5 BMYC 4TMw";
     } else {
       password = "Qj0p rsPu eU2i Fzco pwpX eCPD";
     }
-
-    // TODO: For Staging and Local
-    // if (root_domain == "https://om.lukpaluk.xyz") {
-    //   password = "vZmm GYw4 LKDg 4ry5 BMYC 4TMw";
-    // } else {
-    //   password = "Qj0p rsPu eU2i Fzco pwpX eCPD";
-    // }
 
     // Check if the request is to the same origin
     let headers = {};
@@ -918,4 +913,103 @@ jQuery(document).ready(function ($) {
       });
     }
   };
+
+  const sizeInputs = document.querySelectorAll('input[name="product_size"]');
+  const quantitySelect = document.querySelector(".variable-quantity");
+
+  function updateQuantityOptions(steps) {
+    quantitySelect.innerHTML = "";
+    steps.forEach((step) => {
+      const option = document.createElement("option");
+      option.value = step.quantity;
+      option.dataset.amount = step.amount;
+      option.textContent = `${step.quantity} - ${step.amount}₪`;
+      quantitySelect.appendChild(option);
+    });
+  }
+
+  function updatePrice() {
+    const selectedOption = quantitySelect.options[quantitySelect.selectedIndex];
+    const totalPrice = parseFloat(selectedOption.dataset.amount);
+    document.querySelector(".item-total-number").textContent =
+      totalPrice.toFixed(2);
+    document.querySelector(".item_total_price").value = totalPrice.toFixed(2);
+  }
+
+  sizeInputs.forEach((input) => {
+    input.addEventListener("change", function () {
+      const steps = JSON.parse(this.dataset.steps);
+      updateQuantityOptions(steps);
+      updatePrice();
+    });
+  });
+
+  if (quantitySelect) {
+    quantitySelect.addEventListener("change", updatePrice);
+    // Initial setup
+    updatePrice();
+  }
+
+  // Handle Add to Cart button click for variable products
+  $(".variable_add_to_cart_button").on("click", function (e) {
+    e.preventDefault();
+    const modal = $(this).closest(".product-details-modal");
+    const productId = modal.data("product_id");
+    const productName = modal.find(".modal-title").text();
+    const productThumbnail = modal.find(".product-thumb").val();
+    const selectedSize = modal.find('input[name="product_size"]:checked');
+    const selectedQuantity = modal.find(".variable-quantity").val();
+    const subTotalPrice = modal.find(".item_total_price").val();
+    const artworkUrl = modal.find(".uploaded_file_path").val();
+    const instructionNote = modal.find(".new_product_instruction_note").val();
+    var artworkHTML = "";
+    modal.find(".uploaded_artwork").each(function () {
+      artworkHTML += $(this).prop("outerHTML");
+    });
+
+    if (isNaN(parseFloat(subTotalPrice))) {
+      console.error("Total Price is NaN");
+      return;
+    }
+
+    // Remove existing cart items with the same product ID
+    $(".content-cart ul li")
+      .filter(function () {
+        return $(this).data("product-id") === productId;
+      })
+      .remove();
+
+    // Add product details to cart
+    var cartItem = `
+        <li class="single-cart-item" data-product-id="${productId}">
+            <button class="remove-cart-item">×</button>
+            <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
+            <span class="cart-item-contents">
+            <span class="product-name">${productName}</span>
+            <span class="product-quantity">Quantity: <span class="product-quantity-number">${selectedQuantity}</span></span>
+            <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
+            <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
+            <span class="product-size">Size: ${selectedSize
+              .next("label")
+              .text()}</span>
+        `;
+    if (instructionNote) {
+      cartItem += `<span class="product-instruction-note">Instruction Note: ${instructionNote}</span>`;
+    }
+    if (artworkUrl) {
+      cartItem += `<span class="product-artwork">Artworks: ${artworkHTML}</span>`;
+      cartItem += `<input type="hidden" name="product-artworks-incart" class="product-artworks-incart" value='${artworkUrl}'>`;
+    }
+    cartItem += `</span>`;
+    cartItem += `</li>`;
+
+    $(".content-cart ul").append(cartItem);
+
+    // Update cart total
+    updateCartTotal();
+    validateCheckout();
+
+    // Close the modal
+    $.magnificPopup.close();
+  });
 });
