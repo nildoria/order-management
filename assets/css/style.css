@@ -1229,6 +1229,10 @@ span.delete-attachment,
   color: #1a1a1a;
   font-size: 16px;
 }
+.om__orderGeneralComment_text {
+  direction: rtl;
+  margin-top: 10px;
+}
 .om__orderGeneralComment_text p,
 .om__orderDesignerNote_text p {
   margin-bottom: 0.6rem;

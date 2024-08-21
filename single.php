@@ -21,6 +21,7 @@ $clients = $createOrder->fetch_clients_data();
         $order_id = get_post_meta($current_id, 'order_id', true);
         $order_status = get_post_meta($current_id, 'order_status', true);
         $shipping_method = get_post_meta($current_id, 'shipping_method', true);
+        $shipping_method_title = get_post_meta($current_id, 'shipping_method_title', true);
         $order_type = get_post_meta($current_id, 'order_type', true);
         $order_shipping = get_post_meta($current_id, 'shipping', true);
         $order_domain = get_post_meta($current_id, 'site_url', true);
@@ -253,20 +254,39 @@ $clients = $createOrder->fetch_clients_data();
                                         <form id="shipping-method-form">
                                             <select id="shipping-method-list" name="shipping_method">
                                                 <option value="">Select Shipping Option</option>
-                                                <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
-                                                    שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
-                                                <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
-                                                <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                                                <?php if ($shipping_method && $shipping_method_title): ?>
+                                                    <option value="<?php echo esc_attr($shipping_method); ?>" selected>
+                                                        <?php echo esc_html($shipping_method_title); ?>
+                                                    </option>
+                                                <?php endif; ?>
+                                                
+                                                <?php if ($shipping_method_title !== 'שליח עד הבית לכל הארץ (3-5 ימי עסקים)'): ?>
+                                                <option value="flat_rate"
+                                                    data-title="שליח עד הבית לכל הארץ (3-5 ימי עסקים)">
+                                                    שליח עד הבית לכל הארץ (3-5 ימי עסקים)
+                                                </option>
+                                                <?php endif; ?>
+
+
+                                                <?php if ($shipping_method_title !== 'משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!'): ?>
+                                                <option value="free_shipping" data-title="משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!">
+                                                    משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!
+                                                </option>
+                                                <?php endif; ?>
+
+                                                <?php if ($shipping_method_title !== 'איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!'): ?>
+                                                <option value="local_pickup" data-title="איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!">
+                                                    איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!
+                                                </option>
+                                                <?php endif; ?>
                                             </select>
                                             <input class="om_shipping_submit" type="submit" value="Update">
                                         </form>
                                         <?php else: ?>
-                                            <select id="shipping-method-list" class="non-admin-shipping-list" name="shipping_method">
-                                                <option value="">Select Shipping Option</option>
-                                                <option value="flat_rate" <?php echo $shipping_method == 'flat_rate' ? 'selected' : ''; ?>>
-                                                    שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
-                                                <option value="free_shipping" <?php echo $shipping_method == 'free_shipping' ? 'selected' : ''; ?>>משלוח חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
-                                                <option value="local_pickup" <?php echo $shipping_method == 'local_pickup' ? 'selected' : ''; ?>>איסוף עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                                            <select id="shipping-method-list" class="non-admin-shipping-list" name="shipping_method" disabled>
+                                                <option value="<?php echo esc_attr($shipping_method); ?>" selected>
+                                                    <?php echo esc_html($shipping_method_title); ?>
+                                                </option>
                                             </select>
                                         <?php endif; ?>
                                     </div>
