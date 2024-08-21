@@ -43,10 +43,13 @@ class AllAroundCreateOrder
 
         // Determine the API URL based on the current domain
         $current_domain = $_SERVER['SERVER_NAME'];
-        $products_api_url = strpos($current_domain, '.test') !== false ?
-            'https://allaround.test/wp-json/alarnd-main/v1/products' :
-            'https://allaround.co.il/wp-json/alarnd-main/v1/products';
-        //TODO: For Staging 'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
+        if (strpos($current_domain, '.test') !== false) {
+            $products_api_url = 'https://allaround.test/wp-json/alarnd-main/v1/products';
+        } elseif (strpos($current_domain, 'lukpaluk.xyz') !== false) {
+            $products_api_url = 'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
+        } else {
+            $products_api_url = 'https://allaround.co.il/wp-json/alarnd-main/v1/products';
+        }
 
         wp_localize_script(
             'create-order-script',
@@ -109,11 +112,13 @@ class AllAroundCreateOrder
         if ($cached_products === false) {
             // Determine the API URL based on the current domain
             $current_domain = $_SERVER['SERVER_NAME'];
-            $products_api_url = strpos($current_domain, '.test') !== false ?
-                'https://allaround.test/wp-json/alarnd-main/v1/products' :
-                'https://allaround.co.il/wp-json/alarnd-main/v1/products';
-            //TODO: For Staging 
-            // 'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
+            if (strpos($current_domain, '.test') !== false) {
+                $products_api_url = 'https://allaround.test/wp-json/alarnd-main/v1/products';
+            } elseif (strpos($current_domain, 'lukpaluk.xyz') !== false) {
+                $products_api_url = 'https://main.lukpaluk.xyz/wp-json/alarnd-main/v1/products';
+            } else {
+                $products_api_url = 'https://allaround.co.il/wp-json/alarnd-main/v1/products';
+            }
 
             // Transient does not exist or expired, fetch data from API
             $response = wp_remote_get(

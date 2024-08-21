@@ -234,9 +234,13 @@ if (!function_exists('hello_elementor_scripts_styles')) {
         }
         // Set default order_domain if not set
         if (empty($order_domain)) {
-            $order_domain = 'https://allaround.co.il';
-            // TODO: For Staging
-            // $order_domain = 'https://main.lukpaluk.xyz';
+            $current_domain = $_SERVER['SERVER_NAME'];
+
+            if (strpos($current_domain, '.test') !== false || strpos($current_domain, 'lukpaluk.xyz') !== false) {
+                $order_domain = 'https://main.lukpaluk.xyz';
+            } else {
+                $order_domain = 'https://allaround.co.il';
+            }
         }
 
         // print $billing in error_log without comment slash
@@ -774,39 +778,14 @@ function update_order_shipping_method()
     $shipping_method_title = sanitize_text_field($_POST['shipping_method_title']);
     $domain = esc_url($_POST['order_domain']);
     //TODO: This is for local testing only and for staging
-    // switch ($domain) {
-    //     case 'https://main.lukpaluk.xyz':
-    //         $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-    //         $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-    //         break;
-    //     case 'https://min.lukpaluk.xyz':
-    //         $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
-    //         $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
-    //         break;
-    //     case 'https://allaround.test':
-    //         $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
-    //         $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
-    //         break;
-    //     case 'https://localhost/ministore':
-    //         $consumer_key = 'ck_53d09905b34decf87745f1095bae29f60e1d4059';
-    //         $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
-    //         break;
-    //     default:
-    //         $domain = 'https://main.lukpaluk.xyz';
-    //         $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-    //         $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-    //         break;
-    // }
-
-    // Live credentials
     switch ($domain) {
-        case 'https://allaround.co.il':
-            $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-            $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+        case 'https://main.lukpaluk.xyz':
+            $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+            $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
             break;
-        case 'https://sites.allaround.co.il':
-            $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
-            $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
+        case 'https://min.lukpaluk.xyz':
+            $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
+            $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
             break;
         case 'https://allaround.test':
             $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
@@ -817,11 +796,36 @@ function update_order_shipping_method()
             $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
             break;
         default:
-            $domain = 'https://allaround.co.il';
-            $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-            $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+            $domain = 'https://main.lukpaluk.xyz';
+            $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+            $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
             break;
     }
+
+    // Live credentials
+    // switch ($domain) {
+    //     case 'https://allaround.co.il':
+    //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+    //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+    //         break;
+    //     case 'https://sites.allaround.co.il':
+    //         $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
+    //         $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
+    //         break;
+    //     case 'https://allaround.test':
+    //         $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
+    //         $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
+    //         break;
+    //     case 'https://localhost/ministore':
+    //         $consumer_key = 'ck_53d09905b34decf87745f1095bae29f60e1d4059';
+    //         $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
+    //         break;
+    //     default:
+    //         $domain = 'https://allaround.co.il';
+    //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+    //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+    //         break;
+    // }
 
     $api_url = $domain . '/wp-json/wc/v3/orders/' . $order_id;
 
@@ -975,15 +979,15 @@ function order_management_api()
 
                 // Validate the username and password
                 $valid_username = 'OmAdmin';
-                $valid_password_live = 'Vlh4 F7Sw Zu26 ShUG 6AYu DuRI';
-                // TODO: This one is for Staging
-                // $valid_password_live = 'vZmm GYw4 LKDg 4ry5 BMYC 4TMw';
-                $valid_password_local = 'Qj0p rsPu eU2i Fzco pwpX eCPD';
+                if (strpos($_SERVER['HTTP_HOST'], 'allaround.co.il') !== false) {
+                    $valid_password = 'Vlh4 F7Sw Zu26 ShUG 6AYu DuRI';
+                } elseif (strpos($_SERVER['HTTP_HOST'], 'lukpaluk.xyz') !== false) {
+                    $valid_password = 'vZmm GYw4 LKDg 4ry5 BMYC 4TMw';
+                } else {
+                    $valid_password = 'Qj0p rsPu eU2i Fzco pwpX eCPD';
+                }
 
-                // Determine if the request is from localhost or live site
-                $is_localhost = strpos($_SERVER['HTTP_HOST'], 'ordermanage.test') !== false;
-
-                if ($username === $valid_username && ($password === $valid_password_live || ($is_localhost && $password === $valid_password_local))) {
+                if ($username === $valid_username && $password === $valid_password) {
                     return true; // Authentication successful
                 }
 
@@ -1413,39 +1417,14 @@ function fetch_order_details($order_id, $domain)
         error_log("Fetching new order details for: $order_id");
 
         //TODO: This is for local testing only and for staging
-        // switch ($domain) {
-        //     case 'https://main.lukpaluk.xyz':
-        //         $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-        //         $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-        //         break;
-        //     case 'https://min.lukpaluk.xyz':
-        //         $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
-        //         $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
-        //         break;
-        //     case 'https://allaround.test':
-        //         $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
-        //         $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
-        //         break;
-        //     case 'https://localhost/ministore':
-        //         $consumer_key = 'ck_53d09905b34decf87745f1095bae29f60e1d4059';
-        //         $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
-        //         break;
-        //     default:
-        //         $domain = 'https://main.lukpaluk.xyz';
-        //         $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-        //         $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-        //         break;
-        // }
-
-        // Live credentials
         switch ($domain) {
-            case 'https://allaround.co.il':
-                $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-                $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+            case 'https://main.lukpaluk.xyz':
+                $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+                $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
                 break;
-            case 'https://sites.allaround.co.il':
-                $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
-                $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
+            case 'https://min.lukpaluk.xyz':
+                $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
+                $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
                 break;
             case 'https://allaround.test':
                 $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
@@ -1456,11 +1435,36 @@ function fetch_order_details($order_id, $domain)
                 $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
                 break;
             default:
-                $domain = 'https://allaround.co.il';
-                $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-                $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+                $domain = 'https://main.lukpaluk.xyz';
+                $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+                $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
                 break;
         }
+
+        // Live credentials
+        // switch ($domain) {
+        //     case 'https://allaround.co.il':
+        //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+        //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+        //         break;
+        //     case 'https://sites.allaround.co.il':
+        //         $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
+        //         $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
+        //         break;
+        //     case 'https://allaround.test':
+        //         $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
+        //         $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
+        //         break;
+        //     case 'https://localhost/ministore':
+        //         $consumer_key = 'ck_53d09905b34decf87745f1095bae29f60e1d4059';
+        //         $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
+        //         break;
+        //     default:
+        //         $domain = 'https://allaround.co.il';
+        //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+        //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+        //         break;
+        // }
 
         $order_url = $domain . '/wp-json/wc/v3/orders/' . $order_id;
         $max_retries = 3;
