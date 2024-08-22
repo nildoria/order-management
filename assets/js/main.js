@@ -173,6 +173,22 @@
       });
   });
 
+  $(document).on("click", "#delete_order_transient", function () {
+    let order_id = allaround_vars.order_id;
+
+    let requestData = {
+      action: "update_order_transient",
+      order_id: order_id,
+    };
+
+    function handleResponse(response) {
+      alert("Updated Transient successfully");
+      location.reload(); // Refresh the page to see the new item
+    }
+
+    ml_send_ajax(requestData, handleResponse);
+  });
+
   function ml_send_ajax(data, callback) {
     $.ajax({
       type: "POST",
@@ -2044,17 +2060,16 @@
   // check the length of tableMain
   if ($("#tableMain").length) {
     if (isEmployee() || isDesigner()) {
+      // Get the data-order_status attribute value from #om__orderStatus
+      var orderStatus = $("#tableMain").data("order_status");
       // Disable OM events if status is 'completed' or 'static'
-      if (
-        tableMain.getAttribute("data-order_status") === "completed" ||
-        tableMain.getAttribute("data-order_status") === "static"
-      ) {
+      if (orderStatus === "completed" || orderStatus === "static") {
         $(".om__orderShippingDetails").hide();
         $(".om__companyLogoUpload").hide();
         $(".om__ordernoteContainer").hide();
 
-        $("#order_mngmnt_headings").css("pointer-events", "none");
-        $("#order_mngmnt_headings").css("opacity", "0.6");
+        // $("#order_mngmnt_headings").css("pointer-events", "none");
+        // $("#order_mngmnt_headings").css("opacity", "0.6");
 
         $(".om__afterTable_buttonSet").css("pointer-events", "none");
         $(".om__afterTable_buttonSet").css("opacity", "0.6");
@@ -2077,15 +2092,6 @@ document.addEventListener("DOMContentLoaded", function () {
   );
   let mainTable = document.getElementById("tableMain");
   if (!mainTable || selfHostedManualOrder) return;
-
-  // Get the data-order_status attribute value
-  var orderStatus = tableMain.getAttribute("data-order_status");
-
-  // Set the text content of the element with the ID 'om__orderStatus'
-  var orderStatusElement = document.getElementById("om__orderStatus");
-  if (orderStatusElement) {
-    orderStatusElement.textContent = orderStatus;
-  }
 
   // Function to check if the current user is an Employee
   function isEmployee() {

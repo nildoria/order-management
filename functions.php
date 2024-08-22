@@ -1191,6 +1191,8 @@ function create_order(WP_REST_Request $request)
     $order_number = isset($order_data['order_number']) ? str_replace(' ', '', sanitize_text_field($order_data['order_number'])) : '';
     $order_id = isset($order_data['order_id']) ? str_replace(' ', '', sanitize_text_field($order_data['order_id'])) : '';
 
+    $order_status = isset($order_data['order_status']) ? $order_data['order_status'] : 'New Order';
+
     // Get order source and total price from order data
     $order_source = isset($order_data['order_source']) ? $order_data['order_source'] : '';
     $total_price = isset($order_data['total']) ? floatval($order_data['total']) : 0;
@@ -1236,7 +1238,7 @@ function create_order(WP_REST_Request $request)
     }
 
     // Save the order status to post meta
-    update_post_meta($post_id, 'order_status', 'New Order');
+    update_post_meta($post_id, 'order_status', $order_status);
     update_post_meta($post_id, 'order_id', $order_id);
     update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $shipping_method_id);
@@ -1568,6 +1570,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
 
     $shipping_method_title = get_post_meta($post_id, 'shipping_method_title', true);
     $shipping_method_value = get_post_meta($post_id, 'shipping_method', true);
+    $order_status_meta = get_post_meta($post_id, 'order_status', true);
     // if shipping_method_value is empty then update it with shipping_method_id
     if (empty($shipping_method_value)) {
         update_post_meta($post_id, 'shipping_method', $shipping_method_id);
@@ -1576,6 +1579,12 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         // update shipping_method_title meta with shipping_text
         update_post_meta($post_id, 'shipping_method_title', $shipping_text);
     }
+
+    // if $status is different from $order_status_meta then update $order_status_meta with $status
+    if ($status !== $order_status_meta) {
+        update_post_meta($post_id, 'order_status', $status);
+    }
+
     ob_start();
 
     echo '<table id="tableMain" data-order_status="' . esc_attr($status) . '">';
@@ -1612,7 +1621,26 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment", "_allaround_artwork_id", "_allaround_artwork_id2", "_allaround_art_pos_key", "_gallery_thumbnail"])) {
                 continue;
             }
-            echo '<li data-meta_key="' . esc_html($meta->key) . '">' . esc_html($meta->key) . ': <strong>' . esc_html(strip_tags($meta->value)) . '</strong></li>';
+
+            // Convert specific meta keys to their respective values
+            switch ($meta->key) {
+                case 'צבע':
+                    $meta_key = 'Color';
+                    break;
+                case 'מידה':
+                    $meta_key = 'Size';
+                    break;
+                case 'מיקום אמנותי':
+                    $meta_key = 'Art Position';
+                    break;
+                case 'הערת הוראה':
+                    $meta_key = 'Instruction Note';
+                    break;
+                default:
+                    $meta_key = $meta->key;
+            }
+
+            echo '<li data-meta_key="' . esc_html($meta_key) . '">' . esc_html($meta_key) . ': <strong>' . esc_html(strip_tags($meta->value)) . '</strong></li>';
 
         }
         echo '</ul>';
@@ -2235,28 +2263,28 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-                                                <div class="revision-activity customer-message mockup-approved-comment">
-                                                    <div class="revision-activity-avatar">
-                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                    </div>
-                                                    <div class="revision-activity-content">
-                                                        <div class="revision-activity-title">
-                                                            <h5>AllAround</h5>
-                                                            <span>
-                                                                <?php
-                                                                if (!empty($proof_approved_time)) {
-                                                                    echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                                                                }
-                                                                ?>
-                                                            </span>
-                                                        </div>
-                                                        <div class="revision-activity-description">
-                                                            <span class="revision-comment-title">ההדמיות אושרו על ידי הלקוח <img
-                                                                    src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt=""></span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <?php
+                                                                                <div class="revision-activity customer-message mockup-approved-comment">
+                                                                                    <div class="revision-activity-avatar">
+                                                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                                    </div>
+                                                                                    <div class="revision-activity-content">
+                                                                                        <div class="revision-activity-title">
+                                                                                            <h5>AllAround</h5>
+                                                                                            <span>
+                                                                                                <?php
+                                                                                                if (!empty($proof_approved_time)) {
+                                                                                                    echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                                                                                                }
+                                                                                                ?>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div class="revision-activity-description">
+                                                                                            <span class="revision-comment-title">ההדמיות אושרו על ידי הלקוח <img
+                                                                                                    src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt=""></span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2285,29 +2313,29 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
             }
 
             ?>
-                                                                        <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                                                                            <div class="revision-activity-avatar">
-                                                                                <?php if ($comment_name === 'AllAround'): ?>
-                                                                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                <?php else: ?>
-                                                                                                        <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                                                                                <?php endif; ?>
-                                                                            </div>
-                                                                            <div class="revision-activity-content">
-                                                                                <div class="revision-activity-title">
-                                                                                    <h5><?php echo esc_html($comment_name); ?></h5>
-                                                                                    <span><?php echo esc_html($comment_date); ?></span>
-                                                                                </div>
-                                                                                <div class="revision-activity-description">
-                                                                                    <span class="revision-comment-title">
-                                                                                        <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                                                                                    </span>
-                                                                                    <?php echo $image_html; ?>
-                                                                                    <div><?php echo $comment_text; ?></div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <?php
+                                                                                                            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                                                                                                                <div class="revision-activity-avatar">
+                                                                                                                    <?php if ($comment_name === 'AllAround'): ?>
+                                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                                                                    <?php else: ?>
+                                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                                                                                                                    <?php endif; ?>
+                                                                                                                </div>
+                                                                                                                <div class="revision-activity-content">
+                                                                                                                    <div class="revision-activity-title">
+                                                                                                                        <h5><?php echo esc_html($comment_name); ?></h5>
+                                                                                                                        <span><?php echo esc_html($comment_date); ?></span>
+                                                                                                                    </div>
+                                                                                                                    <div class="revision-activity-description">
+                                                                                                                        <span class="revision-comment-title">
+                                                                                                                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                                                                                                                        </span>
+                                                                                                                        <?php echo $image_html; ?>
+                                                                                                                        <div><?php echo $comment_text; ?></div>
+                                                                                                                    </div>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                            <?php
         }
     }
 
@@ -2347,11 +2375,11 @@ function search_posts()
             // get the order_status meta
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
             ?>
-                                                                        <div class="post-item">
-                                                                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                                                                            <p><?php echo esc_html($order_status); ?></p>
-                                                                        </div>
-                                                                        <?php
+                                                                                                                        <div class="post-item">
+                                                                                                                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                                                                                                                            <p><?php echo esc_html($order_status); ?></p>
+                                                                                                                        </div>
+                                                                                                                        <?php
         }
     } else {
         echo '<p>No posts found.</p>';
