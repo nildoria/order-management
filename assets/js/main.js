@@ -1971,17 +1971,30 @@
 
     // Check if #order_type value is empty
     if (!orderType) {
+      if (isDesigner()) {
+        alert(
+          "Please wait with submitting the order until order type is selected by admin."
+        );
+        return;
+      }
       alert("Select an Order Type first to proceed.");
       return;
     }
 
     // If #order_type value is 'company', check #mini_url and #mini_header fields
     if (orderType === "company") {
-      var miniUrl = $("#mini_url").val();
-      var miniHeader = $("#mini_header").val();
+      let miniUrl = $("#mini_url").val();
+      let miniHeader = $("#mini_header").val();
+      let darkLogo = $("#dark_logo").val();
+      let lighterLogo = $("#lighter_logo").val();
 
       if (!miniUrl || !miniHeader) {
         alert("Fill the client's Business fields.");
+        return;
+      }
+
+      if (!darkLogo || !lighterLogo) {
+        alert("Please upload dark and lighter logo versions.");
         return;
       }
     }
@@ -2013,17 +2026,30 @@
 
     // Check if #order_type value is empty
     if (!orderType) {
+      if (isDesigner()) {
+        alert(
+          "Please wait with submitting the order until order type is selected by admin."
+        );
+        return;
+      }
       alert("Select an Order Type first to proceed.");
       return;
     }
 
     // If #order_type value is 'company', check #mini_url and #mini_header fields
     if (orderType === "company") {
-      var miniUrl = $("#mini_url").val();
-      var miniHeader = $("#mini_header").val();
+      let miniUrl = $("#mini_url").val();
+      let miniHeader = $("#mini_header").val();
+      let darkLogo = $("#dark_logo").val();
+      let lighterLogo = $("#lighter_logo").val();
 
       if (!miniUrl || !miniHeader) {
         alert("Fill the client's Business fields.");
+        return;
+      }
+
+      if (!darkLogo || !lighterLogo) {
+        alert("Please upload dark and lighter logo versions.");
         return;
       }
     }
