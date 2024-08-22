@@ -389,7 +389,8 @@
 
       if (statusValue === "company_prospect") {
         // Change the select value of #client_type to company
-        $("#client_type").val("company");
+        // $("#client_type").val("company");
+        $("#client_type").val("company").trigger("change");
 
         // Disable the #client_type select element to prevent changes
         $("#client_type").prop("disabled", true);
