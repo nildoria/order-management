@@ -190,6 +190,14 @@ td.mockups-row {
   color: #fff;
   border-radius: 7px;
 }
+#delete_order_transient {
+  width: 40px;
+  height: 40px;
+  position: fixed;
+  right: 45px;
+  top: 130px;
+  cursor: pointer;
+}
 #tableMain .item_product_column {
   max-width: 100%;
   position: relative;
