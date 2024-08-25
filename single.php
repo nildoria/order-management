@@ -17,6 +17,7 @@ $clients = $createOrder->fetch_clients_data();
         the_post();
 
         $current_id = get_the_ID();
+        $post_date = get_the_date('d/m/Y', $current_id);
         $order_number = get_post_meta($current_id, 'order_number', true);
         $order_id = get_post_meta($current_id, 'order_id', true);
         $order_status = get_post_meta($current_id, 'order_status', true);
@@ -164,7 +165,9 @@ $clients = $createOrder->fetch_clients_data();
                                         </span>
                                     </div>
                                 </div>
-                                <div class="om__orderEmptyItem"></div>
+                                <div class="om__orderEmptyItem">
+                                    <h6><?php echo esc_html__('Order Date:', 'hello-elementor'); ?><span><?php echo esc_attr($post_date); ?></span></h6>
+                                </div>
                                 <div class="om__orderSource">
                                     <h6><?php echo esc_html__('Source:', 'hello-elementor'); ?><span id="om__order_source" data-order_source="<?php echo $order_source_value; ?>"><?php echo $order_source_text; ?></span></h6>
                                 </div>
@@ -656,6 +659,16 @@ $clients = $createOrder->fetch_clients_data();
                             <p>Please re-check all the order.</p>
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="printLabelSendWebhook"><?php echo esc_html__('YES - IT\'S READY', 'hello-elementor'); ?></button>
                             <button type="button" class="allarnd--regular-button" id="printLabelCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (is_current_user_admin()): ?>
+                        <button type="button" class="allarnd--regular-button ml_add_loading" id="missingGraphicOpenModal"><?php echo esc_html__('Missing Graphic', 'hello-elementor'); ?></button>
+                        <div id="missingGraphicConfirmModal" class="om__ConfirmationModal mfp-hide">
+                            <h5>Are you sure the Graphic is Missing? </h5>
+                            <p>Please re-check all the items.</p>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" id="missingGraphic"><?php echo esc_html__('YES - Missing Graphic', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button confmodalCancel" id="missingGraphicCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
                         </div>
                     <?php endif; ?>
                 </div>

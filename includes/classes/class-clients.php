@@ -58,6 +58,18 @@ class AllAroundClientsDB
                 },
             )
         );
+        // Register the new endpoint for managing order_type
+        register_rest_route(
+            'manage-order/v1',
+            '/set-order-type',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_set_order_type'],
+                'permission_callback' => function () {
+                    return current_user_can('edit_posts'); // Adjust permissions as needed
+                },
+            )
+        );
     }
 
     public function check_basic_auth($request)
@@ -213,6 +225,73 @@ class AllAroundClientsDB
             ),
             200
         );
+    }
+
+    public function handle_set_order_type(WP_REST_Request $request)
+    {
+        // Get parameters from the REST request
+        $order_id = $request->get_param('order_id') ? sanitize_text_field(absint($request->get_param('order_id'))) : '';
+        $order_type = $request->get_param('order_type') ? sanitize_text_field($request->get_param('order_type')) : '';
+
+        if (empty($order_id)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'reqular',
+                    "message" => esc_html__("Invalid order ID.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        $post_id = find_post_id_by_order_id($order_id);
+
+        // Check if post_id is empty or invalid
+        if (empty($post_id)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'reqular',
+                    "message" => esc_html__("Unable to update order type with order ID: $order_id.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        // Check if order_type is empty or invalid
+        if (empty($order_type)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'reqular',
+                    "message" => esc_html__("Please enter a valid order type.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        // Retrieve client_id and client_type meta values
+        $client_id = get_post_meta($post_id, 'client_id', true);
+        $client_type = get_post_meta($client_id, 'client_type', true);
+
+        // Update client_type only if it is not 'company'
+        if ('company' !== $client_type) {
+            update_post_meta($client_id, 'client_type', $order_type);
+        }
+
+        // Update the order_type for the post
+        update_post_meta($post_id, 'order_type', $order_type);
+
+        // Retrieve updated client_type
+        $client_type = get_post_meta($client_id, 'client_type', true);
+
+        // Send success response
+        wp_send_json_success(
+            array(
+                "message_type" => 'reqular',
+                "message" => "Order #$order_id type successfully updated.",
+                "order_type" => $order_type,
+                "client_type" => $client_type
+            )
+        );
+        wp_die();
     }
 
 
