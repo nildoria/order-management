@@ -46,6 +46,16 @@ class AllAroundClientsDB
                 // },
             )
         );
+        // Register the new endpoint for getting client token
+        register_rest_route(
+            'manage-client/v1',
+            '/find-client-token',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'find_client_token'],
+                'permission_callback' => [$this, 'check_basic_auth'], // Auth via Basic Auth
+            )
+        );
         // Register the new endpoint for setting minisite_id
         register_rest_route(
             'manage-order/v1',
@@ -194,6 +204,60 @@ class AllAroundClientsDB
             ),
             201
         );
+    }
+
+    // Callback function to handle the request
+    public function find_client_token(WP_REST_Request $request)
+    {
+        // Retrieve the email and phone from the request body
+        $customer_email = sanitize_email($request->get_param('customer_email'));
+        $customer_phone = sanitize_text_field($request->get_param('customer_phone'));
+
+        // Check if both fields are provided
+        if (empty($customer_email) || empty($customer_phone)) {
+            return new WP_Error('missing_params', 'Both customer_email and customer_phone are required.', array('status' => 400));
+        }
+
+        // Query to find the client by email and phone
+        $args = array(
+            'post_type' => 'client',
+            'post_status' => 'publish',
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key' => 'email',
+                    'value' => $customer_email,
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'phone',
+                    'value' => $customer_phone,
+                    'compare' => '='
+                )
+            ),
+            'posts_per_page' => 1 // We only need one result
+        );
+
+        $query = new WP_Query($args);
+
+        if ($query->have_posts()) {
+            $client_id = $query->posts[0]->ID;
+
+            // Retrieve the token from the client's meta data
+            $token = get_post_meta($client_id, 'token', true);
+
+            // If no token found
+            if (empty($token)) {
+                return new WP_Error('token_not_found', 'No token found for this client.', array('status' => 404));
+            }
+
+            error_log(print_r($token, true));
+
+            // Respond with the token
+            return new WP_REST_Response(array('token' => $token), 200);
+        } else {
+            return new WP_Error('client_not_found', 'No client found with the provided email and phone number.', array('status' => 404));
+        }
     }
 
     public function handle_set_minisite_data(WP_REST_Request $request)

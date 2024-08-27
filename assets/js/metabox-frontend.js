@@ -75,8 +75,10 @@
             $(".om_order_type_submit").fadeOut();
           }, 500);
 
-          // alert(response.data.message);
-          // location.reload();
+          // Store order_type and client_type in localStorage
+          localStorage.setItem("order_type", response.data.order_type);
+          localStorage.setItem("client_type", response.data.client_type);
+
           Toastify({
             text: `Order Type Updated Successfully!!`,
             duration: 3000,
@@ -89,27 +91,8 @@
             },
           }).showToast();
 
-          const order_type = response.data.order_type;
-          const client_type = response.data.client_type;
-
-          console.log("Order Type: ", order_type);
-          console.log("Client Type: ", client_type);
-
-          // Open Magnific Popup if #billing-form-modal exists
-          if (order_type == "company" && client_type == "company") {
-            $(".om__client_company_info").show();
-            if ($.magnificPopup && $("#billing-form-modal").length) {
-              $.magnificPopup.open({
-                items: {
-                  src: "#billing-form-modal",
-                  type: "inline",
-                },
-                closeBtnInside: true,
-              });
-            }
-          } else {
-            $(".om__client_company_info").hide();
-          }
+          // Reload the page after storing the values
+          location.reload();
         } else {
           $(".om_order_type_submit").removeClass("pulse");
           alert(response.data.message);
@@ -118,6 +101,41 @@
     });
 
     return false;
+  });
+
+  $(document).ready(function () {
+    // Retrieve the stored values from localStorage
+    const order_type = localStorage.getItem("order_type");
+    const client_type = localStorage.getItem("client_type");
+
+    // If the stored values match the conditions, show the popup
+    if (order_type === "company" && client_type === "company") {
+      $(".om__client_company_info").show();
+      if ($.magnificPopup && $("#billing-form-modal").length) {
+        $.magnificPopup.open({
+          items: {
+            src: "#billing-form-modal",
+            type: "inline",
+            closeBtnInside: true,
+          },
+        });
+      }
+    } else {
+      $(".om__client_company_info").hide();
+    }
+
+    // Clear the stored values in localStorage after use
+    localStorage.removeItem("order_type");
+    localStorage.removeItem("client_type");
+    // Check if the order_type is company when the page loads
+    const order_type_val = $("#order_type").val();
+
+    // If the order_type value is 'company', show the .om__client_company_info div
+    if (order_type_val === "company") {
+      $(".om__client_company_info").show();
+    } else {
+      $(".om__client_company_info").hide();
+    }
   });
 
   $("#addClientForm").on("submit", function (event) {
