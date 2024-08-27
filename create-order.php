@@ -127,6 +127,7 @@ foreach ($products as $product) {
                                                                 class="item-rate-number">0</span><span><?php echo esc_html__(' per unit', 'hello-elementor'); ?></span>
                                                         </div>
                                                     </div>
+                                                    <input type="text" placeholder="Custom Rate" name="item-rate-number" class="item-rate-number-input">
                                                 </div>
                                             <?php endif; ?>
                                             <div class="form-group">
@@ -190,7 +191,7 @@ foreach ($products as $product) {
                                 $amount = $has_size ? $step['amount'] : $step['steps'][0]['amount'];
                                 ?>
                         <option value="<?php echo esc_attr($quantity); ?>" data-amount="<?php echo esc_attr($amount); ?>">
-                            <?php echo esc_html($quantity); ?> - <?php echo esc_html($amount); ?>₪
+                            <?php echo esc_html($quantity); ?> <!-- - <?//php echo esc_html($amount); ?>₪ -->
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -198,6 +199,7 @@ foreach ($products as $product) {
                     <span class="item-total-number">0</span>₪
                     <input type="hidden" class="item_total_price" name="item_total_price">
                 </div>
+                <input type="text" name="variableProductCustomRate" placeholder="Custom Total" class="variableItem-total-number-input">
             </div>
         </div>
 
@@ -216,7 +218,7 @@ foreach ($products as $product) {
         </button>
     </div>
 <?php endif; ?>
-
+<!-- Variable Product END -->
                                     <!-- Group Product START -->
                                     <?php if ($grouped_product): ?>
                                         <div class="product-grouped-product-wraper" style="width: <?php echo esc_attr($size_modal_width) ?>px" data-regular_price='<?php echo esc_attr($product['price']); ?>' data-steps='<?php echo json_encode($product['quantity_steps']); ?>'>
@@ -282,6 +284,11 @@ foreach ($products as $product) {
                                                 <label for="new_product_instruction_note">Instruction Note</label>
                                                 <input type="text" class="new_product_instruction_note" value=""
                                                     placeholder="Enter Instruction Note" />
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="grouped_custom_rate_input">Custom Rate</label>
+                                                <input type="text" class="grouped_custom_rate_input" name="grouped_custom_rate_input"
+                                                    placeholder="Custom Rate" />
                                             </div>
                                         </div>
                                         <div class="grouped-modal-actions">
