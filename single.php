@@ -55,7 +55,7 @@ $clients = $createOrder->fetch_clients_data();
             $last_name = get_post_meta($client_id, 'last_name', true);
             $client_name = $first_name . ' ' . $last_name;
             $client_address = get_post_meta($client_id, 'address_1', true);
-            $client_postcode = get_post_meta($client_id, 'postcode', true);
+            $client_address_2 = get_post_meta($client_id, 'address_2', true);
             $client_city = get_post_meta($client_id, 'city', true);
             $client_phone = get_post_meta($client_id, 'phone', true);
             $email = get_post_meta($client_id, 'email', true);
@@ -192,8 +192,8 @@ $clients = $createOrder->fetch_clients_data();
                                             <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_attr($client_address); ?>" required>
                                         </div>
                                         <div class="form-group">
-                                            <label for="billing_postcode">Street Number:</label>
-                                            <input type="text" id="billing_postcode" name="billing_postcode" value="<?php echo esc_attr($client_postcode); ?>"
+                                            <label for="billing_address_2">Street Number:</label>
+                                            <input type="text" id="billing_address_2" name="billing_address_2" value="<?php echo esc_attr($client_address_2); ?>"
                                                 required>
                                         </div>
                                         <div class="form-group">
@@ -282,6 +282,10 @@ $clients = $createOrder->fetch_clients_data();
                                                 איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!
                                             </option>
                                             <?php endif; ?>
+
+                                            <option value="getpackage" data-title="GetPackage">
+                                                GetPackage
+                                            </option>
                                         </select>
                                         <input class="om_shipping_submit" type="submit" value="Update">
                                     </form>
@@ -414,9 +418,9 @@ $clients = $createOrder->fetch_clients_data();
                                 value="<?php echo esc_html($order_shipping['address_1']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">
-                            <label for="shipping_postcode">Street Number</label>
-                            <input type="text" id="shipping_postcode" name="shipping_postcode"
-                                value="<?php echo esc_html($order_shipping['postcode']); ?>">
+                            <label for="shipping_address_2">Street Number</label>
+                            <input type="text" id="shipping_address_2" name="shipping_address_2"
+                                value="<?php echo esc_html($order_shipping['address_2']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">
                             <label for="shipping_city">City</label>
@@ -669,6 +673,16 @@ $clients = $createOrder->fetch_clients_data();
                             <p>Please re-check all the items.</p>
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="missingGraphic"><?php echo esc_html__('YES - Missing Graphic', 'hello-elementor'); ?></button>
                             <button type="button" class="allarnd--regular-button confmodalCancel" id="missingGraphicCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
+                        </div>
+                        
+                        <button type="button" class="allarnd--regular-button ml_add_loading" id="mockupApprovedOpenModal"><?php echo esc_html__('Mockups Approved', 'hello-elementor'); ?></button>
+                        <div id="mockupApprovedConfirmModal" class="om__ConfirmationModal mfp-hide">
+                            <h5>Are you sure the Mockup is Approved? </h5>
+                            <p>Please re-check approval status.</p>
+                            <button type="button" class="allarnd--regular-button ml_add_loading"
+                                id="mockupApproved"><?php echo esc_html__('YES - Mockups Approved', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button confmodalCancel"
+                                id="mockupApprovedCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
                         </div>
                     <?php endif; ?>
                 </div>

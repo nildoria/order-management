@@ -469,7 +469,7 @@ jQuery(document).ready(function ($) {
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
-      postcode: $("#billing_postcode").val(),
+      address_2: $("#billing_address_2").val(),
       company: $("#billing_company").val(),
       city: $("#billing_city").val(),
       country: $("#billing_country").val() || "Israel",
@@ -526,7 +526,7 @@ jQuery(document).ready(function ($) {
       first_name: billing.first_name,
       last_name: billing.last_name,
       address_1: billing.address_1,
-      postcode: billing.postcode,
+      address_2: billing.address_2,
       company: billing.company,
       city: billing.city,
       country: billing.country,
@@ -668,7 +668,7 @@ jQuery(document).ready(function ($) {
             );
             $("#billing-form #billing_company").val(client.invoice);
             $("#billing-form #billing_address_1").val(client.address_1);
-            $("#billing-form #billing_postcode").val(client.postcode);
+            $("#billing-form #billing_address_2").val(client.address_2);
             $("#billing-form #billing_city").val(client.city);
             $("#billing-form #billing_email").val(client.email);
             $("#billing-form #billing_phone").val(client.phone);

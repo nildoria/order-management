@@ -115,7 +115,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'postcode',
+            'address_2',
             'phone',
             'city',
             'status',
@@ -374,7 +374,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'postcode',
+            'address_2',
             'phone',
             'city',
             'status',
@@ -494,10 +494,10 @@ class AllAroundClientsDB
         $root_domain = home_url();
         $webhook_url = "";
 
-        if (strpos($root_domain, '.test') !== false) {
+        if (strpos($root_domain, '.test') !== false || strpos($root_domain, 'lukpaluk.xyz') !== false) {
             $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
         } else {
-            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3----xxxx";
+            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
         }
 
         // Include all company fields if the client type is "company"
@@ -758,7 +758,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'postcode',
+            'address_2',
             'phone',
             'city',
             'status',
@@ -936,8 +936,6 @@ class AllAroundClientsDB
         // Check if order_data contains client_type, if not fall back to $_POST or default to 'personal'
         $client_type = isset($order_data['client_type']) ? sanitize_text_field($order_data['client_type']) : (isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal');
 
-        // $client_type = isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal';
-
         $filteredPostData = $order_data['billing'];
 
         // check if email is empty
@@ -1066,7 +1064,7 @@ class AllAroundClientsDB
             'subscribed' => !empty($subscribed) ? $subscribed : 'yes',
             'token' => get_post_meta($post->ID, 'token', true),
             'address_1' => get_post_meta($post->ID, 'address_1', true),
-            'postcode' => get_post_meta($post->ID, 'postcode', true),
+            'address_2' => get_post_meta($post->ID, 'address_2', true),
             'city' => get_post_meta($post->ID, 'city', true),
             'dark_logo' => get_post_meta($post->ID, 'dark_logo', true),
             'lighter_logo' => get_post_meta($post->ID, 'lighter_logo', true),
@@ -1152,8 +1150,8 @@ class AllAroundClientsDB
             <input type="text" name="address_1" id="address_1" value="<?php echo esc_attr($fields['address_1']); ?>" />
         </p>
         <p>
-            <label for="postcode">Street Number:</label><br>
-            <input type="text" name="postcode" id="postcode" value="<?php echo esc_attr($fields['postcode']); ?>" />
+            <label for="address_2">Street Number:</label><br>
+            <input type="text" name="address_2" id="address_2" value="<?php echo esc_attr($fields['address_2']); ?>" />
         </p>
         <p>
             <label for="city">City:</label><br>
@@ -1319,7 +1317,7 @@ class AllAroundClientsDB
             'subscribed',
             'token',
             'address_1',
-            'postcode',
+            'address_2',
             'city',
             'dark_logo',
             'lighter_logo',

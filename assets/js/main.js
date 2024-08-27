@@ -99,8 +99,11 @@
 
     // Check if the order type is "company"
     if ($("#order_type").val() === "company") {
-      data.dark_logo = $("#dark_logo").val();
-      data.lighter_logo = $("#lighter_logo").val();
+      // data.dark_logo = $("#dark_logo").val();
+      // data.lighter_logo = $("#lighter_logo").val();
+
+      data.logo_darker = $("#dark_logo").val();
+      data.logo_lighter = $("#lighter_logo").val();
     }
 
     let requestData = {
@@ -1709,7 +1712,7 @@
       first_name: $("#shipping_first_name").val(),
       last_name: $("#shipping_last_name").val(),
       address_1: $("#shipping_address_1").val(),
-      postcode: $("#shipping_postcode").val(),
+      address_2: $("#shipping_address_2").val(),
       city: $("#shipping_city").val(),
       phone: $("#shipping_phone").val(),
       nonce: allaround_vars.nonce,
@@ -1770,7 +1773,7 @@
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
-      postcode: $("#billing_postcode").val(),
+      address_2: $("#billing_address_2").val(),
       city: $("#billing_city").val(),
       phone: $("#billing_phone").val(),
       nonce: allaround_vars.nonce,
@@ -1896,7 +1899,7 @@
     let shipping_first_name = $("#shipping_first_name").val();
     let shipping_last_name = $("#shipping_last_name").val();
     let shipping_address_1 = $("#shipping_address_1").val();
-    let shipping_postcode = $("#shipping_postcode").val();
+    let shipping_address_2 = $("#shipping_address_2").val();
     let shipping_city = $("#shipping_city").val();
     let shipping_phone = $("#shipping_phone").val();
 
@@ -1923,7 +1926,7 @@
       shipping_method: shipping_method,
       shipping_fullName: full_name,
       shipping_addressName: shipping_address_1,
-      shipping_addressNumber: shipping_postcode,
+      shipping_addressNumber: shipping_address_2,
       shipping_city: shipping_city,
       shipping_phone: shipping_phone,
     };
@@ -2122,6 +2125,64 @@
     });
   });
 
+  // send to webhook with order id and om_status missing_graphic
+  $("#mockupApproved").on("click", function () {
+    let order_id = allaround_vars.order_id;
+    let root_domain = allaround_vars.redirecturl;
+
+    $(this).addClass("ml_loading");
+
+    let webhook_url = "";
+
+    if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
+      // Webhook URL for test environment
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+    } else {
+      // Webhook URL for production environment
+      webhook_url =
+        "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    }
+
+    // Data to send to the webhook
+    let data = {
+      order_id: order_id,
+      om_status: "mockups_approved",
+    };
+
+    // AJAX request to send the data to the webhook
+    $.ajax({
+      url: webhook_url,
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(data),
+      success: function (response) {
+        console.log("Webhook request successful:", response);
+        // Optionally, you can show a success message to the user
+        Toastify({
+          text: "Webhook request sent successfully!",
+          duration: 3000,
+          close: true,
+          gravity: "bottom",
+          position: "right",
+          stopOnFocus: true,
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
+
+        $("#mockupApproved").removeClass("ml_loading");
+        $.magnificPopup.close();
+      },
+      error: function (xhr, status, error) {
+        $("#mockupApproved").removeClass("ml_loading");
+        console.error("Error sending webhook request:", error);
+        // Optionally, you can show an error message to the user
+        alert("Failed to send webhook request. Please try again.");
+      },
+    });
+  });
+
   // Open Modal on click of #printLabelOpenModal
   $("#printLabelOpenModal").magnificPopup({
     items: {
@@ -2140,6 +2201,15 @@
     closeBtnInside: true,
   });
 
+  // Open Modal on click of #mockupApprovedOpenModal
+  $("#mockupApprovedOpenModal").magnificPopup({
+    items: {
+      src: "#mockupApprovedConfirmModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
   // Close the modal on click of #printLabelCancel
   $(".confmodalCancel").on("click", function () {
     $.magnificPopup.close();
@@ -2151,9 +2221,9 @@
   });
 
   // Close the modal on click of #missingGraphicCancel
-  $("#missingGraphicCancel").on("click", function () {
-    $.magnificPopup.close();
-  });
+  // $("#missingGraphicCancel").on("click", function () {
+  //   $.magnificPopup.close();
+  // });
 
   // check the length of tableMain
   if ($("#tableMain").length) {

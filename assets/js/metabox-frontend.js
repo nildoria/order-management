@@ -314,7 +314,7 @@
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
-      postcode: $("#billing_postcode").val(),
+      address_2: $("#billing_address_2").val(),
       invoice: $("#billing_company").val(),
       city: $("#billing_city").val(),
       phone: $("#billing_phone").val(),
