@@ -546,7 +546,7 @@ $clients = $createOrder->fetch_clients_data();
                     </div>
                     
                     <div class="om__companyLogoUploadSubmit">
-                        <button type="button" data-client_id="<?php echo esc_attr($client_id); ?>" disabled class="allarnd--regular-button ml_add_loading"
+                        <button type="button" data-client_id="<?php echo esc_attr($client_id); ?>" class="allarnd--regular-button ml_add_loading"
                             id="submitOmCompanyLogo"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
                     </div>
                 </div>

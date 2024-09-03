@@ -22,7 +22,7 @@
         preview.attr("src", image_url).show();
         button.nextAll(".remove-image-button").show();
 
-        checkLogos();
+        // checkLogos();
       });
   });
 
@@ -38,7 +38,7 @@
     preview.hide();
     button.hide();
 
-    checkLogos();
+    // checkLogos();
 
     return false;
   });
@@ -205,7 +205,7 @@
   }
 
   // Initial check
-  checkLogos();
+  // checkLogos();
 
   // OM Company Logo Uploads
   $("#submitOmCompanyLogo").on("click", function () {
@@ -236,7 +236,7 @@
         if (response.success) {
           // remove loading class
           $("#submitOmCompanyLogo").removeClass("ml_loading");
-          alert("Logos updated successfully!");
+          alert("Logo fields updated successfully!");
           location.reload();
         } else {
           if (response.data && response.data.message) {

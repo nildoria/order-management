@@ -685,23 +685,23 @@ class AllAroundClientsDB
             wp_die();
         }
 
-        if (empty($dark_logo) || empty($lighter_logo)) {
-            $missing_fields = array();
-            if (empty($dark_logo)) {
-                $missing_fields[] = 'Dark Logo';
-            }
-            if (empty($lighter_logo)) {
-                $missing_fields[] = 'Lighter Logo';
-            }
+        // if (empty($dark_logo) || empty($lighter_logo)) {
+        //     $missing_fields = array();
+        //     if (empty($dark_logo)) {
+        //         $missing_fields[] = 'Dark Logo';
+        //     }
+        //     if (empty($lighter_logo)) {
+        //         $missing_fields[] = 'Lighter Logo';
+        //     }
 
-            wp_send_json_error(
-                array(
-                    "message_type" => 'regular',
-                    "message" => esc_html__("The following fields are mandatory: " . implode(', ', $missing_fields) . ".", "hello-elementor")
-                )
-            );
-            wp_die();
-        }
+        //     wp_send_json_error(
+        //         array(
+        //             "message_type" => 'regular',
+        //             "message" => esc_html__("The following fields are mandatory: " . implode(', ', $missing_fields) . ".", "hello-elementor")
+        //         )
+        //     );
+        //     wp_die();
+        // }
 
         if ($client_id) {
             update_post_meta($client_id, 'dark_logo', $dark_logo);

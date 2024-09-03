@@ -2281,30 +2281,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-                                                                <div class="revision-activity customer-message mockup-approved-comment">
-                                                                    <div class="revision-activity-avatar">
-                                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                    </div>
-                                                                    <div class="revision-activity-content">
-                                                                        <div class="revision-activity-title">
-                                                                            <h5>AllAround</h5>
-                                                                            <span>
-                                                                                <?php
-                                                                                if (!empty($proof_approved_time)) {
-                                                                                    echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                                                                                }
-                                                                                ?>
-                                                                            </span>
-                                                                        </div>
-                                                                        <div class="revision-activity-description">
-                                                                            <span class="revision-comment-title">
-                                                                                ההדמיות אושרו על ידי הלקוח 
-                                                                                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <?php
+                                        <div class="revision-activity customer-message mockup-approved-comment">
+                                            <div class="revision-activity-avatar">
+                                                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                            </div>
+                                            <div class="revision-activity-content">
+                                                <div class="revision-activity-title">
+                                                    <h5>AllAround</h5>
+                                                    <span>
+                                                        <?php
+                                                        if (!empty($proof_approved_time)) {
+                                                            echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                                                        }
+                                                        ?>
+                                                    </span>
+                                                </div>
+                                                <div class="revision-activity-description">
+                                                    <span class="revision-comment-title">
+                                                        ההדמיות אושרו על ידי הלקוח 
+                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2332,29 +2332,29 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
                 $image_html .= '</div>';
             }
             ?>
-                                                                                                <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                                                                                                    <div class="revision-activity-avatar">
-                                                                                                        <?php if ($comment_name === 'AllAround'): ?>
-                                                                                                                                                                                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                                        <?php else: ?>
-                                                                                                                                                                                <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                                                                                                        <?php endif; ?>
-                                                                                                    </div>
-                                                                                                    <div class="revision-activity-content">
-                                                                                                        <div class="revision-activity-title">
-                                                                                                            <h5><?php echo esc_html($comment_name); ?></h5>
-                                                                                                            <span><?php echo esc_html($comment_date); ?></span>
-                                                                                                        </div>
-                                                                                                        <div class="revision-activity-description">
-                                                                                                            <span class="revision-comment-title">
-                                                                                                                <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                                                                                                            </span>
-                                                                                                            <?php echo $image_html; ?>
-                                                                                                            <div><?php echo $comment_text; ?></div>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                                <?php
+                                                            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                                                                <div class="revision-activity-avatar">
+                                                                    <?php if ($comment_name === 'AllAround'): ?>
+                                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                    <?php else: ?>
+                                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                                <div class="revision-activity-content">
+                                                                    <div class="revision-activity-title">
+                                                                        <h5><?php echo esc_html($comment_name); ?></h5>
+                                                                        <span><?php echo esc_html($comment_date); ?></span>
+                                                                    </div>
+                                                                    <div class="revision-activity-description">
+                                                                        <span class="revision-comment-title">
+                                                                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                                                                        </span>
+                                                                        <?php echo $image_html; ?>
+                                                                        <div><?php echo $comment_text; ?></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <?php
         }
     }
 
@@ -2394,11 +2394,11 @@ function search_posts()
             // get the order_status meta
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
             ?>
-                                                                                                <div class="post-item">
-                                                                                                    <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                                                                                                    <p><?php echo esc_html($order_status); ?></p>
-                                                                                                </div>
-                                                                                                <?php
+                                                            <div class="post-item">
+                                                                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                                                                <p><?php echo esc_html($order_status); ?></p>
+                                                            </div>
+                                                            <?php
         }
     } else {
         echo '<p>No posts found.</p>';

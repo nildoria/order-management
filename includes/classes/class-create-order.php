@@ -315,7 +315,13 @@ class AllAroundCreateOrder
                     'method_title' => $shipping_method_title,
                     'total' => strval($shipping_total)
                 )
-            )
+            ),
+            'meta_data' => array(
+                array(
+                    'key' => '_manual_order_created',
+                    'value' => 'yes',
+                ),
+            ),
         );
 
         // Send order data to the specified domain
