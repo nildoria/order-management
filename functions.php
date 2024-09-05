@@ -1265,6 +1265,39 @@ function create_order(WP_REST_Request $request)
         update_post_meta($post_id, '_order_manage_general_comment', $customer_note);
         update_post_meta($post_id, 'order_type', 'company');
         $order_data['client_type'] = 'company';
+
+        $dark_logo = isset($order_data['dark_logo']) ? $order_data['dark_logo'] : '';
+        $lighter_logo = isset($order_data['lighter_logo']) ? $order_data['lighter_logo'] : '';
+        if (!empty($dark_logo) || !empty($lighter_logo)) {
+            // Prepare the attachments array
+            $designer_extra_attachments = array();
+
+            // Add dark logo if exists
+            if (!empty($dark_logo)) {
+                $designer_extra_attachments[] = array(
+                    'name' => 'Dark Logo',
+                    'url' => $dark_logo,
+                );
+            }
+
+            // Add lighter logo if exists
+            if (!empty($lighter_logo)) {
+                $designer_extra_attachments[] = array(
+                    'name' => 'Lighter Logo',
+                    'url' => $lighter_logo,
+                );
+            }
+
+            // Update _order_designer_extra_attachments meta for the post
+            if (!empty($designer_extra_attachments)) {
+                update_post_meta($post_id, '_order_designer_extra_attachments', $designer_extra_attachments);
+            }
+        }
+
+        // Schedule the mockup upload to run after 5 minutes (or any delay you need)
+        if (!wp_next_scheduled('upload_mockups_to_ftp', array($order_id, $order_data))) {
+            wp_schedule_single_event(time() + 60, 'upload_mockups_to_ftp', array($order_id, $order_data));
+        }
     }
     do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
 
@@ -1289,6 +1322,141 @@ function create_order(WP_REST_Request $request)
     // Return the ID of the new post
     return new WP_REST_Response(array('post_id' => $post_id, 'post_url' => get_permalink($post_id)), 200);
 }
+
+
+// Hook into the scheduled event to process mockup uploads
+add_action('upload_mockups_to_ftp', 'upload_mockups_to_ftp_callback', 10, 2);
+
+/**
+ * Handles the mockup uploads after the order is processed.
+ *
+ * @param int $order_id The ID of the order.
+ * @param array $order_data The order data containing mockup information.
+ */
+function upload_mockups_to_ftp_callback($order_id, $order_data)
+{
+    // Iterate over the items and process each item's mockup_thumbnail for FTP upload
+    if (isset($order_data['items']) && is_array($order_data['items'])) {
+        foreach ($order_data['items'] as $item) {
+            if (isset($item['mockup_thumbnail']) && !empty($item['mockup_thumbnail'])) {
+                $mockup_url = $item['mockup_thumbnail'];
+                $product_id = $item['id'];
+                $mockup_version = 'V1'; // Assuming version 1 for now, adjust as needed
+
+                // Use the function from upload.php to upload to the FTP
+                handle_mockup_upload_to_ftp($mockup_url, $order_id, $product_id, $mockup_version);
+            }
+        }
+    }
+}
+
+/**
+ * Uploads a mockup to the FTP server.
+ *
+ * @param string $file_url The URL of the mockup file.
+ * @param int $order_id The ID of the order.
+ * @param int $product_id The ID of the product.
+ * @param string $version The version of the mockup (e.g., V1, V2).
+ */
+function handle_mockup_upload_to_ftp($file_url, $order_id, $product_id, $version)
+{
+    // FTP server details
+    $ftp_server = '107.181.244.114';
+    $ftp_user_name = 'lukpaluk';
+    $ftp_user_pass = 'SK@8Ek9mZam45;';
+
+    // Connect to FTP server
+    $ftp_conn = ftp_connect($ftp_server) or die("Could not connect to $ftp_server");
+
+    // Login to FTP server
+    $login = ftp_login($ftp_conn, $ftp_user_name, $ftp_user_pass);
+    if (!$login) {
+        ftp_close($ftp_conn);
+        die("Could not log in to FTP server");
+    }
+
+    // Enable passive mode
+    ftp_pasv($ftp_conn, true);
+
+    // Define the directory structure
+    $remote_directory = "/public_html/artworks/$order_id/$product_id/$version/";
+
+    // Check if directory exists, if not, create it
+    if (!@ftp_chdir($ftp_conn, $remote_directory)) {
+        $parts = explode('/', $remote_directory);
+        $current_dir = '';
+        foreach ($parts as $part) {
+            if (empty($part))
+                continue;
+            $current_dir .= '/' . $part;
+            if (!@ftp_chdir($ftp_conn, $current_dir)) {
+                ftp_mkdir($ftp_conn, $current_dir);
+            }
+        }
+        ftp_chdir($ftp_conn, $remote_directory);
+    }
+
+    // Ensure download_url is defined before using it
+    if (!function_exists('download_url')) {
+        function download_url($url)
+        {
+            // Use PHP's tempnam if wp_tempnam is unavailable
+            if (function_exists('wp_tempnam')) {
+                $temp_file = wp_tempnam($url);
+            } else {
+                $temp_file = tempnam(sys_get_temp_dir(), 'wp_tmp');
+            }
+
+            if (!$temp_file) {
+                return new WP_Error('temp_file_failed', __('Failed to create a temporary file.'));
+            }
+
+            $response = wp_remote_get($url, array('timeout' => 300, 'stream' => true, 'filename' => $temp_file));
+            if (is_wp_error($response)) {
+                @unlink($temp_file);
+                return $response;
+            }
+
+            if (200 != wp_remote_retrieve_response_code($response)) {
+                @unlink($temp_file);
+                return new WP_Error('invalid_response', __('Failed to download file.'), wp_remote_retrieve_response_message($response));
+            }
+
+            return $temp_file;
+        }
+    }
+
+
+    // Download the file from the URL to a temporary location
+    $temp_file = download_url($file_url);
+    if (is_wp_error($temp_file)) {
+        ftp_close($ftp_conn);
+        error_log("Failed to download the mockup file: $file_url");
+        return;
+    }
+
+    // Generate a unique ID for the file
+    $unique_id = uniqid();
+
+    // Define the remote file path with the new filename
+    $new_filename = $product_id . '-' . $version . '-' . $unique_id . '.jpeg';
+    $remote_file = $remote_directory . $new_filename;
+
+    // Upload the file to the FTP server
+    if (ftp_put($ftp_conn, $remote_file, $temp_file, FTP_BINARY)) {
+        $file_path = "https://lukpaluk.xyz/artworks/$order_id/$product_id/$version/$new_filename";
+        error_log("Mockup successfully uploaded: $file_path");
+    } else {
+        error_log("Failed to upload the mockup: $file_url");
+    }
+
+    // Clean up temporary file
+    @unlink($temp_file);
+
+    // Close the FTP connection after each upload to ensure it doesn't timeout between items
+    ftp_close($ftp_conn);
+}
+
 
 /**
  * Set Client Table Data.
@@ -1386,8 +1554,9 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
 
     $client_details = isset($order_data['billing']) ? $order_data['billing'] : array();
     $total_price = isset($order_data['total']) ? $order_data['total'] : 0;
+    $shipping_method_title = isset($order_data['shipping_lines'][0]['method_title']) ? $order_data['shipping_lines'][0]['method_title'] : '';
 
-    error_log('Total price: ' . $total_price);
+    // error_log(print_r($client_details, true));
 
     $webhook_data = array(
         'om_status' => 'new_order',
@@ -1398,10 +1567,14 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
             'lastName' => isset($client_details['last_name']) ? $client_details['last_name'] : '',
             'email' => isset($client_details['email']) ? $client_details['email'] : '',
             'phone' => isset($client_details['phone']) ? $client_details['phone'] : '',
+            'invoice' => isset($client_details['company']) ? $client_details['company'] : '',
         ),
+        'shipping_method_title' => $shipping_method_title,
         'total_price' => $total_price,
         'post_url' => $post_url
     );
+
+    // error_log(print_r($webhook_data, true));
 
     $response = wp_remote_post(
         $webhook_url,
@@ -2281,30 +2454,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-                                        <div class="revision-activity customer-message mockup-approved-comment">
-                                            <div class="revision-activity-avatar">
-                                                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                            </div>
-                                            <div class="revision-activity-content">
-                                                <div class="revision-activity-title">
-                                                    <h5>AllAround</h5>
-                                                    <span>
-                                                        <?php
-                                                        if (!empty($proof_approved_time)) {
-                                                            echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                                                        }
-                                                        ?>
-                                                    </span>
-                                                </div>
-                                                <div class="revision-activity-description">
-                                                    <span class="revision-comment-title">
-                                                        ההדמיות אושרו על ידי הלקוח 
-                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <?php
+                                                                                                                                                                                                                                                                                                                <div class="revision-activity customer-message mockup-approved-comment">
+                                                                                                                                                                                                                                                                                                                    <div class="revision-activity-avatar">
+                                                                                                                                                                                                                                                                                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                                                                    <div class="revision-activity-content">
+                                                                                                                                                                                                                                                                                                                        <div class="revision-activity-title">
+                                                                                                                                                                                                                                                                                                                            <h5>AllAround</h5>
+                                                                                                                                                                                                                                                                                                                            <span>
+                                                                                                                                                                                                                                                                                                                                <?php
+                                                                                                                                                                                                                                                                                                                                if (!empty($proof_approved_time)) {
+                                                                                                                                                                                                                                                                                                                                    echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                ?>
+                                                                                                                                                                                                                                                                                                                            </span>
+                                                                                                                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                                                                                                                        <div class="revision-activity-description">
+                                                                                                                                                                                                                                                                                                                            <span class="revision-comment-title">
+                                                                                                                                                                                                                                                                                                                                ההדמיות אושרו על ידי הלקוח 
+                                                                                                                                                                                                                                                                                                                                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                                                                                                                                                                                                                                                                                                                            </span>
+                                                                                                                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2332,29 +2505,29 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
                 $image_html .= '</div>';
             }
             ?>
-                                                            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                                                                <div class="revision-activity-avatar">
-                                                                    <?php if ($comment_name === 'AllAround'): ?>
-                                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                    <?php else: ?>
-                                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                                                                    <?php endif; ?>
-                                                                </div>
-                                                                <div class="revision-activity-content">
-                                                                    <div class="revision-activity-title">
-                                                                        <h5><?php echo esc_html($comment_name); ?></h5>
-                                                                        <span><?php echo esc_html($comment_date); ?></span>
-                                                                    </div>
-                                                                    <div class="revision-activity-description">
-                                                                        <span class="revision-comment-title">
-                                                                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                                                                        </span>
-                                                                        <?php echo $image_html; ?>
-                                                                        <div><?php echo $comment_text; ?></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <?php
+                                                                                                                                                                                                                                                            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                                                                                                                                                                                                                                                                <div class="revision-activity-avatar">
+                                                                                                                                                                                                                                                                    <?php if ($comment_name === 'AllAround'): ?>
+                                                                                                                                                                                                                                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                                                                                                                                                                                                                    <?php else: ?>
+                                                                                                                                                                                                                                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                                                                                                                                                                                                                                                                    <?php endif; ?>
+                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                <div class="revision-activity-content">
+                                                                                                                                                                                                                                                                    <div class="revision-activity-title">
+                                                                                                                                                                                                                                                                        <h5><?php echo esc_html($comment_name); ?></h5>
+                                                                                                                                                                                                                                                                        <span><?php echo esc_html($comment_date); ?></span>
+                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                    <div class="revision-activity-description">
+                                                                                                                                                                                                                                                                        <span class="revision-comment-title">
+                                                                                                                                                                                                                                                                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                                                                                                                                                                                                                                                                        </span>
+                                                                                                                                                                                                                                                                        <?php echo $image_html; ?>
+                                                                                                                                                                                                                                                                        <div><?php echo $comment_text; ?></div>
+                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                            </div>
+                                                                                                                                                                                                                                                            <?php
         }
     }
 
@@ -2394,11 +2567,11 @@ function search_posts()
             // get the order_status meta
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
             ?>
-                                                            <div class="post-item">
-                                                                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                                                                <p><?php echo esc_html($order_status); ?></p>
-                                                            </div>
-                                                            <?php
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div class="post-item">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <p><?php echo esc_html($order_status); ?></p>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <?php
         }
     } else {
         echo '<p>No posts found.</p>';

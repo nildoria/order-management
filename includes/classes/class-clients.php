@@ -997,8 +997,14 @@ class AllAroundClientsDB
         $first_name = isset($order_data['billing']['first_name']) ? $order_data['billing']['first_name'] : '';
         $last_name = isset($order_data['billing']['last_name']) ? $order_data['billing']['last_name'] : '';
         $email = isset($order_data['billing']['email']) ? $order_data['billing']['email'] : '';
-        // Check if order_data contains client_type, if not fall back to $_POST or default to 'personal'
         $client_type = isset($order_data['client_type']) ? sanitize_text_field($order_data['client_type']) : (isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal');
+
+        $order_type = isset($order_data['order_type']) ? sanitize_text_field($order_data['order_type']) : 'personal';
+
+        // if $order_type is === 'company' then set $client_type to 'company'
+        if ($order_type === 'company') {
+            $client_type = 'company';
+        }
 
         $filteredPostData = $order_data['billing'];
 
@@ -1013,19 +1019,27 @@ class AllAroundClientsDB
 
             $old_client_type = get_post_meta($client_id, 'client_type', true);
 
+            $changes = array();  // Array to hold changed fields
+
             if (isset($filteredPostData) && !empty($filteredPostData)) {
-                // error_log( print_r( $filteredPostData, true ) );
                 foreach ((array) $filteredPostData as $key => $value) {
-                    if ("client_type" === $key && "company" === $old_client_type) {
-                        continue;
+                    $current_value = get_post_meta($client_id, $key, true);
+
+                    if ($key === 'client_type' && $old_client_type === 'company') {
+                        continue;  // Skip updating client_type if it's a company
                     }
-                    if ("company" === $key) {
+
+                    if ($key === 'company') {
                         $current_value = get_post_meta($client_id, 'invoice', true);
                         if ($value !== $current_value) {
                             update_post_meta($client_id, 'invoice', $value);
+                            $changes[$key] = $value;
                         }
                     } else {
-                        $this->ml_update_postmeta($client_id, $key, $value);
+                        if ($value !== $current_value) {
+                            $this->ml_update_postmeta($client_id, $key, $value);
+                            $changes[$key] = $value;  // Track the change
+                        }
                     }
                 }
             }
@@ -1037,6 +1051,8 @@ class AllAroundClientsDB
             if ($old_first_name !== $first_name || $old_last_name !== $last_name) {
                 $new_name = $this->createFullName($first_name, $last_name);
                 $this->update_post_title($client_id, $new_name);
+                $changes['first_name'] = $first_name;
+                $changes['last_name'] = $last_name;
             }
 
             // Update the status to "client"
@@ -1047,23 +1063,19 @@ class AllAroundClientsDB
             // update client_id to the order post
             update_post_meta($post_id, 'client_id', $client_id);
 
-            // Set om_status
-            $om_status = 'client_profile_updated';
-
-            // Send data to webhook
-            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
+            // If there are changes, send them to the webhook
+            if (!empty($changes)) {
+                $om_status = 'client_profile_updated';
+                $this->send_client_data_to_webhook($client_id, $changes, $om_status, $old_client_type, $client_type);
+            } else {
+                error_log('No changes detected for client ' . $client_id);
+            }
 
             return;
         }
 
+        // If the client does not exist, create a new one
         $name = $this->createFullName($first_name, $last_name);
-
-        // if( ! empty( $email ) ) {
-        //     $name = "$name ($email)";
-        // }
-
-        error_log("Name: $name");
-        // error_log( print_r( $order_data, true ) );
 
         $client_id = wp_insert_post(
             array(
@@ -1075,9 +1087,7 @@ class AllAroundClientsDB
         );
 
         if (isset($filteredPostData) && !empty($filteredPostData)) {
-            // error_log( print_r( $filteredPostData, true ) );
             foreach ((array) $filteredPostData as $key => $value) {
-                // error_log( "Key: $key, Value: $value" );
                 update_post_meta($client_id, $key, $value);
             }
         }
