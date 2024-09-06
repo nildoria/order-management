@@ -99,8 +99,11 @@
 
     // Check if the order type is "company"
     if ($("#order_type").val() === "company") {
-      data.dark_logo = $("#dark_logo").val();
-      data.lighter_logo = $("#lighter_logo").val();
+      // data.dark_logo = $("#dark_logo").val();
+      // data.lighter_logo = $("#lighter_logo").val();
+
+      data.logo_darker = $("#dark_logo").val();
+      data.logo_lighter = $("#lighter_logo").val();
     }
 
     let requestData = {
@@ -1625,14 +1628,38 @@
           console.log("New Order:", new_order);
           console.log("Order ID:", order_id);
 
-          let consumer_key, consumer_secret;
+          let app_user, app_password;
 
-          if (order_domain.includes(".test")) {
-            consumer_key = "ck_fc4eb8c5ecaa7c8115294fe19433a9372fffb8a2";
-            consumer_secret = "cs_5f14e11d8f501bc7cd17800bcf90e9adb1d5412c";
-          } else {
-            consumer_key = "ck_c18ff0701de8832f6887537107b75afce3914b4c";
-            consumer_secret = "cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4";
+          switch (order_domain) {
+            case "https://allaround.co.il":
+              app_user = "admin";
+              app_password = "w2iX Qy2i OwVz bbj0 e3uL OH1C";
+              break;
+            case "https://sites.allaround.co.il":
+              app_user = "minisiteAdmin";
+              app_password = "uBaB oReq HHa7 9zIv BOdO OVMU";
+              break;
+            case "https://main.lukpaluk.xyz":
+              app_user = "admin";
+              app_password = "CT5Z jFxJ xUui TKtJ 8NoH EFNw";
+              break;
+            case "https://min.lukpaluk.xyz":
+              app_user = "minisiteAdmin";
+              app_password = "mXQU CLXY KIZe vSXX O4ud W8Ag";
+              break;
+            case "https://allaround.test":
+              app_user = "sabbir";
+              app_password = "7nyo my3s LbEG b29L CM3D EenF";
+              break;
+            case "https://localhost/ministore":
+              app_user = "admin";
+              app_password = "SmkV fgPh 6YLr pEnQ 5yW4 SQQk";
+              break;
+            default:
+              order_domain = "https://allaround.co.il";
+              app_user = "admin";
+              app_password = "w2iX Qy2i OwVz bbj0 e3uL OH1C";
+              break;
           }
 
           let requestData = {
@@ -1665,7 +1692,7 @@
               new_order: new_order,
             }),
             beforeSend: function (xhr) {
-              let auth = btoa(consumer_key + ":" + consumer_secret);
+              let auth = btoa(app_user + ":" + app_password);
               xhr.setRequestHeader("Authorization", "Basic " + auth);
             },
             success: function (response) {
@@ -1709,7 +1736,7 @@
       first_name: $("#shipping_first_name").val(),
       last_name: $("#shipping_last_name").val(),
       address_1: $("#shipping_address_1").val(),
-      postcode: $("#shipping_postcode").val(),
+      address_2: $("#shipping_address_2").val(),
       city: $("#shipping_city").val(),
       phone: $("#shipping_phone").val(),
       nonce: allaround_vars.nonce,
@@ -1770,7 +1797,7 @@
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
-      postcode: $("#billing_postcode").val(),
+      address_2: $("#billing_address_2").val(),
       city: $("#billing_city").val(),
       phone: $("#billing_phone").val(),
       nonce: allaround_vars.nonce,
@@ -1896,7 +1923,7 @@
     let shipping_first_name = $("#shipping_first_name").val();
     let shipping_last_name = $("#shipping_last_name").val();
     let shipping_address_1 = $("#shipping_address_1").val();
-    let shipping_postcode = $("#shipping_postcode").val();
+    let shipping_address_2 = $("#shipping_address_2").val();
     let shipping_city = $("#shipping_city").val();
     let shipping_phone = $("#shipping_phone").val();
 
@@ -1923,7 +1950,7 @@
       shipping_method: shipping_method,
       shipping_fullName: full_name,
       shipping_addressName: shipping_address_1,
-      shipping_addressNumber: shipping_postcode,
+      shipping_addressNumber: shipping_address_2,
       shipping_city: shipping_city,
       shipping_phone: shipping_phone,
     };
@@ -1971,17 +1998,30 @@
 
     // Check if #order_type value is empty
     if (!orderType) {
+      if (isDesigner()) {
+        alert(
+          "Please wait with submitting the order until order type is selected by admin."
+        );
+        return;
+      }
       alert("Select an Order Type first to proceed.");
       return;
     }
 
     // If #order_type value is 'company', check #mini_url and #mini_header fields
     if (orderType === "company") {
-      var miniUrl = $("#mini_url").val();
-      var miniHeader = $("#mini_header").val();
+      let miniUrl = $("#mini_url").val();
+      let miniHeader = $("#mini_header").val();
+      let darkLogo = $("#dark_logo").val();
+      let lighterLogo = $("#lighter_logo").val();
 
       if (!miniUrl || !miniHeader) {
         alert("Fill the client's Business fields.");
+        return;
+      }
+
+      if (!darkLogo || !lighterLogo) {
+        alert("Please upload dark and lighter logo versions.");
         return;
       }
     }
@@ -2013,17 +2053,30 @@
 
     // Check if #order_type value is empty
     if (!orderType) {
+      if (isDesigner()) {
+        alert(
+          "Please wait with submitting the order until order type is selected by admin."
+        );
+        return;
+      }
       alert("Select an Order Type first to proceed.");
       return;
     }
 
     // If #order_type value is 'company', check #mini_url and #mini_header fields
     if (orderType === "company") {
-      var miniUrl = $("#mini_url").val();
-      var miniHeader = $("#mini_header").val();
+      let miniUrl = $("#mini_url").val();
+      let miniHeader = $("#mini_header").val();
+      let darkLogo = $("#dark_logo").val();
+      let lighterLogo = $("#lighter_logo").val();
 
       if (!miniUrl || !miniHeader) {
         alert("Fill the client's Business fields.");
+        return;
+      }
+
+      if (!darkLogo || !lighterLogo) {
+        alert("Please upload dark and lighter logo versions.");
         return;
       }
     }
@@ -2038,10 +2091,144 @@
     });
   });
 
+  // send to webhook with order id and om_status missing_graphic
+  $("#missingGraphic").on("click", function () {
+    let order_id = allaround_vars.order_id;
+    let root_domain = allaround_vars.redirecturl;
+
+    $(this).addClass("ml_loading");
+
+    let webhook_url = "";
+
+    if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
+      // Webhook URL for test environment
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+    } else {
+      // Webhook URL for production environment
+      webhook_url =
+        "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    }
+
+    // Data to send to the webhook
+    let data = {
+      order_id: order_id,
+      om_status: "missing_graphic",
+    };
+
+    // AJAX request to send the data to the webhook
+    $.ajax({
+      url: webhook_url,
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(data),
+      success: function (response) {
+        console.log("Webhook request successful:", response);
+        // Optionally, you can show a success message to the user
+        Toastify({
+          text: "Webhook request sent successfully!",
+          duration: 3000,
+          close: true,
+          gravity: "bottom",
+          position: "right",
+          stopOnFocus: true,
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
+
+        $("#missingGraphic").removeClass("ml_loading");
+        $.magnificPopup.close();
+      },
+      error: function (xhr, status, error) {
+        $("#missingGraphic").removeClass("ml_loading");
+        console.error("Error sending webhook request:", error);
+        // Optionally, you can show an error message to the user
+        alert("Failed to send webhook request. Please try again.");
+      },
+    });
+  });
+
+  // send to webhook with order id and om_status missing_graphic
+  $("#mockupApproved").on("click", function () {
+    let order_id = allaround_vars.order_id;
+    let root_domain = allaround_vars.redirecturl;
+
+    $(this).addClass("ml_loading");
+
+    let webhook_url = "";
+
+    if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
+      // Webhook URL for test environment
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+    } else {
+      // Webhook URL for production environment
+      webhook_url =
+        "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    }
+
+    // Data to send to the webhook
+    let data = {
+      order_id: order_id,
+      om_status: "mockups_approved",
+    };
+
+    // AJAX request to send the data to the webhook
+    $.ajax({
+      url: webhook_url,
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(data),
+      success: function (response) {
+        console.log("Webhook request successful:", response);
+        // Optionally, you can show a success message to the user
+        Toastify({
+          text: "Webhook request sent successfully!",
+          duration: 3000,
+          close: true,
+          gravity: "bottom",
+          position: "right",
+          stopOnFocus: true,
+          style: {
+            background: "linear-gradient(to right, #00b09b, #96c93d)",
+          },
+        }).showToast();
+
+        $("#mockupApproved").removeClass("ml_loading");
+        $.magnificPopup.close();
+      },
+      error: function (xhr, status, error) {
+        $("#mockupApproved").removeClass("ml_loading");
+        console.error("Error sending webhook request:", error);
+        // Optionally, you can show an error message to the user
+        alert("Failed to send webhook request. Please try again.");
+      },
+    });
+  });
+
   // Open Modal on click of #printLabelOpenModal
   $("#printLabelOpenModal").magnificPopup({
     items: {
       src: "#printLabelConfirmationModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
+  // Open Modal on click of #missingGraphicOpenModal
+  $("#missingGraphicOpenModal").magnificPopup({
+    items: {
+      src: "#missingGraphicConfirmModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
+  // Open Modal on click of #mockupApprovedOpenModal
+  $("#mockupApprovedOpenModal").magnificPopup({
+    items: {
+      src: "#mockupApprovedConfirmModal",
       type: "inline",
     },
     closeBtnInside: true,
@@ -2056,6 +2243,11 @@
   $("#printLabelCancel").on("click", function () {
     $.magnificPopup.close();
   });
+
+  // Close the modal on click of #missingGraphicCancel
+  // $("#missingGraphicCancel").on("click", function () {
+  //   $.magnificPopup.close();
+  // });
 
   // check the length of tableMain
   if ($("#tableMain").length) {

@@ -46,6 +46,16 @@ class AllAroundClientsDB
                 // },
             )
         );
+        // Register the new endpoint for getting client token
+        register_rest_route(
+            'manage-client/v1',
+            '/find-client-token',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'find_client_token'],
+                'permission_callback' => [$this, 'check_basic_auth'], // Auth via Basic Auth
+            )
+        );
         // Register the new endpoint for setting minisite_id
         register_rest_route(
             'manage-order/v1',
@@ -53,6 +63,18 @@ class AllAroundClientsDB
             array(
                 'methods' => 'POST',
                 'callback' => [$this, 'handle_set_minisite_data'],
+                'permission_callback' => function () {
+                    return current_user_can('edit_posts'); // Adjust permissions as needed
+                },
+            )
+        );
+        // Register the new endpoint for managing order_type
+        register_rest_route(
+            'manage-order/v1',
+            '/set-order-type',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_set_order_type'],
                 'permission_callback' => function () {
                     return current_user_can('edit_posts'); // Adjust permissions as needed
                 },
@@ -103,7 +125,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'postcode',
+            'address_2',
             'phone',
             'city',
             'status',
@@ -184,6 +206,60 @@ class AllAroundClientsDB
         );
     }
 
+    // Callback function to handle the request
+    public function find_client_token(WP_REST_Request $request)
+    {
+        // Retrieve the email and phone from the request body
+        $customer_email = sanitize_email($request->get_param('customer_email'));
+        $customer_phone = sanitize_text_field($request->get_param('customer_phone'));
+
+        // Check if both fields are provided
+        if (empty($customer_email) || empty($customer_phone)) {
+            return new WP_Error('missing_params', 'Both customer_email and customer_phone are required.', array('status' => 400));
+        }
+
+        // Query to find the client by email and phone
+        $args = array(
+            'post_type' => 'client',
+            'post_status' => 'publish',
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key' => 'email',
+                    'value' => $customer_email,
+                    'compare' => '='
+                ),
+                array(
+                    'key' => 'phone',
+                    'value' => $customer_phone,
+                    'compare' => '='
+                )
+            ),
+            'posts_per_page' => 1 // We only need one result
+        );
+
+        $query = new WP_Query($args);
+
+        if ($query->have_posts()) {
+            $client_id = $query->posts[0]->ID;
+
+            // Retrieve the token from the client's meta data
+            $token = get_post_meta($client_id, 'token', true);
+
+            // If no token found
+            if (empty($token)) {
+                return new WP_Error('token_not_found', 'No token found for this client.', array('status' => 404));
+            }
+
+            error_log(print_r($token, true));
+
+            // Respond with the token
+            return new WP_REST_Response(array('token' => $token), 200);
+        } else {
+            return new WP_Error('client_not_found', 'No client found with the provided email and phone number.', array('status' => 404));
+        }
+    }
+
     public function handle_set_minisite_data(WP_REST_Request $request)
     {
         // Get the parameters from the request
@@ -213,6 +289,73 @@ class AllAroundClientsDB
             ),
             200
         );
+    }
+
+    public function handle_set_order_type(WP_REST_Request $request)
+    {
+        // Get parameters from the REST request
+        $order_id = $request->get_param('order_id') ? sanitize_text_field(absint($request->get_param('order_id'))) : '';
+        $order_type = $request->get_param('order_type') ? sanitize_text_field($request->get_param('order_type')) : '';
+
+        if (empty($order_id)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'reqular',
+                    "message" => esc_html__("Invalid order ID.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        $post_id = find_post_id_by_order_id($order_id);
+
+        // Check if post_id is empty or invalid
+        if (empty($post_id)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'reqular',
+                    "message" => esc_html__("Unable to update order type with order ID: $order_id.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        // Check if order_type is empty or invalid
+        if (empty($order_type)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'reqular',
+                    "message" => esc_html__("Please enter a valid order type.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        // Retrieve client_id and client_type meta values
+        $client_id = get_post_meta($post_id, 'client_id', true);
+        $client_type = get_post_meta($client_id, 'client_type', true);
+
+        // Update client_type only if it is not 'company'
+        if ('company' !== $client_type) {
+            update_post_meta($client_id, 'client_type', $order_type);
+        }
+
+        // Update the order_type for the post
+        update_post_meta($post_id, 'order_type', $order_type);
+
+        // Retrieve updated client_type
+        $client_type = get_post_meta($client_id, 'client_type', true);
+
+        // Send success response
+        wp_send_json_success(
+            array(
+                "message_type" => 'reqular',
+                "message" => "Order #$order_id type successfully updated.",
+                "order_type" => $order_type,
+                "client_type" => $client_type
+            )
+        );
+        wp_die();
     }
 
 
@@ -295,7 +438,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'postcode',
+            'address_2',
             'phone',
             'city',
             'status',
@@ -415,10 +558,10 @@ class AllAroundClientsDB
         $root_domain = home_url();
         $webhook_url = "";
 
-        if (strpos($root_domain, '.test') !== false) {
+        if (strpos($root_domain, '.test') !== false || strpos($root_domain, 'lukpaluk.xyz') !== false) {
             $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
         } else {
-            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3----xxxx";
+            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
         }
 
         // Include all company fields if the client type is "company"
@@ -542,23 +685,23 @@ class AllAroundClientsDB
             wp_die();
         }
 
-        if (empty($dark_logo) || empty($lighter_logo)) {
-            $missing_fields = array();
-            if (empty($dark_logo)) {
-                $missing_fields[] = 'Dark Logo';
-            }
-            if (empty($lighter_logo)) {
-                $missing_fields[] = 'Lighter Logo';
-            }
+        // if (empty($dark_logo) || empty($lighter_logo)) {
+        //     $missing_fields = array();
+        //     if (empty($dark_logo)) {
+        //         $missing_fields[] = 'Dark Logo';
+        //     }
+        //     if (empty($lighter_logo)) {
+        //         $missing_fields[] = 'Lighter Logo';
+        //     }
 
-            wp_send_json_error(
-                array(
-                    "message_type" => 'regular',
-                    "message" => esc_html__("The following fields are mandatory: " . implode(', ', $missing_fields) . ".", "hello-elementor")
-                )
-            );
-            wp_die();
-        }
+        //     wp_send_json_error(
+        //         array(
+        //             "message_type" => 'regular',
+        //             "message" => esc_html__("The following fields are mandatory: " . implode(', ', $missing_fields) . ".", "hello-elementor")
+        //         )
+        //     );
+        //     wp_die();
+        // }
 
         if ($client_id) {
             update_post_meta($client_id, 'dark_logo', $dark_logo);
@@ -679,7 +822,7 @@ class AllAroundClientsDB
             'last_name',
             'email',
             'address_1',
-            'postcode',
+            'address_2',
             'phone',
             'city',
             'status',
@@ -854,10 +997,14 @@ class AllAroundClientsDB
         $first_name = isset($order_data['billing']['first_name']) ? $order_data['billing']['first_name'] : '';
         $last_name = isset($order_data['billing']['last_name']) ? $order_data['billing']['last_name'] : '';
         $email = isset($order_data['billing']['email']) ? $order_data['billing']['email'] : '';
-        // Check if order_data contains client_type, if not fall back to $_POST or default to 'personal'
         $client_type = isset($order_data['client_type']) ? sanitize_text_field($order_data['client_type']) : (isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal');
 
-        // $client_type = isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal';
+        $order_type = isset($order_data['order_type']) ? sanitize_text_field($order_data['order_type']) : 'personal';
+
+        // if $order_type is === 'company' then set $client_type to 'company'
+        if ($order_type === 'company') {
+            $client_type = 'company';
+        }
 
         $filteredPostData = $order_data['billing'];
 
@@ -872,19 +1019,27 @@ class AllAroundClientsDB
 
             $old_client_type = get_post_meta($client_id, 'client_type', true);
 
+            $changes = array();  // Array to hold changed fields
+
             if (isset($filteredPostData) && !empty($filteredPostData)) {
-                // error_log( print_r( $filteredPostData, true ) );
                 foreach ((array) $filteredPostData as $key => $value) {
-                    if ("client_type" === $key && "company" === $old_client_type) {
-                        continue;
+                    $current_value = get_post_meta($client_id, $key, true);
+
+                    if ($key === 'client_type' && $old_client_type === 'company') {
+                        continue;  // Skip updating client_type if it's a company
                     }
-                    if ("company" === $key) {
+
+                    if ($key === 'company') {
                         $current_value = get_post_meta($client_id, 'invoice', true);
                         if ($value !== $current_value) {
                             update_post_meta($client_id, 'invoice', $value);
+                            $changes[$key] = $value;
                         }
                     } else {
-                        $this->ml_update_postmeta($client_id, $key, $value);
+                        if ($value !== $current_value) {
+                            $this->ml_update_postmeta($client_id, $key, $value);
+                            $changes[$key] = $value;  // Track the change
+                        }
                     }
                 }
             }
@@ -896,6 +1051,8 @@ class AllAroundClientsDB
             if ($old_first_name !== $first_name || $old_last_name !== $last_name) {
                 $new_name = $this->createFullName($first_name, $last_name);
                 $this->update_post_title($client_id, $new_name);
+                $changes['first_name'] = $first_name;
+                $changes['last_name'] = $last_name;
             }
 
             // Update the status to "client"
@@ -906,23 +1063,19 @@ class AllAroundClientsDB
             // update client_id to the order post
             update_post_meta($post_id, 'client_id', $client_id);
 
-            // Set om_status
-            $om_status = 'client_profile_updated';
-
-            // Send data to webhook
-            $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
+            // If there are changes, send them to the webhook
+            if (!empty($changes)) {
+                $om_status = 'client_profile_updated';
+                $this->send_client_data_to_webhook($client_id, $changes, $om_status, $old_client_type, $client_type);
+            } else {
+                error_log('No changes detected for client ' . $client_id);
+            }
 
             return;
         }
 
+        // If the client does not exist, create a new one
         $name = $this->createFullName($first_name, $last_name);
-
-        // if( ! empty( $email ) ) {
-        //     $name = "$name ($email)";
-        // }
-
-        error_log("Name: $name");
-        // error_log( print_r( $order_data, true ) );
 
         $client_id = wp_insert_post(
             array(
@@ -934,9 +1087,7 @@ class AllAroundClientsDB
         );
 
         if (isset($filteredPostData) && !empty($filteredPostData)) {
-            // error_log( print_r( $filteredPostData, true ) );
             foreach ((array) $filteredPostData as $key => $value) {
-                // error_log( "Key: $key, Value: $value" );
                 update_post_meta($client_id, $key, $value);
             }
         }
@@ -987,7 +1138,7 @@ class AllAroundClientsDB
             'subscribed' => !empty($subscribed) ? $subscribed : 'yes',
             'token' => get_post_meta($post->ID, 'token', true),
             'address_1' => get_post_meta($post->ID, 'address_1', true),
-            'postcode' => get_post_meta($post->ID, 'postcode', true),
+            'address_2' => get_post_meta($post->ID, 'address_2', true),
             'city' => get_post_meta($post->ID, 'city', true),
             'dark_logo' => get_post_meta($post->ID, 'dark_logo', true),
             'lighter_logo' => get_post_meta($post->ID, 'lighter_logo', true),
@@ -1073,8 +1224,8 @@ class AllAroundClientsDB
             <input type="text" name="address_1" id="address_1" value="<?php echo esc_attr($fields['address_1']); ?>" />
         </p>
         <p>
-            <label for="postcode">Street Number:</label><br>
-            <input type="text" name="postcode" id="postcode" value="<?php echo esc_attr($fields['postcode']); ?>" />
+            <label for="address_2">Street Number:</label><br>
+            <input type="text" name="address_2" id="address_2" value="<?php echo esc_attr($fields['address_2']); ?>" />
         </p>
         <p>
             <label for="city">City:</label><br>
@@ -1240,7 +1391,7 @@ class AllAroundClientsDB
             'subscribed',
             'token',
             'address_1',
-            'postcode',
+            'address_2',
             'city',
             'dark_logo',
             'lighter_logo',
@@ -1427,99 +1578,231 @@ class AllAroundClientsDB
         $search_query = isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '';
         $paged = get_query_var('paged') ? get_query_var('paged') : 1;
 
-        $args = array(
-            'post_type' => 'client',
-            'posts_per_page' => 1,
-            'paged' => $paged
-        );
+        ?>
 
-        if (!empty($search_query)) {
-            $args['meta_query'] = array(
-                'relation' => 'OR',
-                array(
-                    'key' => 'first_name',
-                    'value' => $search_query,
-                    'compare' => 'LIKE'
-                ),
-                array(
-                    'key' => 'last_name',
-                    'value' => $search_query,
-                    'compare' => 'LIKE'
-                ),
-                array(
-                    'key' => 'full_name',
-                    'value' => $search_query,
-                    'compare' => 'LIKE'
-                ),
-                array(
-                    'key' => 'email',
-                    'value' => $search_query,
-                    'compare' => 'LIKE'
-                )
-            );
-        }
-
-        $clients_query = new WP_Query($args);
-
-        if ($clients_query->have_posts()): ?>
-            <div class="client-search-box" style="text-align: right; margin-bottom: 20px;">
-                <form method="get" action="<?php echo esc_url(home_url('/clients')); ?>">
-                    <input type="text" name="search" placeholder="Search Clients" value="<?php echo esc_attr($search_query); ?>">
-                    <input type="submit" value="Search">
-                </form>
-                <a href="<?php echo esc_url(home_url('/create-client/')); ?>">Add New Client</a>
+        <div id="client-lists">
+            <div class="allaround-client-header">
+                <div class="allaround-client-top-left">
+                    <h2>Clients</h2>
+                    <a href="<?php echo esc_url(home_url('/create-client/')); ?>">Add New Client</a>
+                </div>
+                <div class="allaround-client-search">
+                    <form method="get" action="<?php echo esc_url(home_url('/clients')); ?>">
+                        <div class="client-search-wrapper">
+                            <label for="search_input">Search Client:</label>
+                            <input type="text" name="search" id="search_input" placeholder="Search..."
+                                value="<?php echo esc_attr($search_query); ?>">
+                        </div>
+                        <div class="filter-wrapper-client-search">
+                            <!-- Client Type Filter -->
+                            <div class="filter-group">
+                                <label for="client-type-select">Client Type:</label>
+                                <select name="client_type" id="client-type-select">
+                                    <option value="">Select Type</option>
+                                    <option value="personal" <?php selected('personal', $_GET['client_type']); ?>>Personal
+                                    </option>
+                                    <option value="company" <?php selected('company', $_GET['client_type']); ?>>Company</option>
+                                    <option value="not_tagged" <?php selected('not_tagged', $_GET['client_type']); ?>>Not Tagged
+                                    </option>
+                                </select>
+                            </div>
+        
+                            <!-- Checkbox for Lighter & Darker Logos -->
+                            <div id="logo-filter" style="display:none;">
+                                <label>
+                                    <input type="radio" name="logo_filter" value="no_logos" id="filter-no-logos" <?php checked(isset($_GET['logo_filter']) && $_GET['logo_filter'] === 'no_logos'); ?>> No
+                                    Lighter & Darker Logos
+                                </label>
+                                <label>
+                                    <input type="radio" name="logo_filter" value="with_logos" id="filter-with-logos" <?php checked(isset($_GET['logo_filter']) && $_GET['logo_filter'] === 'with_logos'); ?>> With
+                                    Lighter & Darker Logos
+                                </label>
+                            </div>
+        
+                            <input type="submit" value="Filter">
+                        </div>
+                    </form>
+                </div>
+        
             </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th class="td_index"></th>
-                        <th>Title</th>
-                        <th>Email</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $index = 1;
-                    while ($clients_query->have_posts()):
-                        $clients_query->the_post(); ?>
-                        <tr>
-                            <td class="td_index"><?php echo $index; ?></td>
-                            <td><?php the_title(); ?></td>
-                            <td><?php echo esc_html(get_post_meta(get_the_ID(), 'email', true)); ?></td>
-                        </tr>
-                        <?php
-                        $index++;
-                    endwhile; ?>
-                </tbody>
-            </table>
-
-            <div class="pagination">
+        
+            <div class="client-list-wrapper">
                 <?php
-                echo paginate_links(
-                    array(
-                        'total' => $clients_query->max_num_pages,
-                        'current' => $paged,
-                        'format' => '?paged=%#%',
-                        'show_all' => false,
-                        'type' => 'plain',
-                        'end_size' => 2,
-                        'mid_size' => 2,
-                        'prev_next' => true,
-                        'prev_text' => __('« Prev'),
-                        'next_text' => __('Next »'),
-                        'add_args' => false,
-                        'add_fragment' => '',
-                    )
+                $args = array(
+                    'post_type' => 'client',
+                    'posts_per_page' => 10, // Number of clients per page
+                    'paged' => $paged,      // Handle pagination
+                    'meta_query' => array(
+                        'relation' => 'AND'
+                    ),
                 );
+
+                if (!empty($search_query)) {
+                    $args['meta_query'][] = array(
+                        'relation' => 'OR',
+                        array(
+                            'key' => 'first_name',
+                            'value' => $search_query,
+                            'compare' => 'LIKE'
+                        ),
+                        array(
+                            'key' => 'last_name',
+                            'value' => $search_query,
+                            'compare' => 'LIKE'
+                        ),
+                        array(
+                            'key' => 'full_name',
+                            'value' => $search_query,
+                            'compare' => 'LIKE'
+                        ),
+                        array(
+                            'key' => 'email',
+                            'value' => $search_query,
+                            'compare' => 'LIKE'
+                        ),
+                    );
+                }
+
+                // Handle client type filtering
+                $client_type = isset($_GET['client_type']) ? sanitize_text_field($_GET['client_type']) : '';
+
+                if ($client_type === 'company') {
+                    $args['meta_query'][] = array(
+                        'key' => 'client_type',
+                        'value' => 'company',
+                        'compare' => '='
+                    );
+
+                    // Check the logo filter value
+                    $logo_filter = isset($_GET['logo_filter']) ? sanitize_text_field($_GET['logo_filter']) : '';
+
+                    if ($logo_filter === 'no_logos') {
+                        // Filter for clients without logos
+                        $args['meta_query'][] = array(
+                            'relation' => 'OR',
+                            array(
+                                'key' => 'dark_logo',
+                                'compare' => 'NOT EXISTS'
+                            ),
+                            array(
+                                'key' => 'lighter_logo',
+                                'compare' => 'NOT EXISTS'
+                            ),
+                            array(
+                                'key' => 'dark_logo',
+                                'value' => '',
+                                'compare' => '='
+                            ),
+                            array(
+                                'key' => 'lighter_logo',
+                                'value' => '',
+                                'compare' => '='
+                            )
+                        );
+                    } elseif ($logo_filter === 'with_logos') {
+                        // Filter for clients with both logos
+                        $args['meta_query'][] = array(
+                            'relation' => 'AND',
+                            array(
+                                'key' => 'dark_logo',
+                                'compare' => 'EXISTS'
+                            ),
+                            array(
+                                'key' => 'lighter_logo',
+                                'compare' => 'EXISTS'
+                            ),
+                            array(
+                                'key' => 'dark_logo',
+                                'value' => '',
+                                'compare' => '!='
+                            ),
+                            array(
+                                'key' => 'lighter_logo',
+                                'value' => '',
+                                'compare' => '!='
+                            )
+                        );
+                    }
+                } elseif ($client_type === 'personal') {
+                    $args['meta_query'][] = array(
+                        'key' => 'client_type',
+                        'value' => 'personal',
+                        'compare' => '='
+                    );
+                } elseif ($client_type === 'not_tagged') {
+                    $args['meta_query'][] = array(
+                        'key' => 'client_type',
+                        'compare' => 'NOT EXISTS'
+                    );
+                }
+
+                $clients_query = new WP_Query($args);
+
+                if ($clients_query->have_posts()): ?>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="td_index"></th>
+                                <th>Title</th>
+                                <th>Email</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            $index = 1;
+                            while ($clients_query->have_posts()):
+                                $clients_query->the_post(); ?>
+                                <tr>
+                                    <td class="td_index"><?php echo $index; ?></td>
+                                    <td><?php the_title(); ?></td>
+                                    <td><?php echo esc_html(get_post_meta(get_the_ID(), 'email', true)); ?></td>
+                                    <td>
+                                        <div class="allaround--client-actions">
+                                            <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . get_the_ID() . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
+                                                class="allaround--client-orders">View Orders</a>
+                                            <a href="<?php echo esc_url(get_permalink()); ?>">Edit</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php
+                                $index++;
+                            endwhile; ?>
+                        </tbody>
+                    </table>
+        
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <?php
+                        echo paginate_links(array(
+                            'total' => $clients_query->max_num_pages,
+                            'current' => $paged,
+                            'format' => '?paged=%#%',
+                            'show_all' => false,
+                            'type' => 'plain',
+                            'end_size' => 2,
+                            'mid_size' => 2,
+                            'prev_next' => true,
+                            'prev_text' => __('« Prev'),
+                            'next_text' => __('Next »'),
+                            'add_args' => array(
+                                'search' => !empty($search_query) ? $search_query : false,
+                                'client_type' => !empty($client_type) ? $client_type : false,
+                                'no_logos' => isset($_GET['no_logos']) ? true : false,
+                            ),
+                        ));
+                        ?>
+                    </div>
+        
+                    <?php wp_reset_postdata();
+                else: ?>
+                    <p><?php _e('No clients found.'); ?></p>
+                <?php endif;
                 ?>
             </div>
+        </div>
 
-            <?php wp_reset_postdata();
-        else: ?>
-            <p><?php _e('No clients found.'); ?></p>
-        <?php endif;
-
+        <?php
         return ob_get_clean();
     }
 

@@ -17,6 +17,7 @@ $clients = $createOrder->fetch_clients_data();
         the_post();
 
         $current_id = get_the_ID();
+        $post_date = get_the_date('d/m/Y', $current_id);
         $order_number = get_post_meta($current_id, 'order_number', true);
         $order_id = get_post_meta($current_id, 'order_id', true);
         $order_status = get_post_meta($current_id, 'order_status', true);
@@ -54,7 +55,7 @@ $clients = $createOrder->fetch_clients_data();
             $last_name = get_post_meta($client_id, 'last_name', true);
             $client_name = $first_name . ' ' . $last_name;
             $client_address = get_post_meta($client_id, 'address_1', true);
-            $client_postcode = get_post_meta($client_id, 'postcode', true);
+            $client_address_2 = get_post_meta($client_id, 'address_2', true);
             $client_city = get_post_meta($client_id, 'city', true);
             $client_phone = get_post_meta($client_id, 'phone', true);
             $email = get_post_meta($client_id, 'email', true);
@@ -163,85 +164,87 @@ $clients = $createOrder->fetch_clients_data();
                                             <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="Mark Icon">
                                         </span>
                                     </div>
-
-                                    <!-- Billing Information Form -->
-                                    <div id="billing-form-modal" class="mfp-hide billing-form om__billing-form-modal">
-                                        <h5>Client Information</h5>
-                                        <form id="billing-form">
-                                            <div class="om__client_personal_info">
-                                                <div class="form-group">
-                                                    <label for="billing_first_name">First Name:</label>
-                                                    <input type="text" id="billing_first_name" name="billing_first_name" value="<?php echo esc_attr($first_name); ?>" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_last_name">Last Name:</label>
-                                                    <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_attr($last_name); ?>">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_address_1">Street Address:</label>
-                                                    <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_attr($client_address); ?>" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_postcode">Street Number:</label>
-                                                    <input type="text" id="billing_postcode" name="billing_postcode" value="<?php echo esc_attr($client_postcode); ?>"
-                                                        required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_company">Invoice Name:</label>
-                                                    <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_attr($invoice_name); ?>">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_city">City:</label>
-                                                    <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_attr($client_city); ?>" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_country" style="display: none;">Country:</label>
-                                                    <input type="hidden" id="billing_country" name="billing_country" value="Israel">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_email">Email:</label>
-                                                    <input type="email" id="billing_email" name="billing_email" value="<?php echo esc_attr($email); ?>" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="billing_phone">Phone:</label>
-                                                    <input type="text" id="billing_phone" name="billing_phone" value="<?php echo esc_attr($client_phone); ?>" required>
-                                                </div>
-                                            </div>
-                                            <div class="om__client_company_info "
-                                            <?php if ($client_type === "company" && $order_type === "company"): ?> 
-                                                style="display: block;" 
-                                            <?php endif; ?>>
-
-                                                <input type="hidden" name="client_type" id="client_type" value="<?php echo esc_attr($client_type); ?>">
-                                                
-                                                <div class="form-group">
-                                                    <label for="logo_type">Logo Type:</label>
-                                                        <select name="logo_type" id="logo_type">
-                                                            <option value="same" <?php selected($logo_type, 'same'); ?>>Same</option>
-                                                            <option value="chest_only" <?php selected($logo_type, 'chest_only'); ?>>Chest only</option>
-                                                            <option value="big_front" <?php selected($logo_type, 'big_front'); ?>>Big front</option>
-                                                            <option value="custom_back" <?php selected($logo_type, 'custom_back'); ?>>Custom back</option>
-                                                        </select>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="mini_url">Mini URL:</label>
-                                                    <input type="text" name="mini_url" id="mini_url" value="<?php echo esc_attr($mini_url); ?>" />
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="mini_header">Mini Header:</label>
-                                                    <input type="text" name="mini_header" id="mini_header" value="<?php echo esc_attr($mini_header); ?>" />
-                                                </div>
-                                            </div>
-                                        </form>
-                                        <button type="button" id="update-order-client" class="ml_add_loading" data-client_id="<?php echo esc_attr($client_id); ?>"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
-                                    </div>
                                 </div>
-                                <div class="om__orderEmptyItem"></div>
+                                <div class="om__orderEmptyItem">
+                                    <h6><?php echo esc_html__('Order Date:', 'hello-elementor'); ?><span><?php echo esc_attr($post_date); ?></span></h6>
+                                </div>
                                 <div class="om__orderSource">
                                     <h6><?php echo esc_html__('Source:', 'hello-elementor'); ?><span id="om__order_source" data-order_source="<?php echo $order_source_value; ?>"><?php echo $order_source_text; ?></span></h6>
                                 </div>
                             </div>
                             <?php endif; ?>
+
+                            <!-- Billing Information Form -->
+                            <div id="billing-form-modal" class="mfp-hide billing-form om__billing-form-modal">
+                                <h5>Client Information</h5>
+                                <form id="billing-form">
+                                    <div class="om__client_personal_info">
+                                        <div class="form-group">
+                                            <label for="billing_first_name">First Name:</label>
+                                            <input type="text" id="billing_first_name" name="billing_first_name" value="<?php echo esc_attr($first_name); ?>" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_last_name">Last Name:</label>
+                                            <input type="text" id="billing_last_name" name="billing_last_name" value="<?php echo esc_attr($last_name); ?>">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_address_1">Street Address:</label>
+                                            <input type="text" id="billing_address_1" name="billing_address_1" value="<?php echo esc_attr($client_address); ?>" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_address_2">Street Number:</label>
+                                            <input type="text" id="billing_address_2" name="billing_address_2" value="<?php echo esc_attr($client_address_2); ?>"
+                                                required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_company">Invoice Name:</label>
+                                            <input type="text" id="billing_company" name="billing_company" value="<?php echo esc_attr($invoice_name); ?>">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_city">City:</label>
+                                            <input type="text" id="billing_city" name="billing_city" value="<?php echo esc_attr($client_city); ?>" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_country" style="display: none;">Country:</label>
+                                            <input type="hidden" id="billing_country" name="billing_country" value="Israel">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_email">Email:</label>
+                                            <input type="email" id="billing_email" name="billing_email" value="<?php echo esc_attr($email); ?>" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="billing_phone">Phone:</label>
+                                            <input type="text" id="billing_phone" name="billing_phone" value="<?php echo esc_attr($client_phone); ?>" required>
+                                        </div>
+                                    </div>
+                                    <div class="om__client_company_info "
+                                    <?php if ($client_type === "company" && $order_type === "company"): ?> 
+                                        style="display: block;" 
+                                    <?php endif; ?>>
+
+                                        <input type="hidden" name="client_type" id="client_type" value="<?php echo esc_attr($client_type); ?>">
+                                        
+                                        <div class="form-group">
+                                            <label for="logo_type">Logo Type:</label>
+                                                <select name="logo_type" id="logo_type">
+                                                    <option value="same" <?php selected($logo_type, 'same'); ?>>Same</option>
+                                                    <option value="chest_only" <?php selected($logo_type, 'chest_only'); ?>>Chest only</option>
+                                                    <option value="big_front" <?php selected($logo_type, 'big_front'); ?>>Big front</option>
+                                                    <option value="custom_back" <?php selected($logo_type, 'custom_back'); ?>>Custom back</option>
+                                                </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="mini_url">Mini URL:</label>
+                                            <input type="text" name="mini_url" id="mini_url" value="<?php echo esc_attr($mini_url); ?>" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="mini_header">Mini Header:</label>
+                                            <input type="text" name="mini_header" id="mini_header" value="<?php echo esc_attr($mini_header); ?>" />
+                                        </div>
+                                    </div>
+                                </form>
+                                <button type="button" id="update-order-client" class="ml_add_loading" data-client_id="<?php echo esc_attr($client_id); ?>"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
+                            </div>
                         </div>
                         <div class="om__orderSummeryTwo">
                             <?php if (!is_current_user_contributor()): ?>
@@ -279,6 +282,10 @@ $clients = $createOrder->fetch_clients_data();
                                                 איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!
                                             </option>
                                             <?php endif; ?>
+
+                                            <option value="getpackage" data-title="GetPackage">
+                                                GetPackage
+                                            </option>
                                         </select>
                                         <input class="om_shipping_submit" type="submit" value="Update">
                                     </form>
@@ -293,13 +300,12 @@ $clients = $createOrder->fetch_clients_data();
                             </div>
                             <?php endif; ?>
 
-                            <?php if (is_current_user_admin()): ?>
                             <div class="order_type_update_box">
                                 <div class="order_type_title">
                                     <h6><?php echo esc_html__('Order Type:', 'hello-elementor'); ?></h6>
                                 </div>
                                 <div class="order_type_value">
-                                    <?//php if (is_current_user_admin()): ?>
+                                    <?php if (is_current_user_admin()): ?>
                                     <form id="order_type-form">
                                         <input type="hidden" name="post_id" value="<?php echo $current_id; ?>">
                                         <select id="order_type" name="order_type">
@@ -309,16 +315,15 @@ $clients = $createOrder->fetch_clients_data();
                                         </select>
                                         <input class="om_order_type_submit" type="submit" value="Update">
                                     </form>
-                                    <?//php else: ?>
-                                        <!-- <select id="order_type" class="non-admin-shipping-list" name="order_type">
+                                    <?php else: ?>
+                                        <select id="order_type" class="non-admin-shipping-list" name="order_type">
                                             <option value="">Order Type</option>
-                                            <option value="personal" <?//php selected($order_type, 'personal'); ?>>Personal</option>
-                                            <option value="company" <?//php selected($order_type, 'company'); ?>>Company</option>
-                                        </select> -->
-                                    <?//php endif; ?>
+                                            <option value="personal" <?php selected($order_type, 'personal'); ?>>Personal</option>
+                                            <option value="company" <?php selected($order_type, 'company'); ?>>Company</option>
+                                        </select>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -413,9 +418,9 @@ $clients = $createOrder->fetch_clients_data();
                                 value="<?php echo esc_html($order_shipping['address_1']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">
-                            <label for="shipping_postcode">Street Number</label>
-                            <input type="text" id="shipping_postcode" name="shipping_postcode"
-                                value="<?php echo esc_html($order_shipping['postcode']); ?>">
+                            <label for="shipping_address_2">Street Number</label>
+                            <input type="text" id="shipping_address_2" name="shipping_address_2"
+                                value="<?php echo esc_html($order_shipping['address_2']); ?>">
                         </div>
                         <div class="om__orderShippingDetailsItem">
                             <label for="shipping_city">City</label>
@@ -541,7 +546,7 @@ $clients = $createOrder->fetch_clients_data();
                     </div>
                     
                     <div class="om__companyLogoUploadSubmit">
-                        <button type="button" data-client_id="<?php echo esc_attr($client_id); ?>" disabled class="allarnd--regular-button ml_add_loading"
+                        <button type="button" data-client_id="<?php echo esc_attr($client_id); ?>" class="allarnd--regular-button ml_add_loading"
                             id="submitOmCompanyLogo"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
                     </div>
                 </div>
@@ -658,6 +663,26 @@ $clients = $createOrder->fetch_clients_data();
                             <p>Please re-check all the order.</p>
                             <button type="button" class="allarnd--regular-button ml_add_loading" id="printLabelSendWebhook"><?php echo esc_html__('YES - IT\'S READY', 'hello-elementor'); ?></button>
                             <button type="button" class="allarnd--regular-button" id="printLabelCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (is_current_user_admin()): ?>
+                        <button type="button" class="allarnd--regular-button ml_add_loading" id="missingGraphicOpenModal"><?php echo esc_html__('Missing Graphic', 'hello-elementor'); ?></button>
+                        <div id="missingGraphicConfirmModal" class="om__ConfirmationModal mfp-hide">
+                            <h5>Are you sure the Graphic is Missing? </h5>
+                            <p>Please re-check all the items.</p>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" id="missingGraphic"><?php echo esc_html__('YES - Missing Graphic', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button confmodalCancel" id="missingGraphicCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
+                        </div>
+                        
+                        <button type="button" class="allarnd--regular-button ml_add_loading" id="mockupApprovedOpenModal"><?php echo esc_html__('Mockups Approved', 'hello-elementor'); ?></button>
+                        <div id="mockupApprovedConfirmModal" class="om__ConfirmationModal mfp-hide">
+                            <h5>Are you sure the Mockup is Approved? </h5>
+                            <p>Please re-check approval status.</p>
+                            <button type="button" class="allarnd--regular-button ml_add_loading"
+                                id="mockupApproved"><?php echo esc_html__('YES - Mockups Approved', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button confmodalCancel"
+                                id="mockupApprovedCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
                         </div>
                     <?php endif; ?>
                 </div>

@@ -36,7 +36,13 @@ jQuery(document).ready(function ($) {
       modal.find(".grouped_product_add_to_cart").attr("disabled", false);
     }
 
-    const unitRate = getGroupedItemRate(totalUnits, steps, regularPrice);
+    let customRate = $(".grouped_custom_rate_input").val();
+
+    let unitRate = getGroupedItemRate(totalUnits, steps, regularPrice);
+
+    if (customRate && !isNaN(customRate)) {
+      unitRate = parseFloat(customRate);
+    }
     const subTotalPrice = unitRate * totalUnits;
 
     modal.find(".group_unite_price").text(unitRate);
@@ -52,6 +58,15 @@ jQuery(document).ready(function ($) {
     if (value.length > 3) {
       value = value.slice(0, 3); // Limit to 3 characters
     }
+    $(this).val(value);
+
+    const modal = $(this).closest(".product-details-modal");
+    updateGroupProductPrice(modal);
+  });
+
+  // Rate change event listener
+  $(".grouped_custom_rate_input").on("input", function () {
+    let value = $(this).val().replace(/\D/g, ""); // Only numbers
     $(this).val(value);
 
     const modal = $(this).closest(".product-details-modal");
@@ -79,8 +94,8 @@ jQuery(document).ready(function ($) {
   }
 
   // Event listener for quantity input change
-  $(".custom-quantity").on("input", function () {
-    let quantityStr = $(this).val().replace(/\D/g, ""); // Only numbers
+  function updatePriceAndTotal() {
+    let quantityStr = $(".custom-quantity").val().replace(/\D/g, ""); // Only numbers
     if (quantityStr.length > 6) {
       quantityStr = quantityStr.slice(0, 6); // Limit to 6 characters
     }
@@ -89,35 +104,47 @@ jQuery(document).ready(function ($) {
     }
     let quantity = parseInt(quantityStr);
 
+    let steps = $(".custom-quantity").data("steps"); // Get steps from data attribute
+    if (typeof steps === "string") {
+      steps = JSON.parse(steps);
+    }
+
+    let customRate = $(".item-rate-number-input").val();
+    let rate = getItemRate(quantity, steps);
+
+    if (customRate && !isNaN(customRate)) {
+      rate = parseFloat(customRate);
+    }
+
+    let total = rate * quantity;
+
+    // Update the values in the DOM
+    $(".custom-quantity").val(quantityStr); // Update the input value
+    $(".product-details-modal")
+      .find(".price-item span.item-rate-number")
+      .text(rate);
+    $(".product-details-modal")
+      .find(".price-total span.item-total-number")
+      .text(total);
+    $(".product-details-modal").find(".item_total_price").val(total);
+  }
+
+  // Quantity change event listener
+  $(".custom-quantity").on("input", function () {
+    updatePriceAndTotal();
+
+    let quantity = parseInt($(this).val());
     if (quantity > 0) {
       $(this)
         .closest(".product-details-modal")
         .find(".single_add_to_cart_button")
         .attr("disabled", false);
     }
+  });
 
-    let steps = $(this).data("steps"); // Get steps from data attribute
-
-    if (typeof steps === "string") {
-      steps = JSON.parse(steps);
-    }
-
-    let rate = getItemRate(quantity, steps);
-    let total = rate * quantity;
-
-    $(this).val(quantityStr); // Update the input value
-    $(this)
-      .closest(".product-details-modal")
-      .find(".price-item span.item-rate-number")
-      .text(rate);
-    $(this)
-      .closest(".product-details-modal")
-      .find(".price-total span.item-total-number")
-      .text(total);
-    $(this)
-      .closest(".product-details-modal")
-      .find(".item_total_price")
-      .val(total);
+  // Rate change event listener
+  $(".item-rate-number-input").on("input", function () {
+    updatePriceAndTotal(); // Call the same function to update the rate and total
   });
 
   // Prevent invalid input characters
@@ -469,7 +496,7 @@ jQuery(document).ready(function ($) {
       first_name: $("#billing_first_name").val(),
       last_name: $("#billing_last_name").val(),
       address_1: $("#billing_address_1").val(),
-      postcode: $("#billing_postcode").val(),
+      address_2: $("#billing_address_2").val(),
       company: $("#billing_company").val(),
       city: $("#billing_city").val(),
       country: $("#billing_country").val() || "Israel",
@@ -526,7 +553,7 @@ jQuery(document).ready(function ($) {
       first_name: billing.first_name,
       last_name: billing.last_name,
       address_1: billing.address_1,
-      postcode: billing.postcode,
+      address_2: billing.address_2,
       company: billing.company,
       city: billing.city,
       country: billing.country,
@@ -668,7 +695,7 @@ jQuery(document).ready(function ($) {
             );
             $("#billing-form #billing_company").val(client.invoice);
             $("#billing-form #billing_address_1").val(client.address_1);
-            $("#billing-form #billing_postcode").val(client.postcode);
+            $("#billing-form #billing_address_2").val(client.address_2);
             $("#billing-form #billing_city").val(client.city);
             $("#billing-form #billing_email").val(client.email);
             $("#billing-form #billing_phone").val(client.phone);
@@ -921,10 +948,22 @@ jQuery(document).ready(function ($) {
       const quantitySelect = wrapper.find(".variable-quantity");
       const hasSize = quantitySelect.data("has-size") === true;
       const sizeInputs = wrapper.find('input[name="product_size"]');
+      const customPriceInput = wrapper.find(".variableItem-total-number-input");
 
       function updatePrice() {
-        const selectedOption = quantitySelect.find("option:selected");
-        const totalPrice = parseFloat(selectedOption.data("amount"));
+        let totalPrice;
+
+        // Check if the custom price input has a value
+        const customPrice = customPriceInput.val();
+        if (customPrice && !isNaN(customPrice)) {
+          totalPrice = parseFloat(customPrice);
+        } else {
+          // Fallback to the selected option's price
+          const selectedOption = quantitySelect.find("option:selected");
+          totalPrice = parseFloat(selectedOption.data("amount"));
+        }
+
+        // Update the display
         wrapper.find(".item-total-number").text(totalPrice.toFixed(2));
         wrapper.find(".item_total_price").val(totalPrice.toFixed(2));
       }
@@ -935,9 +974,7 @@ jQuery(document).ready(function ($) {
           const option = $("<option>", {
             value: step.quantity || step.name,
             "data-amount": step.quantity ? step.amount : step.steps[0].amount,
-            text: `${step.quantity || step.name} - ${
-              step.quantity ? step.amount : step.steps[0].amount
-            }₪`,
+            text: `${step.quantity || step.name}`,
           });
           quantitySelect.append(option);
         });
@@ -963,6 +1000,9 @@ jQuery(document).ready(function ($) {
       }
 
       quantitySelect.on("change", updatePrice);
+
+      // Listen to custom price input changes
+      customPriceInput.on("input", updatePrice);
 
       // Initial price update
       updatePrice();

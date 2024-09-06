@@ -432,6 +432,16 @@ function change_post_type_labels()
 add_action('init', 'change_post_type_labels');
 
 
+
+function add_cors_http_header()
+{
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization");
+}
+add_action('init', 'add_cors_http_header');
+
 /**
  * Custom Metaboxes for Order Post
  */
@@ -725,7 +735,7 @@ function update_post_shipping_details()
     $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
-    $postcode = isset($_POST['postcode']) ? sanitize_text_field($_POST['postcode']) : '';
+    $address_2 = isset($_POST['address_2']) ? sanitize_text_field($_POST['address_2']) : '';
     $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
 
     if (empty($post_id) || empty($phone)) {
@@ -742,7 +752,7 @@ function update_post_shipping_details()
         'first_name' => $first_name,
         'last_name' => $last_name,
         'address_1' => $address,
-        'postcode' => $postcode,
+        'address_2' => $address_2,
         'city' => $city,
         'phone' => $phone
     ];
@@ -777,8 +787,18 @@ function update_order_shipping_method()
     $shipping_method = sanitize_text_field($_POST['shipping_method']);
     $shipping_method_title = sanitize_text_field($_POST['shipping_method_title']);
     $domain = esc_url($_POST['order_domain']);
-    //TODO: This is for local testing only and for staging
+
+    //TODO: Remove the Staging credentials when going live
+    // Live credentials
     switch ($domain) {
+        case 'https://allaround.co.il':
+            $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+            $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+            break;
+        case 'https://sites.allaround.co.il':
+            $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
+            $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
+            break;
         case 'https://main.lukpaluk.xyz':
             $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
             $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
@@ -796,36 +816,11 @@ function update_order_shipping_method()
             $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
             break;
         default:
-            $domain = 'https://main.lukpaluk.xyz';
-            $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-            $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+            $domain = 'https://allaround.co.il';
+            $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+            $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
             break;
     }
-
-    // Live credentials
-    // switch ($domain) {
-    //     case 'https://allaround.co.il':
-    //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-    //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
-    //         break;
-    //     case 'https://sites.allaround.co.il':
-    //         $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
-    //         $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
-    //         break;
-    //     case 'https://allaround.test':
-    //         $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
-    //         $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
-    //         break;
-    //     case 'https://localhost/ministore':
-    //         $consumer_key = 'ck_53d09905b34decf87745f1095bae29f60e1d4059';
-    //         $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
-    //         break;
-    //     default:
-    //         $domain = 'https://allaround.co.il';
-    //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-    //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
-    //         break;
-    // }
 
     $api_url = $domain . '/wp-json/wc/v3/orders/' . $order_id;
 
@@ -845,8 +840,19 @@ function update_order_shipping_method()
         $order = json_decode(wp_remote_retrieve_body($response));
 
         if ($order && !isset($order->message)) {
-            // Calculate shipping cost based on method ID
-            $shipping_total = calculate_shipping_cost($shipping_method);
+            // Get the current shipping cost
+            $current_shipping_total = $order->shipping_lines[0]->total;
+
+            error_log(print_r($current_shipping_total, true));
+            error_log(print_r($shipping_method, true));
+
+            // If shipping method is 'getpackage', keep the existing shipping cost
+            if ($shipping_method === 'getpackage') {
+                $shipping_total = $current_shipping_total;
+            } else {
+                // Calculate the new shipping cost based on method ID if not 'getpackage'
+                $shipping_total = calculate_shipping_cost($shipping_method);
+            }
 
             // Update the first shipping line
             if (count($order->shipping_lines) > 0) {
@@ -1259,10 +1265,51 @@ function create_order(WP_REST_Request $request)
         update_post_meta($post_id, '_order_manage_general_comment', $customer_note);
         update_post_meta($post_id, 'order_type', 'company');
         $order_data['client_type'] = 'company';
+
+        $dark_logo = isset($order_data['dark_logo']) ? $order_data['dark_logo'] : '';
+        $lighter_logo = isset($order_data['lighter_logo']) ? $order_data['lighter_logo'] : '';
+        if (!empty($dark_logo) || !empty($lighter_logo)) {
+            // Prepare the attachments array
+            $designer_extra_attachments = array();
+
+            // Add dark logo if exists
+            if (!empty($dark_logo)) {
+                $designer_extra_attachments[] = array(
+                    'name' => 'Dark Logo',
+                    'url' => $dark_logo,
+                );
+            }
+
+            // Add lighter logo if exists
+            if (!empty($lighter_logo)) {
+                $designer_extra_attachments[] = array(
+                    'name' => 'Lighter Logo',
+                    'url' => $lighter_logo,
+                );
+            }
+
+            // Update _order_designer_extra_attachments meta for the post
+            if (!empty($designer_extra_attachments)) {
+                update_post_meta($post_id, '_order_designer_extra_attachments', $designer_extra_attachments);
+            }
+        }
+
+        // Schedule the mockup upload to run after 5 minutes (or any delay you need)
+        if (!wp_next_scheduled('upload_mockups_to_ftp', array($order_id, $order_data))) {
+            wp_schedule_single_event(time() + 60, 'upload_mockups_to_ftp', array($order_id, $order_data));
+        }
     }
     do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
 
+    // get the site_url meta
+    $order_domain = get_post_meta($post_id, 'site_url', true);
+
     $client_id = get_post_meta($post_id, 'client_id', true);
+
+    // call the function get_client_token to get the token from the order from woocommerce order source on main site
+    if (!empty($order_id) && !empty($order_domain) && !empty($client_id)) {
+        set_client_token($order_id, $client_id, $order_domain);
+    }
 
     // Call the function to handle order source and update related meta
     if (!empty($order_source) && !empty($client_id)) {
@@ -1275,6 +1322,141 @@ function create_order(WP_REST_Request $request)
     // Return the ID of the new post
     return new WP_REST_Response(array('post_id' => $post_id, 'post_url' => get_permalink($post_id)), 200);
 }
+
+
+// Hook into the scheduled event to process mockup uploads
+add_action('upload_mockups_to_ftp', 'upload_mockups_to_ftp_callback', 10, 2);
+
+/**
+ * Handles the mockup uploads after the order is processed.
+ *
+ * @param int $order_id The ID of the order.
+ * @param array $order_data The order data containing mockup information.
+ */
+function upload_mockups_to_ftp_callback($order_id, $order_data)
+{
+    // Iterate over the items and process each item's mockup_thumbnail for FTP upload
+    if (isset($order_data['items']) && is_array($order_data['items'])) {
+        foreach ($order_data['items'] as $item) {
+            if (isset($item['mockup_thumbnail']) && !empty($item['mockup_thumbnail'])) {
+                $mockup_url = $item['mockup_thumbnail'];
+                $product_id = $item['id'];
+                $mockup_version = 'V1'; // Assuming version 1 for now, adjust as needed
+
+                // Use the function from upload.php to upload to the FTP
+                handle_mockup_upload_to_ftp($mockup_url, $order_id, $product_id, $mockup_version);
+            }
+        }
+    }
+}
+
+/**
+ * Uploads a mockup to the FTP server.
+ *
+ * @param string $file_url The URL of the mockup file.
+ * @param int $order_id The ID of the order.
+ * @param int $product_id The ID of the product.
+ * @param string $version The version of the mockup (e.g., V1, V2).
+ */
+function handle_mockup_upload_to_ftp($file_url, $order_id, $product_id, $version)
+{
+    // FTP server details
+    $ftp_server = '107.181.244.114';
+    $ftp_user_name = 'lukpaluk';
+    $ftp_user_pass = 'SK@8Ek9mZam45;';
+
+    // Connect to FTP server
+    $ftp_conn = ftp_connect($ftp_server) or die("Could not connect to $ftp_server");
+
+    // Login to FTP server
+    $login = ftp_login($ftp_conn, $ftp_user_name, $ftp_user_pass);
+    if (!$login) {
+        ftp_close($ftp_conn);
+        die("Could not log in to FTP server");
+    }
+
+    // Enable passive mode
+    ftp_pasv($ftp_conn, true);
+
+    // Define the directory structure
+    $remote_directory = "/public_html/artworks/$order_id/$product_id/$version/";
+
+    // Check if directory exists, if not, create it
+    if (!@ftp_chdir($ftp_conn, $remote_directory)) {
+        $parts = explode('/', $remote_directory);
+        $current_dir = '';
+        foreach ($parts as $part) {
+            if (empty($part))
+                continue;
+            $current_dir .= '/' . $part;
+            if (!@ftp_chdir($ftp_conn, $current_dir)) {
+                ftp_mkdir($ftp_conn, $current_dir);
+            }
+        }
+        ftp_chdir($ftp_conn, $remote_directory);
+    }
+
+    // Ensure download_url is defined before using it
+    if (!function_exists('download_url')) {
+        function download_url($url)
+        {
+            // Use PHP's tempnam if wp_tempnam is unavailable
+            if (function_exists('wp_tempnam')) {
+                $temp_file = wp_tempnam($url);
+            } else {
+                $temp_file = tempnam(sys_get_temp_dir(), 'wp_tmp');
+            }
+
+            if (!$temp_file) {
+                return new WP_Error('temp_file_failed', __('Failed to create a temporary file.'));
+            }
+
+            $response = wp_remote_get($url, array('timeout' => 300, 'stream' => true, 'filename' => $temp_file));
+            if (is_wp_error($response)) {
+                @unlink($temp_file);
+                return $response;
+            }
+
+            if (200 != wp_remote_retrieve_response_code($response)) {
+                @unlink($temp_file);
+                return new WP_Error('invalid_response', __('Failed to download file.'), wp_remote_retrieve_response_message($response));
+            }
+
+            return $temp_file;
+        }
+    }
+
+
+    // Download the file from the URL to a temporary location
+    $temp_file = download_url($file_url);
+    if (is_wp_error($temp_file)) {
+        ftp_close($ftp_conn);
+        error_log("Failed to download the mockup file: $file_url");
+        return;
+    }
+
+    // Generate a unique ID for the file
+    $unique_id = uniqid();
+
+    // Define the remote file path with the new filename
+    $new_filename = $product_id . '-' . $version . '-' . $unique_id . '.jpeg';
+    $remote_file = $remote_directory . $new_filename;
+
+    // Upload the file to the FTP server
+    if (ftp_put($ftp_conn, $remote_file, $temp_file, FTP_BINARY)) {
+        $file_path = "https://lukpaluk.xyz/artworks/$order_id/$product_id/$version/$new_filename";
+        error_log("Mockup successfully uploaded: $file_path");
+    } else {
+        error_log("Failed to upload the mockup: $file_url");
+    }
+
+    // Clean up temporary file
+    @unlink($temp_file);
+
+    // Close the FTP connection after each upload to ensure it doesn't timeout between items
+    ftp_close($ftp_conn);
+}
+
 
 /**
  * Set Client Table Data.
@@ -1364,16 +1546,18 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
     $root_domain = home_url();
     $webhook_url = "";
 
-    if (strpos($root_domain, '.test') !== false) {
+    if (strpos($root_domain, '.test') !== false || strpos($root_domain, 'lukpaluk.xyz') !== false) {
         $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     } else {
-        $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3----xxxx";
+        $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
     }
 
     $client_details = isset($order_data['billing']) ? $order_data['billing'] : array();
     $total_price = isset($order_data['total']) ? $order_data['total'] : 0;
+    $order_source = isset($order_data['order_source']) ? $order_data['order_source'] : '';
+    $shipping_method_title = isset($order_data['shipping_lines'][0]['method_title']) ? $order_data['shipping_lines'][0]['method_title'] : '';
 
-    error_log('Total price: ' . $total_price);
+    // error_log(print_r($client_details, true));
 
     $webhook_data = array(
         'om_status' => 'new_order',
@@ -1384,10 +1568,15 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
             'lastName' => isset($client_details['last_name']) ? $client_details['last_name'] : '',
             'email' => isset($client_details['email']) ? $client_details['email'] : '',
             'phone' => isset($client_details['phone']) ? $client_details['phone'] : '',
+            'invoice' => isset($client_details['company']) ? $client_details['company'] : '',
         ),
+        'shipping_method_title' => $shipping_method_title,
         'total_price' => $total_price,
+        'order_source' => $order_source,
         'post_url' => $post_url
     );
+
+    // error_log(print_r($webhook_data, true));
 
     $response = wp_remote_post(
         $webhook_url,
@@ -1408,16 +1597,6 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
 }
 
 
-function add_cors_http_header()
-{
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-    header("Access-Control-Allow-Credentials: true");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization");
-}
-add_action('init', 'add_cors_http_header');
-
-
 /**
  * Order Management Order List.
  *
@@ -1430,8 +1609,17 @@ function fetch_order_details($order_id, $domain)
     if (false === $order_data) {
         error_log("Fetching new order details for: $order_id");
 
-        //TODO: This is for local testing only and for staging
+        //TODO: Remove the Staging credentials when going live
+        // Live credentials
         switch ($domain) {
+            case 'https://allaround.co.il':
+                $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+                $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
+                break;
+            case 'https://sites.allaround.co.il':
+                $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
+                $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
+                break;
             case 'https://main.lukpaluk.xyz':
                 $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
                 $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
@@ -1449,36 +1637,11 @@ function fetch_order_details($order_id, $domain)
                 $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
                 break;
             default:
-                $domain = 'https://main.lukpaluk.xyz';
-                $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-                $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+                $domain = 'https://allaround.co.il';
+                $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
+                $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
                 break;
         }
-
-        // Live credentials
-        // switch ($domain) {
-        //     case 'https://allaround.co.il':
-        //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-        //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
-        //         break;
-        //     case 'https://sites.allaround.co.il':
-        //         $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
-        //         $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
-        //         break;
-        //     case 'https://allaround.test':
-        //         $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
-        //         $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
-        //         break;
-        //     case 'https://localhost/ministore':
-        //         $consumer_key = 'ck_53d09905b34decf87745f1095bae29f60e1d4059';
-        //         $consumer_secret = 'cs_a3d20d1474717fc1f533813d57841563115d4b16';
-        //         break;
-        //     default:
-        //         $domain = 'https://allaround.co.il';
-        //         $consumer_key = 'ck_c1785b09529d8d557cb2464de703be14f5db60ab';
-        //         $consumer_secret = 'cs_92137acaafe08fb05efd20f846c4e6bd5c5d0834';
-        //         break;
-        // }
 
         $order_url = $domain . '/wp-json/wc/v3/orders/' . $order_id;
         $max_retries = 3;
@@ -1513,7 +1676,6 @@ function fetch_order_details($order_id, $domain)
         }
 
         $response_body = wp_remote_retrieve_body($order_response);
-        error_log("Order response: " . $response_body);
         $order = json_decode($response_body);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
@@ -1669,7 +1831,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '</select>';
                 $size_found = true;
             }
-            if ($meta->key === "Art Position") {
+            if ($meta->key === "Art Position" || $meta->key === "מיקום אמנותי") {
                 echo '<span class="om__item_metaData_updateCon">';
                 echo '<label for="art-position-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
                 echo '<select id="art-position-input_' . $item_id . '">';
@@ -1678,7 +1840,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
                 echo '</span>';
                 $artPosition_found = true;
             }
-            if ($meta->key === "Instruction Note") {
+            if ($meta->key === "Instruction Note" || $meta->key === "הערת הוראה") {
                 echo '<label for="instruction-note-input_' . $item_id . '">' . esc_html($meta->key) . '</label>';
                 echo '<input type="text" id="instruction-note-input_' . $item_id . '" value="' . esc_html(strip_tags($meta->value)) . '" placeholder="Enter instruction note">';
                 $instruction_note_found = true;
@@ -1777,6 +1939,37 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     return ob_get_clean();
 }
 
+/**
+ * Get Token from Clients Order.
+ */
+function set_client_token($order_id, $client_id, $domain)
+{
+    $order_data = fetch_order_details($order_id, $domain);
+
+    if (is_string($order_data)) {
+        // If fetch_order_details returns an error message, display it
+        return $order_data;
+    }
+
+    $order = $order_data['order'];
+
+    // Extract zc_payment_token from meta_data
+    $zc_payment_token = '';
+    foreach ($order->meta_data as $meta) {
+        if ($meta->key === 'zc_payment_token') {
+            $zc_payment_token = esc_attr($meta->value);
+            break; // Stop loop once found
+        }
+    }
+
+    // get the token meta from client
+    $client_token = get_post_meta($client_id, 'token', true);
+
+    // if client token is empty or different from zc_payment_token then update client token
+    if ((empty($client_token) || $client_token !== $zc_payment_token) && !empty($zc_payment_token)) {
+        update_post_meta($client_id, 'token', $zc_payment_token);
+    }
+}
 
 function initialize_mockup_columns()
 {
@@ -2051,7 +2244,7 @@ function update_order_client()
     $first_name = isset($_POST['first_name']) ? sanitize_text_field($_POST['first_name']) : '';
     $last_name = isset($_POST['last_name']) ? sanitize_text_field($_POST['last_name']) : '';
     $address_1 = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
-    $postcode = isset($_POST['postcode']) ? sanitize_text_field($_POST['postcode']) : '';
+    $address_2 = isset($_POST['address_2']) ? sanitize_text_field($_POST['address_2']) : '';
     $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
 
@@ -2063,7 +2256,7 @@ function update_order_client()
         'first_name' => $first_name,
         'last_name' => $last_name,
         'address_1' => $address_1,
-        'postcode' => $postcode,
+        'address_2' => $address_2,
         'city' => $city,
         'phone' => $phone
     ];
@@ -2263,28 +2456,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-                                                                                <div class="revision-activity customer-message mockup-approved-comment">
-                                                                                    <div class="revision-activity-avatar">
-                                                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                    </div>
-                                                                                    <div class="revision-activity-content">
-                                                                                        <div class="revision-activity-title">
-                                                                                            <h5>AllAround</h5>
-                                                                                            <span>
-                                                                                                <?php
-                                                                                                if (!empty($proof_approved_time)) {
-                                                                                                    echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                                                                                                }
-                                                                                                ?>
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        <div class="revision-activity-description">
-                                                                                            <span class="revision-comment-title">ההדמיות אושרו על ידי הלקוח <img
-                                                                                                    src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt=""></span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <?php
+            <div class="revision-activity customer-message mockup-approved-comment">
+                <div class="revision-activity-avatar">
+                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                </div>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5>AllAround</h5>
+                        <span>
+                            <?php
+                            if (!empty($proof_approved_time)) {
+                                echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                            }
+                            ?>
+                        </span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            ההדמיות אושרו על ידי הלקוח 
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2311,31 +2506,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
                 }
                 $image_html .= '</div>';
             }
-
             ?>
-                                                                                                            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                                                                                                                <div class="revision-activity-avatar">
-                                                                                                                    <?php if ($comment_name === 'AllAround'): ?>
-                                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                                                    <?php else: ?>
-                                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                                                                                                                    <?php endif; ?>
-                                                                                                                </div>
-                                                                                                                <div class="revision-activity-content">
-                                                                                                                    <div class="revision-activity-title">
-                                                                                                                        <h5><?php echo esc_html($comment_name); ?></h5>
-                                                                                                                        <span><?php echo esc_html($comment_date); ?></span>
-                                                                                                                    </div>
-                                                                                                                    <div class="revision-activity-description">
-                                                                                                                        <span class="revision-comment-title">
-                                                                                                                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                                                                                                                        </span>
-                                                                                                                        <?php echo $image_html; ?>
-                                                                                                                        <div><?php echo $comment_text; ?></div>
-                                                                                                                    </div>
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                            <?php
+            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                <div class="revision-activity-avatar">
+                    <?php if ($comment_name === 'AllAround'): ?>
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                    <?php else: ?>
+                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5><?php echo esc_html($comment_name); ?></h5>
+                        <span><?php echo esc_html($comment_date); ?></span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                        </span>
+                        <?php echo $image_html; ?>
+                        <div><?php echo $comment_text; ?></div>
+                    </div>
+                </div>
+            </div>
+            <?php
         }
     }
 
@@ -2350,15 +2544,25 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 function search_posts()
 {
     $query = sanitize_text_field($_POST['query']);
+    $order_status_filter = !empty($_POST['order_status']) ? sanitize_text_field($_POST['order_status']) : '';
+    $order_type_filter = !empty($_POST['order_type']) ? sanitize_text_field($_POST['order_type']) : '';
+    $logo_filter = !empty($_POST['logo_filter']) ? sanitize_text_field($_POST['logo_filter']) : '';
 
-    // Default arguments for loading all posts initially
+    // Determine if any filters are applied
+    $is_filtering = !empty($query) || !empty($order_status_filter) || !empty($order_type_filter);
+
+    // Set up base arguments for the query
     $args = array(
         'post_type' => 'post',
-        'posts_per_page' => -1
+        'posts_per_page' => $is_filtering ? -1 : 30, // Return all posts if filtering, otherwise limit to 30
+        'paged' => isset($_POST['page']) ? intval($_POST['page']) : 1, // Handle pagination if needed
+        'meta_query' => array(
+            'relation' => 'AND', // Both conditions (order_status and order_type) must match if provided
+        )
     );
 
     if (!empty($query)) {
-        // To handle partial matches in titles
+        // Use the search query to search for partial matches in the title
         $args['s'] = $query;
 
         add_filter('posts_where', function ($where) use ($query) {
@@ -2367,22 +2571,93 @@ function search_posts()
         });
     }
 
+    // Apply the order status filter
+    if (!empty($order_status_filter)) {
+        $args['meta_query'][] = array(
+            'key' => 'order_status',
+            'value' => $order_status_filter,
+            'compare' => '='
+        );
+    }
+
+    // Apply the order type filter
+    if (!empty($order_type_filter)) {
+        if ($order_type_filter === 'not_tagged') {
+            // Filter for orders with no order_type meta data
+            $args['meta_query'][] = array(
+                'key' => 'order_type',
+                'compare' => 'NOT EXISTS'
+            );
+        } else {
+            $args['meta_query'][] = array(
+                'key' => 'order_type',
+                'value' => $order_type_filter,
+                'compare' => '='
+            );
+        }
+    }
+
+    // Handle the logo filter for company type orders
+    if (!empty($order_type_filter) && $order_type_filter === 'company' && !empty($logo_filter)) {
+        // Query for client post type's meta
+        $args['meta_query'][] = array(
+            'key' => 'client_id',
+            'compare' => 'EXISTS'
+        );
+    }
+
     $posts = new WP_Query($args);
+
+    $has_posts = false; // Track whether any post is displayed
 
     if ($posts->have_posts()) {
         while ($posts->have_posts()) {
             $posts->the_post();
-            // get the order_status meta
+            // Get the order_status and order_type meta
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
+            $order_type = get_post_meta(get_the_ID(), 'order_type', true);
+            $client_id = get_post_meta(get_the_ID(), 'client_id', true);
+
+            // If 'no logos' or 'with logos' filter is applied, check the client's dark_logo and lighter_logo meta
+            $skip_post = false;
+            if (!empty($client_id)) {
+                // Retrieve the meta from the client post type
+                $dark_logo = get_post_meta($client_id, 'dark_logo', true);
+                $lighter_logo = get_post_meta($client_id, 'lighter_logo', true);
+
+                if ($logo_filter === 'no_logos') {
+                    // Skip this post if the client has either logo
+                    if (!empty($dark_logo) && !empty($lighter_logo)) {
+                        $skip_post = true;
+                    }
+                } elseif ($logo_filter === 'with_logos') {
+                    // Skip this post if the client doesn't have both logos
+                    if (empty($dark_logo) || empty($lighter_logo)) {
+                        $skip_post = true;
+                    }
+                }
+            }
+
+            if ($skip_post) {
+                continue; // Skip this post if it doesn't meet the logos condition
+            }
+
+            // Display post if it passes the filters
+            $has_posts = true; // Mark that at least one post is being displayed
+
             ?>
-                                                                                                                        <div class="post-item">
-                                                                                                                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                                                                                                                            <p><?php echo esc_html($order_status); ?></p>
-                                                                                                                        </div>
-                                                                                                                        <?php
+            <div class="post-item">
+                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
+                <span>Order Type: <?php echo esc_html($order_type); ?></span>
+            </div>
+            <?php
         }
-    } else {
-        echo '<p>No posts found.</p>';
+    }
+
+    // Show fallback text if no posts were found
+    if (!$has_posts) {
+        echo '<p>No Orders Found.</p>';
     }
 
     wp_die();

@@ -259,20 +259,32 @@
   justify-content: space-between;
   font-size: 16px;
   align-items: center;
+  gap: 15px;
 }
 .variable-quantity {
   max-width: 250px;
 }
 .quantity-wrapper .custom-quantity {
-  flex: 0 0 140px;
-  min-width: 141px;
+  flex: 0 0 100px;
+  min-width: 100px;
   width: 100%;
   padding: 5px 10px;
+}
+.product-custom-quantity-wraper .item-rate-number-input {
+  max-width: 125px;
+  padding: 5px 10px;
+  margin-top: 5px;
+  align-self: flex-end;
 }
 .price-total {
 }
 .price-item {
   color: #439160;
+}
+.grouped-product-meta-data .new_product_artwork {
+  max-width: 260px;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
 }
 .product-custom-quantity-wraper,
 .product-variable-quantity-wrapper {
