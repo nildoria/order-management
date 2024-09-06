@@ -23,25 +23,52 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
             </div>
             <div class="allaround-client-search">
                 <form method="get" action="<?php echo esc_url(home_url('/clients')); ?>">
-                    <label for="search_input">Search Client:</label>
-                    <input type="text" name="search" id="search_input" placeholder="Search..."
-                        value="<?php echo esc_attr($search_query); ?>">
+                    <div class="client-search-wrapper">
+                        <label for="search_input">Search Client:</label>
+                        <input type="text" name="search" id="search_input" placeholder="Search..." value="<?php echo esc_attr($search_query); ?>">
+                    </div>
+                    <div class="filter-wrapper-client-search">
+                        <!-- Client Type Filter -->
+                        <div class="filter-group">
+                            <label for="client-type-select">Client Type:</label>
+                            <select name="client_type" id="client-type-select">
+                                <option value="">Select Type</option>
+                                <option value="personal" <?php selected('personal', $_GET['client_type']); ?>>Personal</option>
+                                <option value="company" <?php selected('company', $_GET['client_type']); ?>>Company</option>
+                                <option value="not_tagged" <?php selected('not_tagged', $_GET['client_type']); ?>>Not Tagged</option>
+                            </select>
+                        </div>
+
+                        <!-- Checkbox for Lighter & Darker Logos -->
+                        <div id="logo-filter" style="display:none;">
+                            <label>
+                                <input type="radio" name="logo_filter" value="no_logos" id="filter-no-logos" <?php checked(isset($_GET['logo_filter']) && $_GET['logo_filter'] === 'no_logos'); ?>> No Lighter & Darker Logos
+                            </label>
+                            <label>
+                                <input type="radio" name="logo_filter" value="with_logos" id="filter-with-logos" <?php checked(isset($_GET['logo_filter']) && $_GET['logo_filter'] === 'with_logos'); ?>> With Lighter & Darker Logos
+                            </label>
+                        </div>
+
+                        <input type="submit" value="Filter">
+                    </div>
                 </form>
             </div>
+
         </div>
 
         <div class="client-list-wrapper">
             <?php
-
-
             $args = array(
                 'post_type' => 'client',
-                'posts_per_page' => 10,
-                'paged' => $paged
+                'posts_per_page' => 100, // Number of clients per page
+                'paged' => $paged,      // Handle pagination
+                'meta_query' => array(
+                    'relation' => 'AND'
+                ),
             );
 
             if (!empty($search_query)) {
-                $args['meta_query'] = array(
+                $args['meta_query'][] = array(
                     'relation' => 'OR',
                     array(
                         'key' => 'first_name',
@@ -62,7 +89,80 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                         'key' => 'email',
                         'value' => $search_query,
                         'compare' => 'LIKE'
-                    )
+                    ),
+                );
+            }
+
+            // Handle client type filtering
+            $client_type = isset($_GET['client_type']) ? sanitize_text_field($_GET['client_type']) : '';
+
+            if ($client_type === 'company') {
+                $args['meta_query'][] = array(
+                    'key' => 'client_type',
+                    'value' => 'company',
+                    'compare' => '='
+                );
+
+                // Check the logo filter value
+                $logo_filter = isset($_GET['logo_filter']) ? sanitize_text_field($_GET['logo_filter']) : '';
+
+                if ($logo_filter === 'no_logos') {
+                    // Filter for clients without logos
+                    $args['meta_query'][] = array(
+                        'relation' => 'OR',
+                        array(
+                            'key' => 'dark_logo',
+                            'compare' => 'NOT EXISTS'
+                        ),
+                        array(
+                            'key' => 'lighter_logo',
+                            'compare' => 'NOT EXISTS'
+                        ),
+                        array(
+                            'key' => 'dark_logo',
+                            'value' => '',
+                            'compare' => '='
+                        ),
+                        array(
+                            'key' => 'lighter_logo',
+                            'value' => '',
+                            'compare' => '='
+                        )
+                    );
+                } elseif ($logo_filter === 'with_logos') {
+                    // Filter for clients with both logos
+                    $args['meta_query'][] = array(
+                        'relation' => 'AND',
+                        array(
+                            'key' => 'dark_logo',
+                            'compare' => 'EXISTS'
+                        ),
+                        array(
+                            'key' => 'lighter_logo',
+                            'compare' => 'EXISTS'
+                        ),
+                        array(
+                            'key' => 'dark_logo',
+                            'value' => '',
+                            'compare' => '!='
+                        ),
+                        array(
+                            'key' => 'lighter_logo',
+                            'value' => '',
+                            'compare' => '!='
+                        )
+                    );
+                }
+            } elseif ($client_type === 'personal') {
+                $args['meta_query'][] = array(
+                    'key' => 'client_type',
+                    'value' => 'personal',
+                    'compare' => '='
+                );
+            } elseif ($client_type === 'not_tagged') {
+                $args['meta_query'][] = array(
+                    'key' => 'client_type',
+                    'compare' => 'NOT EXISTS'
                 );
             }
 
@@ -80,9 +180,9 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                     </thead>
                     <tbody>
                         <?php
-                        $index = 1;
-                        while ($clients_query->have_posts()):
-                            $clients_query->the_post(); ?>
+                            $index = 1;
+                            while ($clients_query->have_posts()):
+                                $clients_query->the_post(); ?>
                             <tr>
                                 <td class="td_index"><?php echo $index; ?></td>
                                 <td><?php the_title(); ?></td>
@@ -95,33 +195,35 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                                     </div>
                                 </td>
                             </tr>
-                            <?php
-                            $index++;
+                        <?php
+                        $index++;
                         endwhile; ?>
                     </tbody>
                 </table>
-
+                
+                <!-- Pagination -->
                 <div class="pagination">
                     <?php
-                    echo paginate_links(
-                        array(
-                            'total' => $clients_query->max_num_pages,
-                            'current' => $paged,
-                            'format' => '?paged=%#%',
-                            'show_all' => false,
-                            'type' => 'plain',
-                            'end_size' => 2,
-                            'mid_size' => 2,
-                            'prev_next' => true,
-                            'prev_text' => __('« Prev'),
-                            'next_text' => __('Next »'),
-                            'add_args' => false,
-                            'add_fragment' => '',
-                        )
-                    );
+                    echo paginate_links(array(
+                        'total' => $clients_query->max_num_pages,
+                        'current' => $paged,
+                        'format' => '?paged=%#%',
+                        'show_all' => false,
+                        'type' => 'plain',
+                        'end_size' => 2,
+                        'mid_size' => 2,
+                        'prev_next' => true,
+                        'prev_text' => __('« Prev'),
+                        'next_text' => __('Next »'),
+                        'add_args' => array(
+                            'search' => !empty($search_query) ? $search_query : false,
+                            'client_type' => !empty($client_type) ? $client_type : false,
+                            'no_logos' => isset($_GET['no_logos']) ? true : false,
+                        ),
+                    ));
                     ?>
                 </div>
-
+                
                 <?php wp_reset_postdata();
             else: ?>
                 <p><?php _e('No clients found.'); ?></p>
@@ -130,8 +232,26 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
         </div>
     </div>
 
-
-
-
 </main>
+
+<script>
+jQuery(document).ready(function ($) {
+    $('#client-type-select').on('change', function () {
+        if ($(this).val() === 'company') {
+            $('#logo-filter').show();
+        } else {
+            $('#logo-filter').hide();
+            $('input[name="logo_filter"]').prop('checked', false); // Uncheck the radio buttons when hiding
+        }
+    });
+
+    // Initially hide or show the radio buttons based on the selected option
+    if ($('#client-type-select').val() === 'company') {
+        $('#logo-filter').show();
+    } else {
+        $('#logo-filter').hide();
+    }
+});
+
+</script>
 <?php get_footer(); ?>

@@ -1628,14 +1628,38 @@
           console.log("New Order:", new_order);
           console.log("Order ID:", order_id);
 
-          let consumer_key, consumer_secret;
+          let app_user, app_password;
 
-          if (order_domain.includes(".test")) {
-            consumer_key = "ck_fc4eb8c5ecaa7c8115294fe19433a9372fffb8a2";
-            consumer_secret = "cs_5f14e11d8f501bc7cd17800bcf90e9adb1d5412c";
-          } else {
-            consumer_key = "ck_c18ff0701de8832f6887537107b75afce3914b4c";
-            consumer_secret = "cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4";
+          switch (order_domain) {
+            case "https://allaround.co.il":
+              app_user = "admin";
+              app_password = "w2iX Qy2i OwVz bbj0 e3uL OH1C";
+              break;
+            case "https://sites.allaround.co.il":
+              app_user = "minisiteAdmin";
+              app_password = "uBaB oReq HHa7 9zIv BOdO OVMU";
+              break;
+            case "https://main.lukpaluk.xyz":
+              app_user = "admin";
+              app_password = "CT5Z jFxJ xUui TKtJ 8NoH EFNw";
+              break;
+            case "https://min.lukpaluk.xyz":
+              app_user = "minisiteAdmin";
+              app_password = "mXQU CLXY KIZe vSXX O4ud W8Ag";
+              break;
+            case "https://allaround.test":
+              app_user = "sabbir";
+              app_password = "7nyo my3s LbEG b29L CM3D EenF";
+              break;
+            case "https://localhost/ministore":
+              app_user = "admin";
+              app_password = "SmkV fgPh 6YLr pEnQ 5yW4 SQQk";
+              break;
+            default:
+              order_domain = "https://allaround.co.il";
+              app_user = "admin";
+              app_password = "w2iX Qy2i OwVz bbj0 e3uL OH1C";
+              break;
           }
 
           let requestData = {
@@ -1668,7 +1692,7 @@
               new_order: new_order,
             }),
             beforeSend: function (xhr) {
-              let auth = btoa(consumer_key + ":" + consumer_secret);
+              let auth = btoa(app_user + ":" + app_password);
               xhr.setRequestHeader("Authorization", "Basic " + auth);
             },
             success: function (response) {

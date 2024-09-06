@@ -1554,6 +1554,7 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
 
     $client_details = isset($order_data['billing']) ? $order_data['billing'] : array();
     $total_price = isset($order_data['total']) ? $order_data['total'] : 0;
+    $order_source = isset($order_data['order_source']) ? $order_data['order_source'] : '';
     $shipping_method_title = isset($order_data['shipping_lines'][0]['method_title']) ? $order_data['shipping_lines'][0]['method_title'] : '';
 
     // error_log(print_r($client_details, true));
@@ -1571,6 +1572,7 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
         ),
         'shipping_method_title' => $shipping_method_title,
         'total_price' => $total_price,
+        'order_source' => $order_source,
         'post_url' => $post_url
     );
 
@@ -2454,30 +2456,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-                                                                                                                                                                                                                                                                                                                <div class="revision-activity customer-message mockup-approved-comment">
-                                                                                                                                                                                                                                                                                                                    <div class="revision-activity-avatar">
-                                                                                                                                                                                                                                                                                                                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                    <div class="revision-activity-content">
-                                                                                                                                                                                                                                                                                                                        <div class="revision-activity-title">
-                                                                                                                                                                                                                                                                                                                            <h5>AllAround</h5>
-                                                                                                                                                                                                                                                                                                                            <span>
-                                                                                                                                                                                                                                                                                                                                <?php
-                                                                                                                                                                                                                                                                                                                                if (!empty($proof_approved_time)) {
-                                                                                                                                                                                                                                                                                                                                    echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                                                                                                                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                                                                                                ?>
-                                                                                                                                                                                                                                                                                                                            </span>
-                                                                                                                                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                                                                                                                        <div class="revision-activity-description">
-                                                                                                                                                                                                                                                                                                                            <span class="revision-comment-title">
-                                                                                                                                                                                                                                                                                                                                ההדמיות אושרו על ידי הלקוח 
-                                                                                                                                                                                                                                                                                                                                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
-                                                                                                                                                                                                                                                                                                                            </span>
-                                                                                                                                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                <?php
+            <div class="revision-activity customer-message mockup-approved-comment">
+                <div class="revision-activity-avatar">
+                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                </div>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5>AllAround</h5>
+                        <span>
+                            <?php
+                            if (!empty($proof_approved_time)) {
+                                echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                            }
+                            ?>
+                        </span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            ההדמיות אושרו על ידי הלקוח 
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2505,29 +2507,29 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
                 $image_html .= '</div>';
             }
             ?>
-                                                                                                                                                                                                                                                            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                                                                                                                                                                                                                                                                <div class="revision-activity-avatar">
-                                                                                                                                                                                                                                                                    <?php if ($comment_name === 'AllAround'): ?>
-                                                                                                                                                                                                                                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                                                                                                                                                                                                    <?php else: ?>
-                                                                                                                                                                                                                                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                                                                                                                                                                                                                                                                    <?php endif; ?>
-                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                <div class="revision-activity-content">
-                                                                                                                                                                                                                                                                    <div class="revision-activity-title">
-                                                                                                                                                                                                                                                                        <h5><?php echo esc_html($comment_name); ?></h5>
-                                                                                                                                                                                                                                                                        <span><?php echo esc_html($comment_date); ?></span>
-                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                    <div class="revision-activity-description">
-                                                                                                                                                                                                                                                                        <span class="revision-comment-title">
-                                                                                                                                                                                                                                                                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                                                                                                                                                                                                                                                                        </span>
-                                                                                                                                                                                                                                                                        <?php echo $image_html; ?>
-                                                                                                                                                                                                                                                                        <div><?php echo $comment_text; ?></div>
-                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                            <?php
+            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                <div class="revision-activity-avatar">
+                    <?php if ($comment_name === 'AllAround'): ?>
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                    <?php else: ?>
+                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5><?php echo esc_html($comment_name); ?></h5>
+                        <span><?php echo esc_html($comment_date); ?></span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                        </span>
+                        <?php echo $image_html; ?>
+                        <div><?php echo $comment_text; ?></div>
+                    </div>
+                </div>
+            </div>
+            <?php
         }
     }
 
@@ -2542,15 +2544,25 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 function search_posts()
 {
     $query = sanitize_text_field($_POST['query']);
+    $order_status_filter = !empty($_POST['order_status']) ? sanitize_text_field($_POST['order_status']) : '';
+    $order_type_filter = !empty($_POST['order_type']) ? sanitize_text_field($_POST['order_type']) : '';
+    $logo_filter = !empty($_POST['logo_filter']) ? sanitize_text_field($_POST['logo_filter']) : '';
 
-    // Default arguments for loading all posts initially
+    // Determine if any filters are applied
+    $is_filtering = !empty($query) || !empty($order_status_filter) || !empty($order_type_filter);
+
+    // Set up base arguments for the query
     $args = array(
         'post_type' => 'post',
-        'posts_per_page' => -1
+        'posts_per_page' => $is_filtering ? -1 : 30, // Return all posts if filtering, otherwise limit to 30
+        'paged' => isset($_POST['page']) ? intval($_POST['page']) : 1, // Handle pagination if needed
+        'meta_query' => array(
+            'relation' => 'AND', // Both conditions (order_status and order_type) must match if provided
+        )
     );
 
     if (!empty($query)) {
-        // To handle partial matches in titles
+        // Use the search query to search for partial matches in the title
         $args['s'] = $query;
 
         add_filter('posts_where', function ($where) use ($query) {
@@ -2559,22 +2571,93 @@ function search_posts()
         });
     }
 
+    // Apply the order status filter
+    if (!empty($order_status_filter)) {
+        $args['meta_query'][] = array(
+            'key' => 'order_status',
+            'value' => $order_status_filter,
+            'compare' => '='
+        );
+    }
+
+    // Apply the order type filter
+    if (!empty($order_type_filter)) {
+        if ($order_type_filter === 'not_tagged') {
+            // Filter for orders with no order_type meta data
+            $args['meta_query'][] = array(
+                'key' => 'order_type',
+                'compare' => 'NOT EXISTS'
+            );
+        } else {
+            $args['meta_query'][] = array(
+                'key' => 'order_type',
+                'value' => $order_type_filter,
+                'compare' => '='
+            );
+        }
+    }
+
+    // Handle the logo filter for company type orders
+    if (!empty($order_type_filter) && $order_type_filter === 'company' && !empty($logo_filter)) {
+        // Query for client post type's meta
+        $args['meta_query'][] = array(
+            'key' => 'client_id',
+            'compare' => 'EXISTS'
+        );
+    }
+
     $posts = new WP_Query($args);
+
+    $has_posts = false; // Track whether any post is displayed
 
     if ($posts->have_posts()) {
         while ($posts->have_posts()) {
             $posts->the_post();
-            // get the order_status meta
+            // Get the order_status and order_type meta
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
+            $order_type = get_post_meta(get_the_ID(), 'order_type', true);
+            $client_id = get_post_meta(get_the_ID(), 'client_id', true);
+
+            // If 'no logos' or 'with logos' filter is applied, check the client's dark_logo and lighter_logo meta
+            $skip_post = false;
+            if (!empty($client_id)) {
+                // Retrieve the meta from the client post type
+                $dark_logo = get_post_meta($client_id, 'dark_logo', true);
+                $lighter_logo = get_post_meta($client_id, 'lighter_logo', true);
+
+                if ($logo_filter === 'no_logos') {
+                    // Skip this post if the client has either logo
+                    if (!empty($dark_logo) && !empty($lighter_logo)) {
+                        $skip_post = true;
+                    }
+                } elseif ($logo_filter === 'with_logos') {
+                    // Skip this post if the client doesn't have both logos
+                    if (empty($dark_logo) || empty($lighter_logo)) {
+                        $skip_post = true;
+                    }
+                }
+            }
+
+            if ($skip_post) {
+                continue; // Skip this post if it doesn't meet the logos condition
+            }
+
+            // Display post if it passes the filters
+            $has_posts = true; // Mark that at least one post is being displayed
+
             ?>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div class="post-item">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <p><?php echo esc_html($order_status); ?></p>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <?php
+            <div class="post-item">
+                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
+                <span>Order Type: <?php echo esc_html($order_type); ?></span>
+            </div>
+            <?php
         }
-    } else {
-        echo '<p>No posts found.</p>';
+    }
+
+    // Show fallback text if no posts were found
+    if (!$has_posts) {
+        echo '<p>No Orders Found.</p>';
     }
 
     wp_die();
