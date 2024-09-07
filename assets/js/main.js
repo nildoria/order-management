@@ -1243,9 +1243,9 @@
           }, 500);
 
           const webhookData = {
-            om_status: "Shipping Method Updated",
+            om_status: "shipping_method_updated",
             order_id: order_id,
-            shipping_method: shipping_method,
+            shipping_method: shipping_method_title,
           };
 
           Toastify({
