@@ -210,20 +210,6 @@ jQuery(document).ready(function ($) {
     $("#selectedProductDisplay").prev("label").remove();
   });
 
-  function displayProductDetails(product) {
-    let productDetailsContainer = $("#productDetailsContainer");
-    console.log(product);
-    if (product.is_custom_quantity) {
-      renderCustomQuantityProduct(productDetailsContainer, product);
-    } else if (product.is_group_quantity) {
-      renderGroupQuantityProduct(productDetailsContainer, product);
-    } else {
-      productDetailsContainer.html(
-        "<p>No specific structure for this product.</p>"
-      );
-    }
-  }
-
   function loadCreateOrderJS() {
     // Load create-order.js script
     const createOrderScriptPath =
@@ -240,6 +226,22 @@ jQuery(document).ready(function ($) {
       .fail(function (jqxhr, settings, exception) {
         console.error("Error loading create-order.js:", exception);
       });
+  }
+
+  function displayProductDetails(product) {
+    let productDetailsContainer = $("#productDetailsContainer");
+    console.log(product);
+    if (product.is_custom_quantity) {
+      renderCustomQuantityProduct(productDetailsContainer, product);
+    } else if (product.is_group_quantity) {
+      renderGroupQuantityProduct(productDetailsContainer, product);
+    } else if (product.is_variable_product) {
+      renderVariableProduct(productDetailsContainer, product);
+    } else {
+      productDetailsContainer.html(
+        "<p>No specific structure for this product.</p>"
+      );
+    }
   }
 
   function renderCustomQuantityProduct(container, product) {
@@ -405,6 +407,175 @@ jQuery(document).ready(function ($) {
         `;
   }
 
+  function renderVariableProduct(container, product) {
+    const modal = $("#add-item-modal");
+
+    let html = `
+        <div class="product-variable-quantity-wrapper">
+            ${renderVariableSteps(product.quantity_steps)}
+            ${renderArtworkUploader()}
+            ${renderInstructionNote()}
+            <button name="add-to-cart" value="${
+              product.id
+            }" id="addNewItemButton"
+                class="variable_add_item_button ml_add_loading button alt">Add to order</button>
+        </div>
+    `;
+
+    container.html(html);
+
+    // Initialize the variable product logic
+    initializeVariableProductAddItem();
+  }
+
+  // New Updated Code for Add New Items to the Existing Order
+  function initializeVariableProductAddItem() {
+    $(".product-variable-quantity-wrapper").each(function () {
+      const wrapper = $(this);
+      const quantitySelect = wrapper.find(".variable-quantity");
+      const hasSize = quantitySelect.data("has-size") === true;
+      const sizeInputs = wrapper.find('input[name="product_size"]');
+      const customPriceInput = wrapper.find(".variableItem-total-number-input");
+
+      function updatePrice() {
+        let totalPrice;
+
+        // Check if the custom price input has a value
+        const customPrice = customPriceInput.val();
+        if (customPrice && !isNaN(customPrice)) {
+          totalPrice = parseFloat(customPrice);
+        } else {
+          // Fallback to the selected option's price
+          const selectedOption = quantitySelect.find("option:selected");
+          totalPrice = parseFloat(selectedOption.data("amount"));
+        }
+
+        // Update the display
+        wrapper.find(".item-total-number").text(totalPrice.toFixed(2));
+        wrapper.find(".item_total_price").val(totalPrice.toFixed(2));
+      }
+
+      function updateQuantityOptions(steps) {
+        quantitySelect.empty();
+        steps.forEach((step) => {
+          const firstStep = step.steps ? step.steps[0] : null;
+          if (firstStep) {
+            const option = $("<option>", {
+              value: step.quantity || step.name,
+              "data-amount": firstStep.amount || 0,
+              "data-variation-id": firstStep.variation_id || null,
+              text: `${step.quantity || step.name}`,
+            });
+            quantitySelect.append(option);
+          } else {
+            console.log("Step has no valid 'steps' data: ", step);
+          }
+        });
+      }
+
+
+      if (hasSize) {
+        sizeInputs.on("change", function () {
+          const steps = $(this).data("steps");
+          updateQuantityOptions(steps);
+          updatePrice();
+        });
+
+        // Initialize with the first selected size
+        sizeInputs.filter(":checked").trigger("change");
+      } else {
+        // For products without size, initialize quantity options directly
+        const steps = quantitySelect.data("steps");
+        if (steps) {
+          updateQuantityOptions(steps);
+        } else {
+          console.error("No steps data found for product without size");
+        }
+      }
+
+      quantitySelect.on("change", updatePrice);
+
+      // Listen to custom price input changes
+      customPriceInput.on("input", updatePrice);
+
+      // Initial price update
+      updatePrice();
+    });
+  }
+
+  function renderVariableSteps(quantitySteps) {
+    if (!Array.isArray(quantitySteps) || quantitySteps.length === 0) {
+      return "";
+    }
+
+    const hasSize =
+      quantitySteps[0] && quantitySteps[0].attribute_key1 === "Size"; // Ensure quantitySteps[0] exists
+
+    const sizeOptions = hasSize
+      ? `
+            <div class="form-group">
+                <label>${quantitySteps[0].attribute_key1}</label>
+                <div class="custom-sizes-wrapper">
+                    ${quantitySteps
+                      .map(
+                        (variation, index) => `
+                        <span class="alarnd--single-var-info">
+                            <input type="radio" 
+                                  id="size-${variation.id}"
+                                  name="product_size" 
+                                  value="${variation.id}"
+                                  data-size="${variation.name}"
+                                  data-steps='${JSON.stringify(
+                                    variation.steps || []
+                                  )}'
+                                  ${index === 0 ? 'checked="checked"' : ""}>
+                            <label for="size-${variation.id}">
+                                ${variation.name}
+                            </label>
+                        </span>
+                    `
+                      )
+                      .join("")}
+                </div>
+            </div>
+            `
+      : "";
+
+    const quantityOptions = quantitySteps
+      .map((step) => {
+        const firstStep = step.steps ? step.steps[0] : null;
+        return firstStep
+          ? `
+                    <option value="${hasSize ? firstStep.quantity : step.id}" 
+                            data-amount="${firstStep.amount || 0}" 
+                            data-variation-id="${firstStep.variation_id || null}">
+                        ${hasSize ? firstStep.quantity : step.name}
+                    </option>
+                `
+          : "";
+      })
+      .join("");
+
+    return `
+            ${sizeOptions}
+            <div class="form-group">
+                <label for="variable-quantity">Quantity</label>
+                <div class="quantity-wrapper">
+                    <select id="variable-quantity" class="variable-quantity" data-has-size="${hasSize}" data-steps='${JSON.stringify(
+      quantitySteps
+    )}'>
+                        ${quantityOptions}
+                    </select>
+                    <div class="price-total">
+                        <span class="item-total-number">0</span>₪
+                        <input type="hidden" class="item_total_price" name="item_total_price">
+                    </div>
+                    <input type="text" name="variableProductCustomRate" placeholder="Custom Total" class="variableItem-total-number-input">
+                </div>
+            </div>
+        `;
+  }
+
   function renderArtworkUploader() {
     return `
             <div class="form-group">
@@ -508,6 +679,7 @@ jQuery(document).ready(function ($) {
     const isGroupedProduct = $(this).hasClass(
       "groupedProduct_add_to_cart_button"
     );
+    const isVariableProduct = $(this).hasClass("variable_add_item_button");
     const newItem = [];
 
     if (isGroupedProduct) {
@@ -519,9 +691,7 @@ jQuery(document).ready(function ($) {
         const size = $(this).data("size");
         const artworkUrl = modal.find(".uploaded_file_path").val();
         const artPosition = modal.find(".new_product_art_pos").val();
-        const instructionNote = modal
-          .find(".new_product_instruction_note")
-          .val();
+        const instructionNote = modal.find(".new_product_instruction_note").val();
 
         if (quantity > 0) {
           newItem.push({
@@ -536,6 +706,29 @@ jQuery(document).ready(function ($) {
             nonce: alarnd_add_item_vars.nonce,
           });
         }
+      });
+    } else if (isVariableProduct) {
+      const productId = modal.find("#new_product_id").val();
+      const selectedVariation = modal.find(
+        ".variable-quantity option:selected"
+      );
+      const variationId = selectedVariation.data("variation-id");
+      const selectedQuantity = modal.find("#variable-quantity").val();
+      const size = modal.find('input[name="product_size"]:checked').data("size");
+      const subTotalPrice = modal.find(".item_total_price").val();
+      const artworkUrl = modal.find(".uploaded_file_path").val();
+      const instructionNote = modal.find(".new_product_instruction_note").val();
+
+      newItem.push({
+        product_id: productId,
+        variation_id: variationId,
+        quantity: selectedQuantity,
+        alarnd_size: size,
+        subtotal: subTotalPrice,
+        alarnd_artwork: artworkUrl,
+        allaround_instruction_note: instructionNote,
+        order_id: alarnd_add_item_vars.order_id,
+        nonce: alarnd_add_item_vars.nonce,
       });
     } else {
       const productId = modal.find("#new_product_id").val();
@@ -594,14 +787,6 @@ jQuery(document).ready(function ($) {
         }
       })
       .then((data) => {
-        // Use the message and newly_added_total from the response
-        // console.log("Client ID:", client_id);
-        // console.log("Order Source:", order_source);
-
-        // console.log("Response message:", data.message);
-        // console.log("Newly Added Total:", data.newly_added_total);
-
-        // Prepare data to send to the server to handle order source
         const handleOrderSourceData = {
           action: "handle_order_source_action",
           post_id: post_id,
@@ -610,7 +795,6 @@ jQuery(document).ready(function ($) {
           total_price: data.newly_added_total,
         };
 
-        // Send data to the server via AJAX
         $.post(
           alarnd_add_item_vars.ajax_url,
           handleOrderSourceData,

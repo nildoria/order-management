@@ -1,5 +1,6 @@
 button.groupedProduct_add_to_cart_button,
-button.customQuantity_add_to_cart_button {
+button.customQuantity_add_to_cart_button, 
+button.variable_add_item_button {
   padding: 18px 15px;
   min-width: 215px;
   font-size: 18px;
