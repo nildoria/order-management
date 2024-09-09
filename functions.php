@@ -1294,7 +1294,7 @@ function create_order(WP_REST_Request $request)
             }
         }
 
-        // Schedule the mockup upload to run after 5 minutes (or any delay you need)
+        // Schedule the mockup upload to run after 1 minutes (or any delay you need)
         if (!wp_next_scheduled('upload_mockups_to_ftp', array($order_id, $order_data))) {
             wp_schedule_single_event(time() + 60, 'upload_mockups_to_ftp', array($order_id, $order_data));
         }
@@ -1576,7 +1576,7 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
         'post_url' => $post_url
     );
 
-    // error_log(print_r($webhook_data, true));
+	// error_log(print_r($webhook_data, true));
 
     $response = wp_remote_post(
         $webhook_url,
@@ -2335,7 +2335,14 @@ function delete_mockup_folder()
 // Function to fetch posts from a specific page
 function fetch_artwork_posts_page($page, $per_page)
 {
-    $response = wp_remote_get("https://artwork.lukpaluk.xyz/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
+    $current_domain = $_SERVER['SERVER_NAME'];
+
+    if (strpos($current_domain, '.test') !== false || strpos($current_domain, 'lukpaluk.xyz') !== false) {
+        $artwork_domain = 'https://artwork.lukpaluk.xyz';
+    } else {
+        $artwork_domain = 'https://artwork.allaround.co.il';
+    }
+    $response = wp_remote_get("$artwork_domain/wp-json/wp/v2/posts?per_page=$per_page&page=$page");
 
     if (is_wp_error($response)) {
         $error_message = $response->get_error_message();
@@ -2363,7 +2370,14 @@ function fetch_artwork_posts_page($page, $per_page)
 
 function fetch_artwork_post_by_id($post_id)
 {
-    $response = wp_remote_get("https://artwork.lukpaluk.xyz/wp-json/wp/v2/posts/$post_id");
+    $current_domain = $_SERVER['SERVER_NAME'];
+
+    if (strpos($current_domain, '.test') !== false || strpos($current_domain, 'lukpaluk.xyz') !== false) {
+        $artwork_domain = 'https://artwork.lukpaluk.xyz';
+    } else {
+        $artwork_domain = 'https://artwork.allaround.co.il';
+    }
+    $response = wp_remote_get("$artwork_domain/wp-json/wp/v2/posts/$post_id");
 
     if (is_wp_error($response)) {
         $error_message = $response->get_error_message();
@@ -2386,7 +2400,7 @@ function fetch_display_artwork_comments($order_id, $post_id = null)
 
     // Skip fetching operations if $send_proof_last_version is empty
     if (empty($send_proof_last_version)) {
-        return display_artwork_comments(false, '', [], '#');
+        // return display_artwork_comments(false, '', [], '#');
     }
 
     $transient_key = 'artwork_post_' . $order_id;
