@@ -99,9 +99,6 @@
 
     // Check if the order type is "company"
     if ($("#order_type").val() === "company") {
-      // data.dark_logo = $("#dark_logo").val();
-      // data.lighter_logo = $("#lighter_logo").val();
-
       data.logo_darker = $("#dark_logo").val();
       data.logo_lighter = $("#lighter_logo").val();
     }
@@ -142,17 +139,16 @@
       }
     }
 
-    let proof_api =
-      "https://artwork.lukpaluk.xyz/wp-json/artwork-review/v1/add-proof";
-    // if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
-    //   // Proof API for test environment
-    //   proof_api =
-    //     "https://artwork.lukpaluk.xyz/wp-json/artwork-review/v1/add-proof";
-    // } else {
-    //   // Proof API for production environment
-    //   proof_api =
-    //     "https://artwork.allaround.co.il/wp-json/artwork-review/v1/add-proof";
-    // }
+    let proof_api = "";
+    if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
+      // Proof API for test environment
+      proof_api =
+        "https://artwork.lukpaluk.xyz/wp-json/artwork-review/v1/add-proof";
+    } else {
+      // Proof API for production environment
+      proof_api =
+        "https://artwork.allaround.co.il/wp-json/artwork-review/v1/add-proof";
+    }
 
     fetch(proof_api, {
       method: "POST",
@@ -1196,6 +1192,12 @@
     let nonce = allaround_vars.nonce;
     $(".om_shipping_submit").addClass("pulse");
 
+    let webhookData = {
+      om_status: "shipping_method_updated",
+      order_id: order_id,
+      shipping_method: shipping_method_title,
+    };
+
     fetch(allaround_vars.ajax_url, {
       method: "POST",
       headers: {
@@ -1242,12 +1244,6 @@
             $(".om_shipping_submit").fadeOut();
           }, 500);
 
-          const webhookData = {
-            om_status: "shipping_method_updated",
-            order_id: order_id,
-            shipping_method: shipping_method_title,
-          };
-
           Toastify({
             text: `Shipping Method Updated Successfully!`,
             duration: 3000,
@@ -1264,7 +1260,7 @@
           sendDataToWebhook(webhookData);
 
           // location reload
-          location.reload();
+          // location.reload();
         } else {
           alert("Failed to update shipping method: " + data.data);
         }
