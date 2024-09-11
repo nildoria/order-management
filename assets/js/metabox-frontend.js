@@ -79,6 +79,87 @@
           localStorage.setItem("order_type", response.data.order_type);
           localStorage.setItem("client_type", response.data.client_type);
 
+          // Extract email, phone, full name, and total paid from the frontend
+          const email = $("#billing_email").val();
+          const phone = $("#billing_phone").val();
+          const fullName =
+            $("#billing_first_name").val() + " " + $("#billing_last_name").val();
+          let totalPaid = parseFloat(
+            $(".om__orderTotal").text().replace("₪", "").trim()
+          ); // Extract total without symbol and convert to a number
+
+          // Function to determine the appropriate event based on the totalPaid value
+          function getEventName(baseEvent) {
+            if (totalPaid >= 1000) return `${baseEvent}_value1000`;
+            if (totalPaid >= 900) return `${baseEvent}_value900`;
+            if (totalPaid >= 800) return `${baseEvent}_value800`;
+            if (totalPaid >= 700) return `${baseEvent}_value700`;
+            if (totalPaid >= 600) return `${baseEvent}_value600`;
+            if (totalPaid >= 500) return `${baseEvent}_value500`;
+            if (totalPaid >= 400) return `${baseEvent}_value400`;
+            if (totalPaid >= 300) return `${baseEvent}_value300`;
+            if (totalPaid >= 200) return `${baseEvent}_value200`;
+            if (totalPaid >= 100) return `${baseEvent}_value100`;
+            return baseEvent;
+          }
+
+          // Check the client type and trigger the appropriate Data Layer event
+          if (
+            response.data.old_client_type !== "company" &&
+            response.data.order_type === "company"
+          ) {
+            // New company purchase
+            const event = getEventName("ga4_new_company_purchase");
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+              event: event,
+              email: email,
+              phone: phone,
+              full_name: fullName,
+              total_paid: totalPaid,
+            });
+          } else if (
+            response.data.old_client_type === "company" &&
+            response.data.order_type === "company"
+          ) {
+            // Repeated company purchase
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+              event: "ga4_repeated_company_purchase",
+              email: email,
+              phone: phone,
+              full_name: fullName,
+              total_paid: totalPaid,
+            });
+          } else if (
+            !response.data.old_client_type &&
+            response.data.order_type === "personal"
+          ) {
+            // New personal purchase
+            const event = getEventName("ga4_new_personal_purchase");
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+              event: event,
+              email: email,
+              phone: phone,
+              full_name: fullName,
+              total_paid: totalPaid,
+            });
+          } else if (
+            response.data.old_client_type === "personal" &&
+            response.data.order_type === "personal"
+          ) {
+            // Repeated personal purchase
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+              event: "ga4_repeated_personal_purchase",
+              email: email,
+              phone: phone,
+              full_name: fullName,
+              total_paid: totalPaid,
+            });
+          }
+
           Toastify({
             text: `Order Type Updated Successfully!!`,
             duration: 3000,

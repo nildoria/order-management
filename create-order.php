@@ -400,6 +400,7 @@ foreach ($products as $product) {
                     <input type="email" id="billing_email" name="billing_email" required>
                     <label for="billing_phone">Phone:</label>
                     <input type="text" id="billing_phone" name="billing_phone" required>
+                    <input type="hidden" id="client_type" name="client_type" value="">
                 </form>
                 <button type="button" id="update-order-client" class="ml_add_loading"><?php echo esc_html__('Update Info', 'hello-elementor'); ?></button>
             </div>

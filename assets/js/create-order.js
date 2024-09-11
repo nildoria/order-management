@@ -490,6 +490,10 @@ jQuery(document).ready(function ($) {
 
     let orderType = $("#order_type").val();
     let clientID = $("#client-select").val();
+    let clientType = $("#client_type").val();
+    let totalPaid = parseFloat(
+      $(".cart-total-number").text().replace("₪", "").trim()
+    );
 
     // Collect billing and shipping information
     const billing = {
@@ -514,10 +518,7 @@ jQuery(document).ready(function ($) {
         .find(".product-quantity-number")
         .text()
         .replace(" ", "");
-      const subtotal = item
-        .find(".product-total-price")
-        .text()
-        .replace("₪", "");
+      const subtotal = item.find(".product-total-price").text().replace("₪", "");
       const color = item.find(".product-color").text().replace("Color: ", "");
       const size = item.find(".product-size").text().replace("Size: ", "");
       const artworks = item.find(".product-artworks-incart").val();
@@ -525,10 +526,16 @@ jQuery(document).ready(function ($) {
         .find(".product-instruction-note")
         .text()
         .replace("Instruction Note: ", "");
+      const variableQuantity = item
+        .find(".product-quantity-meta")
+        .text()
+        .replace("Quantity: ", "");
 
       const metaData = [];
       if (color) metaData.push({ key: "Color", value: color });
       if (size) metaData.push({ key: "Size", value: size });
+      if (variableQuantity)
+        metaData.push({ key: "Quantity", value: variableQuantity });
       if (artworks) metaData.push({ key: "Attachment", value: artworks });
       if (instructionNote)
         metaData.push({ key: "Instruction Note", value: instructionNote });
@@ -570,6 +577,15 @@ jQuery(document).ready(function ($) {
       data: orderData,
       success: function (response) {
         if (response.success) {
+          // Call the function to trigger Data Layer events before order creation
+          triggerDataLayerEvent(
+            orderType,
+            clientType,
+            totalPaid,
+            billing.email,
+            billing.phone,
+            billing.first_name + " " + billing.last_name
+          );
           // Clear the cart
           $(".content-cart ul").empty();
           $(".cart-total-number").text("0");
@@ -600,6 +616,71 @@ jQuery(document).ready(function ($) {
       },
     });
   });
+
+  // Function to trigger GA4 Data Layer events based on the totalPaid value and client type
+  function triggerDataLayerEvent(
+    orderType,
+    clientType,
+    totalPaid,
+    email,
+    phone,
+    fullName
+  ) {
+    function getEventName(baseEvent) {
+      if (totalPaid >= 1000) return `${baseEvent}_value1000`;
+      if (totalPaid >= 900) return `${baseEvent}_value900`;
+      if (totalPaid >= 800) return `${baseEvent}_value800`;
+      if (totalPaid >= 700) return `${baseEvent}_value700`;
+      if (totalPaid >= 600) return `${baseEvent}_value600`;
+      if (totalPaid >= 500) return `${baseEvent}_value500`;
+      if (totalPaid >= 400) return `${baseEvent}_value400`;
+      if (totalPaid >= 300) return `${baseEvent}_value300`;
+      if (totalPaid >= 200) return `${baseEvent}_value200`;
+      if (totalPaid >= 100) return `${baseEvent}_value100`;
+      return baseEvent;
+    }
+
+    // Triggering appropriate Data Layer event based on client type and order type
+    if (clientType !== "company" && orderType === "company") {
+      const event = getEventName("ga4_new_company_purchase");
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: event,
+        email: email,
+        phone: phone,
+        full_name: fullName,
+        total_paid: totalPaid,
+      });
+    } else if (clientType === "company" && orderType === "company") {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: "ga4_repeated_company_purchase",
+        email: email,
+        phone: phone,
+        full_name: fullName,
+        total_paid: totalPaid,
+      });
+    } else if (!clientType && orderType === "personal") {
+      const event = getEventName("ga4_new_personal_purchase");
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: event,
+        email: email,
+        phone: phone,
+        full_name: fullName,
+        total_paid: totalPaid,
+      });
+    } else if (clientType === "personal" && orderType === "personal") {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: "ga4_repeated_personal_purchase",
+        email: email,
+        phone: phone,
+        full_name: fullName,
+        total_paid: totalPaid,
+      });
+    }
+  }
 
   function createOrderPost(orderData, orderType) {
     let root_domain = alarnd_create_order_vars.redirecturl;
@@ -905,7 +986,7 @@ jQuery(document).ready(function ($) {
       $(this)
         .closest(".product-custom-quantity-wraper")
         .find(".item_total_price")
-        .val(total.toFixed(2));
+        .val(total);
     });
   }
 
@@ -965,7 +1046,7 @@ jQuery(document).ready(function ($) {
 
         // Update the display
         wrapper.find(".item-total-number").text(totalPrice.toFixed(2));
-        wrapper.find(".item_total_price").val(totalPrice.toFixed(2));
+        wrapper.find(".item_total_price").val(totalPrice);
       }
 
       function updateQuantityOptions(steps) {
@@ -1060,10 +1141,13 @@ jQuery(document).ready(function ($) {
           <img class="cart-item-thumb" src="${productThumbnail}" alt="${productName}" />
           <span class="cart-item-contents">
           <span class="product-name">${productName}</span>
-          <span class="product-quantity">Quantity: <span class="product-quantity-number">${selectedQuantity}</span></span>
+          <span class="product-quantity">Unite: <span class="product-quantity-number">1</span></span>
           <span class="product-total-price-container">Items Subtotal: <span class="product-total-price">${subTotalPrice}</span>₪</span>
           <input type="hidden" name="product-total-price-incart" class="product-total-price-incart" value="${subTotalPrice}">
       `;
+    if (selectedQuantity) {
+      cartItem += `<span class="product-quantity-meta">Quantity: ${selectedQuantity}</span>`;
+    }
     if (selectedSize) {
       cartItem += `<span class="product-size">Size: ${selectedSize}</span>`;
     }
