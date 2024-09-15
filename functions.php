@@ -1333,8 +1333,7 @@ add_action('upload_mockups_to_ftp', 'upload_mockups_to_ftp_callback', 10, 2);
  * @param int $order_id The ID of the order.
  * @param array $order_data The order data containing mockup information.
  */
-function upload_mockups_to_ftp_callback($order_id, $order_data)
-{
+function upload_mockups_to_ftp_callback($order_id, $order_data){
     // Iterate over the items and process each item's mockup_thumbnail for FTP upload
     if (isset($order_data['items']) && is_array($order_data['items'])) {
         foreach ($order_data['items'] as $item) {
