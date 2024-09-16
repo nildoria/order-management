@@ -49,6 +49,8 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                                 <input type="radio" name="logo_filter" value="with_logos" id="filter-with-logos" <?php checked(isset($_GET['logo_filter']) && $_GET['logo_filter'] === 'with_logos'); ?>> With Lighter & Darker Logos
                             </label>
                         </div>
+                        
+                        <a href="#" id="export-csv-btn" class="button">Export Clients</a>
 
                         <input type="submit" value="Filter">
                     </div>

@@ -156,7 +156,7 @@ td.td_index {
 .filter-wrapper-client-search div#logo-filter label {
     width: 100%;
 }
-.filter-wrapper-client-search input[type="submit"] {
+.filter-wrapper-client-search input[type="submit"], #export-csv-btn {
     background-color: #66de93;
     text-decoration: none;
     padding: 8px 29px;
@@ -164,6 +164,11 @@ td.td_index {
     border-radius: 7px;
     margin-top: 15px;
     float: right;
+    font-weight: 600;
+}
+#export-csv-btn {
+    float: none;
+    border: none;
 }
 
 .allaround-client-search form label {

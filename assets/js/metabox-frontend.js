@@ -495,4 +495,58 @@
       }
     });
   }
+
+  $("#export-csv-btn").on("click", function (e) {
+    e.preventDefault();
+
+    // Collect filter values
+    const searchQuery = $("#search_input").val();
+    const clientType = $("#client-type-select").val();
+    const logoFilter = $("input[name='logo_filter']:checked").val();
+
+    // Send AJAX request to generate CSV data
+    $.ajax({
+      type: "POST",
+      url: all_around_clients_vars.ajax_url, // Use your AJAX URL
+      data: {
+        action: "export_clients_csv",
+        search: searchQuery,
+        client_type: clientType,
+        logo_filter: logoFilter,
+        nonce: all_around_clients_vars.nonce, // Security nonce
+      },
+      success: function (response) {
+        if (response.success) {
+          // Prepare dynamic filename
+          let filename = "clients";
+          if (clientType) {
+            filename += `-${clientType}`;
+          }
+          if (logoFilter) {
+            filename += `-${logoFilter.replace("_", "-")}`;
+          }
+          filename += ".csv";
+
+          console.log("CSV data:", response.data.csv);
+          
+
+          // Create a blob with CSV data and download it
+          const csvData = new Blob([response.data.csv], { type: "text/csv" });
+          const csvURL = window.URL.createObjectURL(csvData);
+
+          const link = document.createElement("a");
+          link.href = csvURL;
+          link.setAttribute("download", filename);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          alert("Error generating CSV.");
+        }
+      },
+      error: function () {
+        alert("Error occurred while exporting CSV.");
+      },
+    });
+  });
 })(jQuery); /*End document ready*/
