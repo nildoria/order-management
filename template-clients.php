@@ -20,6 +20,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
             <div class="allaround-client-top-left">
                 <h2>Clients</h2>
                 <a href="<?php echo esc_url(home_url('/create-client/')); ?>">Add New Client</a>
+                <?php do_action('om_campaign_action'); ?>
             </div>
             <div class="allaround-client-search">
                 <form method="get" action="<?php echo esc_url(home_url('/clients')); ?>">
@@ -48,6 +49,8 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                                 <input type="radio" name="logo_filter" value="with_logos" id="filter-with-logos" <?php checked(isset($_GET['logo_filter']) && $_GET['logo_filter'] === 'with_logos'); ?>> With Lighter & Darker Logos
                             </label>
                         </div>
+                        
+                        <a href="#" id="export-csv-btn" class="button">Export Clients</a>
 
                         <input type="submit" value="Filter">
                     </div>

@@ -24,6 +24,7 @@ $clients = $createOrder->fetch_clients_data();
         $shipping_method = get_post_meta($current_id, 'shipping_method', true);
         $shipping_method_title = get_post_meta($current_id, 'shipping_method_title', true);
         $order_type = get_post_meta($current_id, 'order_type', true);
+        // update_post_meta($current_id, 'order_type', '');
         $order_shipping = get_post_meta($current_id, 'shipping', true);
         $order_domain = get_post_meta($current_id, 'site_url', true);
         $order_source_value = get_post_meta($current_id, 'order_source', true);

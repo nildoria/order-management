@@ -43,6 +43,8 @@
     return false;
   });
 
+  const initial_order_type = $("#order_type").val();
+
   $("#order_type-form").on("submit", function (event) {
     event.preventDefault();
 
@@ -79,85 +81,76 @@
           localStorage.setItem("order_type", response.data.order_type);
           localStorage.setItem("client_type", response.data.client_type);
 
-          // Extract email, phone, full name, and total paid from the frontend
-          const email = $("#billing_email").val();
-          const phone = $("#billing_phone").val();
-          const fullName =
-            $("#billing_first_name").val() + " " + $("#billing_last_name").val();
-          let totalPaid = parseFloat(
-            $(".om__orderTotal").text().replace("₪", "").trim()
-          ); // Extract total without symbol and convert to a number
+          // if initial_order_type is empty then do the bellow code
+          if (!initial_order_type) {
+            // Extract email, phone, full name, and total paid from the frontend
+            const email = $("#billing_email").val();
+            const phone = $("#billing_phone").val();
+            const fullName =
+              $("#billing_first_name").val() +
+              " " +
+              $("#billing_last_name").val();
+            let totalPaid = parseFloat(
+              $(".om__orderTotal").text().replace("₪", "").trim()
+            ); // Extract total without symbol and convert to a number
 
-          // Function to determine the appropriate event based on the totalPaid value
-          function getEventName(baseEvent) {
-            if (totalPaid >= 1000) return `${baseEvent}_value1000`;
-            if (totalPaid >= 900) return `${baseEvent}_value900`;
-            if (totalPaid >= 800) return `${baseEvent}_value800`;
-            if (totalPaid >= 700) return `${baseEvent}_value700`;
-            if (totalPaid >= 600) return `${baseEvent}_value600`;
-            if (totalPaid >= 500) return `${baseEvent}_value500`;
-            if (totalPaid >= 400) return `${baseEvent}_value400`;
-            if (totalPaid >= 300) return `${baseEvent}_value300`;
-            if (totalPaid >= 200) return `${baseEvent}_value200`;
-            if (totalPaid >= 100) return `${baseEvent}_value100`;
-            return baseEvent;
-          }
+            // Function to push the event to the dataLayer
+            function pushEvent(event) {
+              window.dataLayer = window.dataLayer || [];
+              window.dataLayer.push({
+                event: event,
+                email: email,
+                phone: phone,
+                full_name: fullName,
+                total_paid: totalPaid,
+              });
+            }
 
-          // Check the client type and trigger the appropriate Data Layer event
-          if (
-            response.data.old_client_type !== "company" &&
-            response.data.order_type === "company"
-          ) {
-            // New company purchase
-            const event = getEventName("ga4_new_company_purchase");
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({
-              event: event,
-              email: email,
-              phone: phone,
-              full_name: fullName,
-              total_paid: totalPaid,
-            });
-          } else if (
-            response.data.old_client_type === "company" &&
-            response.data.order_type === "company"
-          ) {
-            // Repeated company purchase
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({
-              event: "ga4_repeated_company_purchase",
-              email: email,
-              phone: phone,
-              full_name: fullName,
-              total_paid: totalPaid,
-            });
-          } else if (
-            !response.data.old_client_type &&
-            response.data.order_type === "personal"
-          ) {
-            // New personal purchase
-            const event = getEventName("ga4_new_personal_purchase");
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({
-              event: event,
-              email: email,
-              phone: phone,
-              full_name: fullName,
-              total_paid: totalPaid,
-            });
-          } else if (
-            response.data.old_client_type === "personal" &&
-            response.data.order_type === "personal"
-          ) {
-            // Repeated personal purchase
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({
-              event: "ga4_repeated_personal_purchase",
-              email: email,
-              phone: phone,
-              full_name: fullName,
-              total_paid: totalPaid,
-            });
+            // Function to push events with thresholds based on totalPaid
+            function pushEventsWithThresholds(baseEvent) {
+              pushEvent(baseEvent); // Push the base event
+              if (totalPaid >= 100) pushEvent(`${baseEvent}_value100`);
+              if (totalPaid >= 200) pushEvent(`${baseEvent}_value200`);
+              if (totalPaid >= 300) pushEvent(`${baseEvent}_value300`);
+              if (totalPaid >= 400) pushEvent(`${baseEvent}_value400`);
+              if (totalPaid >= 500) pushEvent(`${baseEvent}_value500`);
+              if (totalPaid >= 600) pushEvent(`${baseEvent}_value600`);
+              if (totalPaid >= 700) pushEvent(`${baseEvent}_value700`);
+              if (totalPaid >= 800) pushEvent(`${baseEvent}_value800`);
+              if (totalPaid >= 900) pushEvent(`${baseEvent}_value900`);
+              if (totalPaid >= 1000) pushEvent(`${baseEvent}_value1000`);
+            }
+
+            // Check the client type and trigger the appropriate Data Layer events
+            if (
+              (response.data.old_client_type !== "company" &&
+                response.data.order_type === "company") ||
+              (!response.data.old_client_type &&
+                response.data.order_type === "company")
+            ) {
+              // New company purchase
+              pushEventsWithThresholds("ga4_new_company_purchase");
+            } else if (
+              response.data.old_client_type === "company" &&
+              response.data.order_type === "company"
+            ) {
+              // Repeated company purchase
+              pushEventsWithThresholds("ga4_repeated_company_purchase");
+            } else if (
+              !response.data.old_client_type &&
+              response.data.order_type === "personal"
+            ) {
+              // New personal purchase
+              pushEventsWithThresholds("ga4_new_personal_purchase");
+            } else if (
+              (response.data.old_client_type === "personal" &&
+                response.data.order_type === "personal") ||
+              (response.data.old_client_type === "company" &&
+                response.data.order_type === "personal")
+            ) {
+              // Repeated personal purchase
+              pushEventsWithThresholds("ga4_repeated_personal_purchase");
+            }
           }
 
           Toastify({
@@ -173,7 +166,10 @@
           }).showToast();
 
           // Reload the page after storing the values
-          location.reload();
+          // set timeout to reload the page after 1 seconds
+          setTimeout(() => {
+            location.reload();
+          } , 1000);
         } else {
           $(".om_order_type_submit").removeClass("pulse");
           alert(response.data.message);
@@ -499,4 +495,58 @@
       }
     });
   }
+
+  $("#export-csv-btn").on("click", function (e) {
+    e.preventDefault();
+
+    // Collect filter values
+    const searchQuery = $("#search_input").val();
+    const clientType = $("#client-type-select").val();
+    const logoFilter = $("input[name='logo_filter']:checked").val();
+
+    // Send AJAX request to generate CSV data
+    $.ajax({
+      type: "POST",
+      url: all_around_clients_vars.ajax_url, // Use your AJAX URL
+      data: {
+        action: "export_clients_csv",
+        search: searchQuery,
+        client_type: clientType,
+        logo_filter: logoFilter,
+        nonce: all_around_clients_vars.nonce, // Security nonce
+      },
+      success: function (response) {
+        if (response.success) {
+          // Prepare dynamic filename
+          let filename = "clients";
+          if (clientType) {
+            filename += `-${clientType}`;
+          }
+          if (logoFilter) {
+            filename += `-${logoFilter.replace("_", "-")}`;
+          }
+          filename += ".csv";
+
+          console.log("CSV data:", response.data.csv);
+          
+
+          // Create a blob with CSV data and download it
+          const csvData = new Blob([response.data.csv], { type: "text/csv" });
+          const csvURL = window.URL.createObjectURL(csvData);
+
+          const link = document.createElement("a");
+          link.href = csvURL;
+          link.setAttribute("download", filename);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } else {
+          alert("Error generating CSV.");
+        }
+      },
+      error: function () {
+        alert("Error occurred while exporting CSV.");
+      },
+    });
+  });
 })(jQuery); /*End document ready*/

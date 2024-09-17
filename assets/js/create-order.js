@@ -178,25 +178,6 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  // Function to reset input fields in the modal
-  // function resetModalFields(modal) {
-  //   modal.find("input[type='text']").val("");
-  //   modal.find("input[type='file']").val("");
-  //   modal.find(".item_unit_rate").val("");
-  //   modal.find("input[type='radio']").prop("checked", false);
-  //   modal
-  //     .find(
-  //       ".item-total-number, .item-rate-number, .total_units, .group_unite_price"
-  //     )
-  //     .text("0");
-  //   modal
-  //     .find(".item_total_price, .item_total_units, .item_unit_rate")
-  //     .val("0");
-  //   modal.find(".single_add_to_cart_button").attr("disabled", true);
-  //   modal.find(".grouped_product_add_to_cart").attr("disabled", true);
-  //   modal.find(".uploaded_artwork").remove();
-  //   modal.find(".new_product_artwork").show();
-  // }
 
   // Handle Add to Cart button click
   $(".single_add_to_cart_button").on("click", function (e) {
@@ -518,7 +499,10 @@ jQuery(document).ready(function ($) {
         .find(".product-quantity-number")
         .text()
         .replace(" ", "");
-      const subtotal = item.find(".product-total-price").text().replace("₪", "");
+      const subtotal = item
+        .find(".product-total-price")
+        .text()
+        .replace("₪", "");
       const color = item.find(".product-color").text().replace("Color: ", "");
       const size = item.find(".product-size").text().replace("Size: ", "");
       const artworks = item.find(".product-artworks-incart").val();
@@ -626,59 +610,52 @@ jQuery(document).ready(function ($) {
     phone,
     fullName
   ) {
-    function getEventName(baseEvent) {
-      if (totalPaid >= 1000) return `${baseEvent}_value1000`;
-      if (totalPaid >= 900) return `${baseEvent}_value900`;
-      if (totalPaid >= 800) return `${baseEvent}_value800`;
-      if (totalPaid >= 700) return `${baseEvent}_value700`;
-      if (totalPaid >= 600) return `${baseEvent}_value600`;
-      if (totalPaid >= 500) return `${baseEvent}_value500`;
-      if (totalPaid >= 400) return `${baseEvent}_value400`;
-      if (totalPaid >= 300) return `${baseEvent}_value300`;
-      if (totalPaid >= 200) return `${baseEvent}_value200`;
-      if (totalPaid >= 100) return `${baseEvent}_value100`;
-      return baseEvent;
+    // Helper function to push events
+    function pushEvent(event) {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: event,
+        email: email,
+        phone: phone,
+        full_name: fullName,
+        total_paid: totalPaid,
+      });
     }
 
-    // Triggering appropriate Data Layer event based on client type and order type
-    if (clientType !== "company" && orderType === "company") {
-      const event = getEventName("ga4_new_company_purchase");
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({
-        event: event,
-        email: email,
-        phone: phone,
-        full_name: fullName,
-        total_paid: totalPaid,
-      });
+    // Helper function to push multiple events based on totalPaid
+    function pushEventsWithThresholds(baseEvent) {
+      pushEvent(baseEvent); // Base event
+      if (totalPaid >= 100) pushEvent(`${baseEvent}_value100`);
+      if (totalPaid >= 200) pushEvent(`${baseEvent}_value200`);
+      if (totalPaid >= 300) pushEvent(`${baseEvent}_value300`);
+      if (totalPaid >= 400) pushEvent(`${baseEvent}_value400`);
+      if (totalPaid >= 500) pushEvent(`${baseEvent}_value500`);
+      if (totalPaid >= 600) pushEvent(`${baseEvent}_value600`);
+      if (totalPaid >= 700) pushEvent(`${baseEvent}_value700`);
+      if (totalPaid >= 800) pushEvent(`${baseEvent}_value800`);
+      if (totalPaid >= 900) pushEvent(`${baseEvent}_value900`);
+      if (totalPaid >= 1000) pushEvent(`${baseEvent}_value1000`);
+    }
+
+    // Applying the same conditions to trigger the appropriate Data Layer events
+    if (
+      (clientType !== "company" && orderType === "company") ||
+      (!clientType && orderType === "company")
+    ) {
+      // New company purchase
+      pushEventsWithThresholds("ga4_new_company_purchase");
     } else if (clientType === "company" && orderType === "company") {
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({
-        event: "ga4_repeated_company_purchase",
-        email: email,
-        phone: phone,
-        full_name: fullName,
-        total_paid: totalPaid,
-      });
+      // Repeated company purchase
+      pushEventsWithThresholds("ga4_repeated_company_purchase");
     } else if (!clientType && orderType === "personal") {
-      const event = getEventName("ga4_new_personal_purchase");
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({
-        event: event,
-        email: email,
-        phone: phone,
-        full_name: fullName,
-        total_paid: totalPaid,
-      });
-    } else if (clientType === "personal" && orderType === "personal") {
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({
-        event: "ga4_repeated_personal_purchase",
-        email: email,
-        phone: phone,
-        full_name: fullName,
-        total_paid: totalPaid,
-      });
+      // New personal purchase
+      pushEventsWithThresholds("ga4_new_personal_purchase");
+    } else if (
+      (clientType === "personal" && orderType === "personal") ||
+      (clientType === "company" && orderType === "personal")
+    ) {
+      // Repeated personal purchase
+      pushEventsWithThresholds("ga4_repeated_personal_purchase");
     }
   }
 
@@ -705,6 +682,13 @@ jQuery(document).ready(function ($) {
       const basicAuth = btoa(`${username}:${password}`);
       headers.Authorization = "Basic " + basicAuth;
     }
+
+    orderData.line_items.forEach((item) => {
+      item.product_name = item.name;
+      delete item.name;
+      // and add a new key printing_note with empty value
+      item.printing_note = "";
+    });
 
     orderData.order_type = orderType;
     orderData.order_source = "manual_order";
@@ -1055,7 +1039,9 @@ jQuery(document).ready(function ($) {
           const option = $("<option>", {
             value: step.quantity || step.name,
             "data-amount": step.quantity ? step.amount : step.steps[0].amount,
-            "data-variation-id": step.variation_id ? step.variation_id : step.steps[0].variation_id,
+            "data-variation-id": step.variation_id
+              ? step.variation_id
+              : step.steps[0].variation_id,
             text: `${step.quantity || step.name}`,
           });
           quantitySelect.append(option);

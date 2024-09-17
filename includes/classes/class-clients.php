@@ -20,6 +20,9 @@ class AllAroundClientsDB
 
         add_action('wp_ajax_om_update_client_company_logos', array($this, 'om_update_client_company_logos'));
 
+        add_action('wp_ajax_export_clients_csv', array($this, 'export_clients_csv'));
+        add_action('wp_ajax_nopriv_export_clients_csv', array($this, 'export_clients_csv'));
+
         add_action('init', [$this, 'register_post_type_cb'], 0);
         add_filter('post_type_link', [$this, 'client_post_type_link'], 1, 2);
         add_action('init', [$this, 'client_rewrite_rules']);
@@ -1807,6 +1810,140 @@ class AllAroundClientsDB
         return ob_get_clean();
     }
 
+    // Export CSV from Client LIST
+    public function export_clients_csv()
+    {
+        check_ajax_referer('client_nonce', 'nonce');
+        // Check if user is logged in (Optional)
+        if (!is_user_logged_in()) {
+            wp_send_json_error('You are not allowed to export data.');
+        }
+
+        // Handle search and filters
+        $search_query = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $client_type = isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : '';
+        $logo_filter = isset($_POST['logo_filter']) ? sanitize_text_field($_POST['logo_filter']) : '';
+
+        // Query arguments to fetch clients
+        $args = array(
+            'post_type' => 'client',
+            'posts_per_page' => -1, // Get all clients
+            'meta_query' => array(
+                'relation' => 'AND',
+            ),
+        );
+
+        // Search condition
+        if (!empty($search_query)) {
+            $args['meta_query'][] = array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'first_name',
+                    'value' => $search_query,
+                    'compare' => 'LIKE'
+                ),
+                array(
+                    'key' => 'last_name',
+                    'value' => $search_query,
+                    'compare' => 'LIKE'
+                ),
+                array(
+                    'key' => 'email',
+                    'value' => $search_query,
+                    'compare' => 'LIKE'
+                ),
+            );
+        }
+
+        // Client type filter
+        if (!empty($client_type)) {
+            $args['meta_query'][] = array(
+                'key' => 'client_type',
+                'value' => $client_type,
+                'compare' => '='
+            );
+        }
+
+        // Logo filter logic for company type
+        if ($client_type === 'company') {
+            if ($logo_filter === 'no_logos') {
+                $args['meta_query'][] = array(
+                    'relation' => 'OR',
+                    array(
+                        'key' => 'dark_logo',
+                        'compare' => 'NOT EXISTS'
+                    ),
+                    array(
+                        'key' => 'lighter_logo',
+                        'compare' => 'NOT EXISTS'
+                    ),
+                    array(
+                        'key' => 'dark_logo',
+                        'value' => '',
+                        'compare' => '='
+                    ),
+                    array(
+                        'key' => 'lighter_logo',
+                        'value' => '',
+                        'compare' => '='
+                    )
+                );
+            } elseif ($logo_filter === 'with_logos') {
+                $args['meta_query'][] = array(
+                    'relation' => 'AND',
+                    array(
+                        'key' => 'dark_logo',
+                        'compare' => 'EXISTS'
+                    ),
+                    array(
+                        'key' => 'lighter_logo',
+                        'compare' => 'EXISTS'
+                    ),
+                    array(
+                        'key' => 'dark_logo',
+                        'value' => '',
+                        'compare' => '!='
+                    ),
+                    array(
+                        'key' => 'lighter_logo',
+                        'value' => '',
+                        'compare' => '!='
+                    )
+                );
+            }
+        }
+
+        $clients_query = new WP_Query($args);
+
+        // Prepare CSV output
+        $csv_output = "First Name,Last Name,Email,Phone,LTV\n";
+
+        if ($clients_query->have_posts()) {
+            while ($clients_query->have_posts()) {
+                $clients_query->the_post();
+
+                // Get client details
+                $first_name = get_post_meta(get_the_ID(), 'first_name', true);
+                $last_name = get_post_meta(get_the_ID(), 'last_name', true);
+                $email = get_post_meta(get_the_ID(), 'email', true);
+                $phone = get_post_meta(get_the_ID(), 'phone', true);
+
+                // Calculate LTV
+                $main_site_value = floatval(get_post_meta(get_the_ID(), 'mainSite_order_value', true));
+                $mini_site_value = floatval(get_post_meta(get_the_ID(), 'miniSite_order_value', true));
+                $manual_order_value = floatval(get_post_meta(get_the_ID(), 'manual_order_value', true));
+                $ltv = $main_site_value + $mini_site_value + $manual_order_value;
+
+                // Add row to CSV
+                $csv_output .= "$first_name,$last_name,$email,$phone,$ltv\n";
+            }
+        }
+
+        wp_reset_postdata();
+
+        // Send CSV content in the response
+        wp_send_json_success(array('csv' => $csv_output));
+    }
 
 }
 

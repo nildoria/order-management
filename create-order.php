@@ -421,9 +421,7 @@ foreach ($products as $product) {
                         שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
                     <option value="free_shipping">משלוח
                         חינם ע"י שליח לכל הארץ בקניה מעל 500 ש"ח!</option>
-                    <option value="local_pickup">
-                        איסוף
-                        עצמי מקק"ל 37, גבעתיים (1-3 ימי עסקים) - חינם!</option>
+                    <option value="local_pickup">איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!</option>
                 </select>
             </div>
 
