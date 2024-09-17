@@ -1070,6 +1070,8 @@ function order_details_metabox_content($post)
     if (!empty($items)) {
         foreach ($items as $index => $item) {
             echo '<div class="item-group">';
+            echo '<label>Item ID:</label>';
+            echo '<input type="text" readonly value="' . esc_attr($item['item_id']) . '" /><br>';
             echo '<label>Product ID:</label>';
             echo '<input type="text" readonly value="' . esc_attr($item['product_id']) . '" /><br>';
             echo '<label>Product Name:</label>';
@@ -1078,6 +1080,8 @@ function order_details_metabox_content($post)
             echo '<input type="text" readonly value="' . esc_attr($item['quantity']) . '" /><br>';
             echo '<label>Total:</label>';
             echo '<input type="text" readonly value="' . esc_attr($item['total']) . '" /><br>';
+            echo '<label>Printing Note:</label>';
+            echo '<textarea readonly data-item_id="' . esc_attr($item['item_id']) . '">' . esc_attr($item['printing_note']) . '</textarea><br>';
             echo '</div><hr>';
         }
     } else {
@@ -1249,7 +1253,7 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $shipping_method_id);
     update_post_meta($post_id, 'shipping_method_title', $shipping_method_title);
-    update_post_meta($post_id, 'items', isset($order_data['items']) ? $order_data['items'] : []);
+    update_post_meta($post_id, 'items', isset($order_data['items']) ? $order_data['items'] : $order_data['line_items']);
     update_post_meta($post_id, 'billing', $order_data['billing'] ? $order_data['billing'] : []);
     update_post_meta($post_id, 'shipping', $order_data['shipping'] ? $order_data['shipping'] : []);
     update_post_meta($post_id, 'payment_method', $order_data['payment_method'] ? $order_data['payment_method'] : []);
@@ -1732,20 +1736,29 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     $shipping_method_title = get_post_meta($post_id, 'shipping_method_title', true);
     $shipping_method_value = get_post_meta($post_id, 'shipping_method', true);
     $order_status_meta = get_post_meta($post_id, 'order_status', true);
-    // if shipping_method_value is empty then update it with shipping_method_id
+
+    // Update meta if needed
     if (empty($shipping_method_value)) {
         update_post_meta($post_id, 'shipping_method', $shipping_method_id);
     }
     if (empty($shipping_method_title)) {
-        // update shipping_method_title meta with shipping_text
         update_post_meta($post_id, 'shipping_method_title', $shipping_text);
     }
-
-    // if $status is different from $order_status_meta then update $order_status_meta with $status
     if ($status !== $order_status_meta) {
         update_post_meta($post_id, 'order_status', $status);
     }
 
+    // Fetch the items and deserialize the items
+    $items = get_post_meta($post_id, 'items', true);
+    $items = maybe_unserialize($items);
+    if (!is_array($items)) {
+        $items = [];
+    }
+
+    // Call the separate function to update items meta
+    update_new_items($order->line_items, $items, $post_id);
+
+    // Display the table with items (from existing meta or fetched items)
     ob_start();
 
     echo '<table id="tableMain" data-order_status="' . esc_attr($status) . '">';
@@ -1753,6 +1766,9 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     echo '<th class="head"><strong>Product</strong></th>';
     if (!is_current_user_contributor()):
         echo '<th class="head"><strong>Quantity</strong></th>';
+    endif;
+    if (!is_current_user_author()):
+        echo '<th class="head"><strong>Printing Note</strong></th>';
     endif;
     echo '<th class="head"><strong>Graphics</strong></th>';
     echo '<th class="head mockup-head" colspan=""><strong>Mockups</strong></th>';
@@ -1762,6 +1778,18 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
 
         $item_id = esc_attr($item->id);
         $product_id = esc_attr($item->product_id);
+
+        // Retrieve printing_note for the current product_id
+        $printing_note = '';
+        if (!empty($items)) {
+            foreach ($items as $saved_item) {
+                if (isset($saved_item['item_id']) && $saved_item['item_id'] == $item_id) {
+                    if (isset($saved_item['printing_note'])) {
+                        $printing_note = $saved_item['printing_note'];
+                    }
+                }
+            }
+        }
 
         echo '<tr class="om__orderRow" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
         echo '<td class="item_product_column">';
@@ -1878,6 +1906,17 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '<input type="number" class="item-cost-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->price) . '" />';
             echo '</span>';
             echo '</span>';
+            echo '</td>';
+            
+            // Printing Note Column with textarea field
+            echo '<td class="printing_note_column">';
+            echo '<textarea class="printing_note_textarea" data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</textarea>';
+            echo '<button class="save_printing_note" data-item_id="' . esc_attr($item_id) . '">Save</button>';
+            echo '</td>';
+        } else if (is_current_user_contributor()) {
+            // Printing Note Column with text for designers
+            echo '<td class="printing_note_column">';
+            echo '<span class="printing_note_text" data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</span>';
             echo '</td>';
         } else if (is_current_user_author()) {
             echo '<td class="item_quantity_column">';
@@ -2276,52 +2315,158 @@ add_action('wp_ajax_nopriv_update_order_client', 'update_order_client');
 
 function delete_mockup_folder()
 {
+    // Verify nonce for security
     check_ajax_referer('order_management_nonce', 'security');
 
+    // Sanitize and validate inputs
     $order_id = intval($_POST['order_id']);
     $product_id = intval($_POST['product_id']);
     $version = sanitize_text_field($_POST['version']);
 
+    // FTP connection details
     $ftp_server = '107.181.244.114';
     $ftp_user_name = 'lukpaluk';
     $ftp_user_pass = 'SK@8Ek9mZam45;';
 
+    // Set remote directory path
     $remote_directory = "/public_html/artworks/$order_id/$product_id/$version/";
 
     // Connect to FTP server
-    $ftp_conn = ftp_connect($ftp_server) or wp_send_json_error(array('message' => "Could not connect to $ftp_server"));
+    $ftp_conn = ftp_connect($ftp_server);
+    if (!$ftp_conn) {
+        wp_send_json_error(array('message' => "Could not connect to $ftp_server"));
+    }
 
     // Login to FTP server
     $login = ftp_login($ftp_conn, $ftp_user_name, $ftp_user_pass);
     if (!$login) {
-        ftp_close($ftp_conn);
+        ftp_close($ftp_conn); // Always close connection
         wp_send_json_error(array('message' => "Could not log in to FTP server"));
     }
 
     // Enable passive mode
     ftp_pasv($ftp_conn, true);
 
-    // Delete all files in the directory
+    // List all files in the directory
     $file_list = ftp_nlist($ftp_conn, $remote_directory);
-    // Filter out "." and ".." entries
+    if ($file_list === false) {
+        ftp_close($ftp_conn);
+        wp_send_json_error(array('message' => "Could not list files in $remote_directory"));
+    }
+
+    // Filter out '.' and '..'
     $file_list = array_filter($file_list, function ($file) {
         return !in_array(basename($file), ['.', '..']);
     });
-    if ($file_list !== false) {
-        foreach ($file_list as $file) {
-            ftp_delete($ftp_conn, $file);
+
+    // Attempt to delete each file
+    foreach ($file_list as $file) {
+        if (!ftp_delete($ftp_conn, $file)) {
+            // Handle failure to delete a specific file, log error if necessary
+            ftp_close($ftp_conn);
+            wp_send_json_error(array('message' => "Error deleting file: $file"));
         }
     }
 
-    // Delete the directory
+    // Attempt to remove the directory after files are deleted
     $delete_success = ftp_rmdir($ftp_conn, $remote_directory);
 
+    // Close the FTP connection
     ftp_close($ftp_conn);
 
     if ($delete_success) {
         wp_send_json_success(array('message' => "Successfully deleted $remote_directory"));
     } else {
-        wp_send_json_error(array('message' => "Error deleting $remote_directory"));
+        wp_send_json_error(array('message' => "Error deleting directory $remote_directory"));
+    }
+}
+
+//** Printing Note Functions */
+function save_printing_note()
+{
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = intval($_POST['post_id']);
+    $item_id = intval($_POST['item_id']);
+    $printing_note = sanitize_text_field($_POST['printing_note']);
+
+    // Get the existing 'items' meta
+    $items = get_post_meta($post_id, 'items', true);
+
+    // Check if items is serialized or an array, unserialize if necessary
+    if (!is_array($items)) {
+        $items = maybe_unserialize($items);
+    }
+
+    // Check if items is a valid array
+    if (is_array($items)) {
+        // Initialize flag to track if item is found
+        $item_found = false;
+
+        // Loop through items to find the matching product_id
+        foreach ($items as &$item) {
+            if (isset($item['item_id']) && $item['item_id'] == $item_id) {
+                // Update only the printing_note field
+                $item['printing_note'] = $printing_note;
+                $item_found = true;
+                break;  // Exit the loop once the item is found and updated
+            }
+        }
+
+        // Only update the database if the item was found and updated
+        if ($item_found) {
+            // Re-save the updated array back to the meta
+            update_post_meta($post_id, 'items', $items);
+
+            wp_send_json_success(['message' => 'Printing note updated successfully!']);
+        } else {
+            wp_send_json_error(['message' => 'Item not found in the meta data.']);
+        }
+    } else {
+        // Log and send error if items meta is not an array
+        error_log('Error: Items meta is not an array.');
+        wp_send_json_error(['message' => 'Invalid items meta format.']);
+    }
+}
+add_action('wp_ajax_save_printing_note', 'save_printing_note');
+add_action('wp_ajax_nopriv_save_printing_note', 'save_printing_note');
+
+
+function update_new_items($order_items, $items, $post_id)
+{
+    // Check for new items in the order that are not in the meta
+    $updated = false;
+    foreach ($order_items as $order_item) {
+        $item_id = esc_attr($order_item->id);
+        $product_id = esc_attr($order_item->product_id);
+
+        // Check if the item is already present in the meta
+        $item_exists = false;
+        foreach ($items as $saved_item) {
+            if (isset($saved_item['item_id']) && $saved_item['item_id'] == $item_id) {
+                $item_exists = true;
+                break;
+            }
+        }
+
+        // If the item doesn't exist, add it to the meta array
+        if (!$item_exists) {
+            $new_item = [
+                'item_id' => $item_id,
+                'product_id' => $product_id,
+                'quantity' => $order_item->quantity,
+                'product_name' => $order_item->name,
+                'total' => $order_item->total,
+                'printing_note' => '' // Initialize with empty printing note
+            ];
+            $items[] = $new_item;
+            $updated = true;
+        }
+    }
+
+    // If there are updates, save the updated items back to the meta
+    if ($updated) {
+        update_post_meta($post_id, 'items', $items);
     }
 }
 

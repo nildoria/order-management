@@ -1,6 +1,11 @@
 (function ($) {
   ("use strict");
 
+  // Function to check if the current user is an Administrator
+  function isAdmin() {
+    return allaround_vars.user_role === "administrator";
+  }
+
   // Function to check if the current user is an Employee
   function isEmployee() {
     return allaround_vars.user_role === "author";
@@ -2265,6 +2270,42 @@
         $("#tableMain .om__orderRow").css("pointer-events", "none");
         // $("#tableMain .om__orderRow").css("opacity", "0.6");
       }
+    }
+
+    if (isAdmin()) {
+      // Trigger AJAX call when the Save button is clicked
+      $(".save_printing_note").on("click", function () {
+        let item_id = $(this).data("item_id");
+        let printing_note = $(this)
+          .closest("tr")
+          .find(".printing_note_textarea")
+          .val();
+        // Get post_id from a hidden input field or other identifier
+        let post_id = $("input[name='post_id']").val();
+
+        $.ajax({
+          url: allaround_vars.ajax_url, // Assuming this holds the correct ajax URL
+          type: "POST",
+          data: {
+            action: "save_printing_note",
+            item_id: item_id,
+            printing_note: printing_note,
+            post_id: post_id,
+            nonce: allaround_vars.nonce, // Pass the nonce for security
+          },
+          success: function (response) {
+            if (response.success) {
+              alert(response.data.message);
+            } else {
+              alert(response.data.message);
+            }
+          },
+          error: function (xhr, status, error) {
+            console.log(xhr.responseText);
+            alert("An error occurred.");
+          },
+        });
+      });
     }
   }
 

@@ -178,25 +178,6 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  // Function to reset input fields in the modal
-  // function resetModalFields(modal) {
-  //   modal.find("input[type='text']").val("");
-  //   modal.find("input[type='file']").val("");
-  //   modal.find(".item_unit_rate").val("");
-  //   modal.find("input[type='radio']").prop("checked", false);
-  //   modal
-  //     .find(
-  //       ".item-total-number, .item-rate-number, .total_units, .group_unite_price"
-  //     )
-  //     .text("0");
-  //   modal
-  //     .find(".item_total_price, .item_total_units, .item_unit_rate")
-  //     .val("0");
-  //   modal.find(".single_add_to_cart_button").attr("disabled", true);
-  //   modal.find(".grouped_product_add_to_cart").attr("disabled", true);
-  //   modal.find(".uploaded_artwork").remove();
-  //   modal.find(".new_product_artwork").show();
-  // }
 
   // Handle Add to Cart button click
   $(".single_add_to_cart_button").on("click", function (e) {
@@ -701,6 +682,13 @@ jQuery(document).ready(function ($) {
       const basicAuth = btoa(`${username}:${password}`);
       headers.Authorization = "Basic " + basicAuth;
     }
+
+    orderData.line_items.forEach((item) => {
+      item.product_name = item.name;
+      delete item.name;
+      // and add a new key printing_note with empty value
+      item.printing_note = "";
+    });
 
     orderData.order_type = orderType;
     orderData.order_source = "manual_order";
