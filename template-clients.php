@@ -20,7 +20,6 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
             <div class="allaround-client-top-left">
                 <h2>Clients</h2>
                 <a href="<?php echo esc_url(home_url('/create-client/')); ?>">Add New Client</a>
-                <?php do_action('om_campaign_action'); ?>
             </div>
             <div class="allaround-client-search">
                 <form method="get" action="<?php echo esc_url(home_url('/clients')); ?>">

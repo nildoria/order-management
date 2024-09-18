@@ -1298,9 +1298,9 @@ function create_order(WP_REST_Request $request)
             }
         }
 
-        // Schedule the mockup upload to run after 1 minutes (or any delay you need)
+        // Schedule the mockup upload to run after 5seconds (or any delay you need)
         if (!wp_next_scheduled('upload_mockups_to_ftp', array($order_id, $order_data))) {
-            wp_schedule_single_event(time() + 60, 'upload_mockups_to_ftp', array($order_id, $order_data));
+            wp_schedule_single_event(time() + 5, 'upload_mockups_to_ftp', array($order_id, $order_data));
         }
     }
     do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
@@ -1337,7 +1337,8 @@ add_action('upload_mockups_to_ftp', 'upload_mockups_to_ftp_callback', 10, 2);
  * @param int $order_id The ID of the order.
  * @param array $order_data The order data containing mockup information.
  */
-function upload_mockups_to_ftp_callback($order_id, $order_data){
+function upload_mockups_to_ftp_callback($order_id, $order_data)
+{
     // Iterate over the items and process each item's mockup_thumbnail for FTP upload
     if (isset($order_data['items']) && is_array($order_data['items'])) {
         foreach ($order_data['items'] as $item) {
@@ -1736,8 +1737,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     $shipping_method_title = get_post_meta($post_id, 'shipping_method_title', true);
     $shipping_method_value = get_post_meta($post_id, 'shipping_method', true);
     $order_status_meta = get_post_meta($post_id, 'order_status', true);
-
-    // Update meta if needed
+    // if shipping_method_value is empty then update it with shipping_method_id
     if (empty($shipping_method_value)) {
         update_post_meta($post_id, 'shipping_method', $shipping_method_id);
     }

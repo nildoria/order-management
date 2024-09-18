@@ -259,9 +259,7 @@ $clients = $createOrder->fetch_clients_data();
                                         <select id="shipping-method-list" name="shipping_method">
                                             <option value="">Select Shipping Option</option>
                                             <?php if ($shipping_method && $shipping_method_title): ?>
-                                                <option value="<?php echo esc_attr($shipping_method); ?>" selected>
-                                                    <?php echo esc_html($shipping_method_title); ?>
-                                                </option>
+                                                <option value="<?php echo esc_attr($shipping_method); ?>" selected><?php echo esc_html($shipping_method_title); ?></option>
                                             <?php endif; ?>
                                             
                                             <?php if ($shipping_method_title !== 'שליח עד הבית לכל הארץ (3-5 ימי עסקים)'): ?>
@@ -279,9 +277,7 @@ $clients = $createOrder->fetch_clients_data();
                                             <?php endif; ?>
 
                                             <?php if ($shipping_method_title !== 'איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!'): ?>
-                                            <option value="local_pickup" data-title="איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!">
-                                                איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!
-                                            </option>
+                                            <option value="local_pickup" data-title="איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!">איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!</option>
                                             <?php endif; ?>
 
                                             <option value="getpackage" data-title="GetPackage">
