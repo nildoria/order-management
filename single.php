@@ -650,6 +650,17 @@ $clients = $createOrder->fetch_clients_data();
 
                             <button type="button" class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
                         </div>
+                        
+                        <button type="button" id="DTFDoneOpenModal" class="allarnd--regular-button ml_add_loading"><?php echo esc_html__('DTF Done', 'hello-elementor'); ?></button>
+                        
+                        <div id="DTFDoneConfirmationModal" class="om__ConfirmationModal mfp-hide">
+                            <h5><?php echo esc_html__('Are you sure DTF Done successfully?', 'hello-elementor'); ?></h5><br>
+                            <button type="button" data-status="dtf_done"
+                                class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('YES DTF Done', 'hello-elementor'); ?></button>
+                        
+                            <button type="button"
+                                class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                        </div>
                     <?php endif; ?>
                     
                     <?php if (is_current_user_author() || is_current_user_admin()): ?>
