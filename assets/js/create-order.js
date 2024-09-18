@@ -1039,9 +1039,7 @@ jQuery(document).ready(function ($) {
           const option = $("<option>", {
             value: step.quantity || step.name,
             "data-amount": step.quantity ? step.amount : step.steps[0].amount,
-            "data-variation-id": step.variation_id
-              ? step.variation_id
-              : step.steps[0].variation_id,
+            "data-variation-id": step.variation_id ? step.variation_id : step.steps[0].variation_id,
             text: `${step.quantity || step.name}`,
           });
           quantitySelect.append(option);

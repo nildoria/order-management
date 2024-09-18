@@ -1927,6 +1927,14 @@
     let shipping_address_2 = $("#shipping_address_2").val();
     let shipping_city = $("#shipping_city").val();
     let shipping_phone = $("#shipping_phone").val();
+    let shipping_method_text = $("#shipping-method-list option:selected").text();
+
+    if (
+      shipping_method_text ==
+      "איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!"
+    ) {
+      shipping_method = "local_pickup";
+    }
 
     let full_name = `${shipping_first_name} ${shipping_last_name}`;
 
@@ -2154,7 +2162,8 @@
   $("#mockupApproved").on("click", function () {
     let order_id = allaround_vars.order_id;
     let root_domain = allaround_vars.redirecturl;
-
+    // let proof_url = proof_url = $('.om_artwork_url').attr('href');
+    
     $(this).addClass("ml_loading");
 
     let webhook_url = "";
@@ -2171,8 +2180,8 @@
 
     // Data to send to the webhook
     let data = {
-      order_id: order_id,
       om_status: "mockups_approved",
+      order_id: order_id,
     };
 
     // AJAX request to send the data to the webhook
