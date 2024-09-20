@@ -389,6 +389,32 @@ function change_user_role_labels()
 }
 add_action('init', 'change_user_role_labels');
 
+function reset_editor_capabilities()
+{
+    // Remove the editor role entirely and then re-add it
+    remove_role('editor');
+
+    // Re-add the editor role with its default capabilities
+    add_role(
+        'editor',
+        __('Agent'),
+        array(
+            'read' => true, // Can view the dashboard
+            'edit_posts' => true, // Can’t edit posts
+            'edit_others_posts' => false, // Can’t edit others' posts
+            'publish_posts' => false, // Can’t publish posts
+            'delete_posts' => false, // Can’t delete posts
+            'delete_others_posts' => false, // Can’t delete others' posts
+            'edit_published_posts' => false, // Can’t edit published posts
+            'delete_published_posts' => false, // Can’t delete published posts
+            'read_private_posts' => true, // Can view private posts
+            'read_post' => true, // Can read individual posts
+            // Add other capabilities as needed
+        )
+    );
+}
+add_action('init', 'reset_editor_capabilities');
+
 
 function redirect_to_login_if_not_logged_in()
 {
@@ -1028,6 +1054,7 @@ function order_details_metabox_content($post)
     $order_number = get_post_meta($post->ID, 'order_number', true);
     $order_id = get_post_meta($post->ID, 'order_id', true);
     $client_id = get_post_meta($post->ID, 'client_id', true);
+    $agent_id = get_post_meta($post->ID, 'agent_id', true);
     $shipping_method = get_post_meta($post->ID, 'shipping_method', true);
     $shipping_method_title = get_post_meta($post->ID, 'shipping_method_title', true);
     $order_source = get_post_meta($post->ID, 'order_source', true);
@@ -1047,6 +1074,9 @@ function order_details_metabox_content($post)
 
     echo '<label for="client_id">Client ID:</label>';
     echo '<input type="text" id="client_id" name="client_id" readonly value="' . esc_attr($client_id) . '" /><br>';
+
+    echo '<label for="agent_id">Agent ID:</label>';
+    echo '<input type="text" id="agent_id" name="agent_id" readonly value="' . esc_attr($agent_id) . '" /><br>';
 
     echo '<label for="order_status">Order Status:</label>';
     echo '<input type="text" readonly id="order_status" name="order_status" value="' . esc_attr($order_status) . '" /><br>';
@@ -1302,6 +1332,13 @@ function create_order(WP_REST_Request $request)
         if (!wp_next_scheduled('upload_mockups_to_ftp', array($order_id, $order_data))) {
             wp_schedule_single_event(time() + 5, 'upload_mockups_to_ftp', array($order_id, $order_data));
         }
+    }
+
+    $agent_id = isset($order_data['agent_id']) ? $order_data['agent_id'] : '';
+    if (!empty($order_source) && $order_source === 'manual_order' && !empty($agent_id)) {
+        update_post_meta($post_id, 'agent_id', $agent_id);
+        // $agent_id is the user ID of the agent, I need to set this user as the post author
+        wp_update_post(array('ID' => $post_id, 'post_author' => $agent_id));
     }
     do_action('all_around_create_client', $post_id, $order_data, $order_id, $order_number);
 
@@ -1559,6 +1596,7 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
     $client_details = isset($order_data['billing']) ? $order_data['billing'] : array();
     $total_price = isset($order_data['total']) ? $order_data['total'] : 0;
     $order_source = isset($order_data['order_source']) ? $order_data['order_source'] : '';
+    $order_type = isset($order_data['order_type']) ? $order_data['order_type'] : '';
     $shipping_method_title = isset($order_data['shipping_lines'][0]['method_title']) ? $order_data['shipping_lines'][0]['method_title'] : '';
 
     // error_log(print_r($client_details, true));
@@ -1577,10 +1615,9 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
         'shipping_method_title' => $shipping_method_title,
         'total_price' => $total_price,
         'order_source' => $order_source,
+        'order_type' => $order_type,
         'post_url' => $post_url
     );
-
-	// error_log(print_r($webhook_data, true));
 
     $response = wp_remote_post(
         $webhook_url,
@@ -2211,7 +2248,7 @@ add_action('admin_init', 'enable_contributor_uploads');
 
 
 
-// ** Employee Role check ** //
+// ** Employee / Author Role check ** //
 function is_current_user_author()
 {
     if (current_user_can('author')) {
@@ -2224,6 +2261,16 @@ function is_current_user_author()
 function is_current_user_admin()
 {
     if (current_user_can('administrator')) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// ** Agent / Editor Role check ** //
+function is_current_user_editor()
+{
+    if (current_user_can('editor')) {
         return true;
     } else {
         return false;
@@ -2835,6 +2882,26 @@ function restrict_access_to_logged_in_users()
     if (!is_user_logged_in()) {
         // Display error message
         echo '<h3 class="login_require_error"><b>Login Required</b>: You must be logged in to view this page.</h3>';
+        // Optionally, you can exit the script to prevent further execution
+        exit;
+    }
+}
+
+// function to restrict access to admin and editor role users only
+function restrict_access_to_admin_and_editor()
+{
+    // Check if user is logged in
+    if (!is_user_logged_in()) {
+        // Display error message
+        echo '<h3 class="login_require_error"><b>Login Required</b>: You must be logged in to view this page.</h3>';
+        // Optionally, you can exit the script to prevent further execution
+        exit;
+    }
+
+    // Check if user is not an admin or editor
+    if (!is_current_user_admin() && !is_current_user_editor()) {
+        // Display error message
+        echo '<h3 class="login_require_error"><b>Access Denied</b>: You do not have permission to view this page.</h3>';
         // Optionally, you can exit the script to prevent further execution
         exit;
     }

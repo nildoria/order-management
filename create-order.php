@@ -6,7 +6,7 @@
 get_header();
 
 // Restrict access to logged-in users
-restrict_access_to_logged_in_users();
+restrict_access_to_admin_and_editor();
 
 
 $createOrder = new AllAroundCreateOrder();
@@ -24,6 +24,15 @@ foreach ($products as $product) {
         }
     }
 }
+
+// Fetch users with the editor role
+$agents = [];
+if (is_current_user_admin()) {
+    $agents = get_users(array('role' => 'editor'));
+}
+
+$current_user = wp_get_current_user();
+$current_user_is_editor = is_current_user_editor();
 ?>
 <main id="om__createOrderPage" class="site-main" role="main">
     <div id="create-order-page">
@@ -148,77 +157,77 @@ foreach ($products as $product) {
                                     <!-- Custom Quantity END -->
 
                                     <!-- Variable Product START -->
-<?php if ($variable_product): ?>
-    <div class="product-variable-quantity-wrapper">
-        <?php
-        $first_variation = $product['quantity_steps'][0];
-        $has_size = isset($first_variation['attribute_key1']) && $first_variation['attribute_key1'] === 'Size';
-        $quantity_label = isset($first_variation['attribute_key2']) ? $first_variation['attribute_key2'] : $first_variation['attribute_key1'];
-        ?>
+                                    <?php if ($variable_product): ?>
+                                        <div class="product-variable-quantity-wrapper">
+                                            <?php
+                                            $first_variation = $product['quantity_steps'][0];
+                                            $has_size = isset($first_variation['attribute_key1']) && $first_variation['attribute_key1'] === 'Size';
+                                            $quantity_label = isset($first_variation['attribute_key2']) ? $first_variation['attribute_key2'] : $first_variation['attribute_key1'];
+                                            ?>
 
-        <?php if ($has_size): ?>
-        <div class="form-group">
-            <label><?php echo esc_html($first_variation['attribute_key1']); ?></label>
-            <div class="custom-sizes-wrapper">
-                <?php foreach ($product['quantity_steps'] as $index => $variation): ?>
-                    <span class="alarnd--single-var-info">
-                        <input type="radio" 
-                               id="size-<?php echo esc_attr($product['id'] . '-' . $variation['id']); ?>"
-                               name="product_size" 
-                               value="<?php echo esc_attr($variation['id']); ?>"
-                               data-steps='<?php echo esc_attr(json_encode($variation['steps'])); ?>'
-                               <?php echo $index === 0 ? 'checked="checked"' : ''; ?>>
-                        <label for="size-<?php echo esc_attr($product['id'] . '-' . $variation['id']); ?>">
-                            <?php echo esc_html($variation['name']); ?>
-                        </label>
-                    </span>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
+                                            <?php if ($has_size): ?>
+                                            <div class="form-group">
+                                                <label><?php echo esc_html($first_variation['attribute_key1']); ?></label>
+                                                <div class="custom-sizes-wrapper">
+                                                    <?php foreach ($product['quantity_steps'] as $index => $variation): ?>
+                                                        <span class="alarnd--single-var-info">
+                                                            <input type="radio" 
+                                                                id="size-<?php echo esc_attr($product['id'] . '-' . $variation['id']); ?>"
+                                                                name="product_size" 
+                                                                value="<?php echo esc_attr($variation['id']); ?>"
+                                                                data-steps='<?php echo esc_attr(json_encode($variation['steps'])); ?>'
+                                                                <?php echo $index === 0 ? 'checked="checked"' : ''; ?>>
+                                                            <label for="size-<?php echo esc_attr($product['id'] . '-' . $variation['id']); ?>">
+                                                                <?php echo esc_html($variation['name']); ?>
+                                                            </label>
+                                                        </span>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                            <?php endif; ?>
 
-        <div class="form-group">
-            <label for="variable-quantity-<?php echo esc_attr($product['id']); ?>"><?php echo esc_html($quantity_label); ?></label>
-            <div class="quantity-wrapper">
-                <select id="variable-quantity-<?php echo esc_attr($product['id']); ?>" name="variable-quantity"
-                    class="variable-quantity" data-product-id="<?php echo esc_attr($product['id']); ?>"
-                    data-has-size="<?php echo $has_size ? 'true' : 'false'; ?>"
-                    data-steps='<?php echo esc_attr(json_encode($product['quantity_steps'])); ?>'>
-                    <?php
-                            $steps = $has_size ? $first_variation['steps'] : $product['quantity_steps'];
-                            foreach ($steps as $step):
-                                $quantity = $has_size ? $step['quantity'] : $step['name'];
-                                $amount = $has_size ? $step['amount'] : $step['steps'][0]['amount'];
-                                ?>
-                        <option value="<?php echo esc_attr($quantity); ?>" data-amount="<?php echo esc_attr($amount); ?>">
-                            <?php echo esc_html($quantity); ?> <!-- - <?//php echo esc_html($amount); ?>₪ -->
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <div class="price-total">
-                    <span class="item-total-number">0</span>₪
-                    <input type="hidden" class="item_total_price" name="item_total_price">
-                </div>
-                <input type="text" name="variableProductCustomRate" placeholder="Custom Total" class="variableItem-total-number-input">
-            </div>
-        </div>
+                                            <div class="form-group">
+                                                <label for="variable-quantity-<?php echo esc_attr($product['id']); ?>"><?php echo esc_html($quantity_label); ?></label>
+                                                <div class="quantity-wrapper">
+                                                    <select id="variable-quantity-<?php echo esc_attr($product['id']); ?>" name="variable-quantity"
+                                                        class="variable-quantity" data-product-id="<?php echo esc_attr($product['id']); ?>"
+                                                        data-has-size="<?php echo $has_size ? 'true' : 'false'; ?>"
+                                                        data-steps='<?php echo esc_attr(json_encode($product['quantity_steps'])); ?>'>
+                                                        <?php
+                                                                $steps = $has_size ? $first_variation['steps'] : $product['quantity_steps'];
+                                                                foreach ($steps as $step):
+                                                                    $quantity = $has_size ? $step['quantity'] : $step['name'];
+                                                                    $amount = $has_size ? $step['amount'] : $step['steps'][0]['amount'];
+                                                                    ?>
+                                                            <option value="<?php echo esc_attr($quantity); ?>" data-amount="<?php echo esc_attr($amount); ?>">
+                                                                <?php echo esc_html($quantity); ?> <!-- - <?//php echo esc_html($amount); ?>₪ -->
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                    <div class="price-total">
+                                                        <span class="item-total-number">0</span>₪
+                                                        <input type="hidden" class="item_total_price" name="item_total_price">
+                                                    </div>
+                                                    <input type="text" name="variableProductCustomRate" placeholder="Custom Total" class="variableItem-total-number-input">
+                                                </div>
+                                            </div>
 
-        <div class="form-group">
-            <label for="new_product_artwork">Upload Artwork</label>
-            <input type="file" class="new_product_artwork" name="artwork" multiple />
-            <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
-        </div>
-        <div class="form-group">
-            <label for="new_product_instruction_note">Instruction Note</label>
-            <input type="text" class="new_product_instruction_note" value="" placeholder="Enter Instruction Note" />
-        </div>
-        <button name="add-to-cart" value="<?php echo esc_attr($product['id']); ?>"
-            class="variable_add_to_cart_button ml_add_loading button alt">
-            <?php echo esc_html__('Add to cart', 'hello-elementor'); ?>
-        </button>
-    </div>
-<?php endif; ?>
-<!-- Variable Product END -->
+                                            <div class="form-group">
+                                                <label for="new_product_artwork">Upload Artwork</label>
+                                                <input type="file" class="new_product_artwork" name="artwork" multiple />
+                                                <input type="hidden" class="uploaded_file_path" name="uploaded_file_path">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="new_product_instruction_note">Instruction Note</label>
+                                                <input type="text" class="new_product_instruction_note" value="" placeholder="Enter Instruction Note" />
+                                            </div>
+                                            <button name="add-to-cart" value="<?php echo esc_attr($product['id']); ?>"
+                                                class="variable_add_to_cart_button ml_add_loading button alt">
+                                                <?php echo esc_html__('Add to cart', 'hello-elementor'); ?>
+                                            </button>
+                                        </div>
+                                    <?php endif; ?>
+                                    <!-- Variable Product END -->
                                     <!-- Group Product START -->
                                     <?php if ($grouped_product): ?>
                                         <div class="product-grouped-product-wraper" style="width: <?php echo esc_attr($size_modal_width) ?>px" data-regular_price='<?php echo esc_attr($product['price']); ?>' data-steps='<?php echo json_encode($product['quantity_steps']); ?>'>
@@ -365,6 +374,25 @@ foreach ($products as $product) {
             </div>
         </div>
         <div class="content-cart-user-wraper">
+            <!-- Agent Selection Dropdown -->
+            <?php if (is_current_user_admin() || is_current_user_editor()): ?>
+                <div class="content-agent">
+                    <select id="agent-select" name="agent_id" style="width: 100%;">
+                        <?php if (is_current_user_admin()): ?>
+                            <option value="">Select an Agent</option>
+                            <?php foreach ($agents as $agent): ?>
+                                <option value="<?php echo esc_attr($agent->ID); ?>">
+                                    <?php echo esc_html($agent->display_name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php elseif ($current_user_is_editor): ?>
+                            <option value="<?php echo esc_attr($current_user->ID); ?>" selected>
+                                <?php echo esc_html($current_user->display_name); ?>
+                            </option>
+                        <?php endif; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
             <!-- Client selection -->
             <div class="content-client">
                 <select id="client-select" style="width: 100%;">

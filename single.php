@@ -24,7 +24,6 @@ $clients = $createOrder->fetch_clients_data();
         $shipping_method = get_post_meta($current_id, 'shipping_method', true);
         $shipping_method_title = get_post_meta($current_id, 'shipping_method_title', true);
         $order_type = get_post_meta($current_id, 'order_type', true);
-        // update_post_meta($current_id, 'order_type', '');
         $order_shipping = get_post_meta($current_id, 'shipping', true);
         $order_domain = get_post_meta($current_id, 'site_url', true);
         $order_source_value = get_post_meta($current_id, 'order_source', true);
@@ -45,6 +44,14 @@ $clients = $createOrder->fetch_clients_data();
 
         // If the Order is Self Hosted or not
         $self_hosted_manual_orders = get_post_meta($current_id, 'self_hosted_manual_orders', true);
+
+        $agent_id = get_post_meta($current_id, 'agent_id', true);
+        $agent_name = '';
+        if (!empty($agent_id)) {
+            $agent_name = get_user_by('id', $agent_id)->display_name;
+            // get the author url
+            $agent_url = get_author_posts_url($agent_id);
+        }
 
         $client_id = get_post_meta($current_id, 'client_id', true);
         $client_name = '';
@@ -129,7 +136,7 @@ $clients = $createOrder->fetch_clients_data();
 
                             </div>
 
-                            <?php if (is_current_user_admin() || is_current_user_contributor()): ?>
+                            <?php if (is_current_user_admin() || is_current_user_editor() || is_current_user_contributor()): ?>
                             <div class="om__orderSummeryItem">
                             <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?><span>
                             <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
@@ -137,14 +144,15 @@ $clients = $createOrder->fetch_clients_data();
                             </div>
                             <?php endif; ?>
 
-                            <?php if (is_current_user_admin()): ?>
+                            <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                             <div class="om__orderSummeryItem">
                             <h6><?php echo esc_html__('Status:', 'hello-elementor'); ?><span id="om__orderStatus" data-order_status="<?php echo esc_attr($order_status); ?>"><?php echo esc_attr($order_status); ?></span></h6>
                             </div>
                             <?php endif; ?>
 
-                            <?php if (!empty($client_name) && is_current_user_admin()): ?>
+                            <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                             <div class="om__orderSummeryItem om__orderSummeryItemFull">
+                                <?php if (!empty($client_name)): ?>
                                 <div class="om__clientThatOrdered">
                                     <h6><?php echo esc_html__('Client:', 'hello-elementor'); ?><span class="om__orderedClientName"> <a target="_blank" href="<?php echo esc_url($client_url); ?>"><?php echo $client_name; ?></a><span class="om__edit_clientButton"><img src="<?php echo get_template_directory_uri(); ?>/assets/images/edit.svg" alt=""></span></span></h6>
 
@@ -166,12 +174,19 @@ $clients = $createOrder->fetch_clients_data();
                                         </span>
                                     </div>
                                 </div>
+                                <?php endif; ?>
                                 <div class="om__orderEmptyItem">
                                     <h6><?php echo esc_html__('Order Date:', 'hello-elementor'); ?><span><?php echo esc_attr($post_date); ?></span></h6>
                                 </div>
                                 <div class="om__orderSource">
                                     <h6><?php echo esc_html__('Source:', 'hello-elementor'); ?><span id="om__order_source" data-order_source="<?php echo $order_source_value; ?>"><?php echo $order_source_text; ?></span></h6>
                                 </div>
+                                
+                                <?php if (!empty($agent_id)): ?>
+                                <div class="om__agentName">
+                                    <h6><?php echo esc_html__('Agent:', 'hello-elementor'); ?><span id="om__order_agent" data-order_agent="<?php echo $agent_id; ?>"><a href="<?php echo esc_url($agent_url); ?>" target="_blank"><?php echo $agent_name; ?></a></span></h6>
+                                </div>
+                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
 
@@ -254,7 +269,7 @@ $clients = $createOrder->fetch_clients_data();
                                     <h6><?php echo esc_html__('Shipping:', 'hello-elementor'); ?></h6>
                                 </div>
                                 <div class="shipping_method_value">
-                                    <?php if (is_current_user_admin()): ?>
+                                    <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                                     <form id="shipping-method-form">
                                         <select id="shipping-method-list" name="shipping_method">
                                             <option value="">Select Shipping Option</option>
@@ -302,7 +317,7 @@ $clients = $createOrder->fetch_clients_data();
                                     <h6><?php echo esc_html__('Order Type:', 'hello-elementor'); ?></h6>
                                 </div>
                                 <div class="order_type_value">
-                                    <?php if (is_current_user_admin()): ?>
+                                    <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                                     <form id="order_type-form">
                                         <input type="hidden" name="post_id" value="<?php echo $current_id; ?>">
                                         <select id="order_type" name="order_type">
@@ -424,7 +439,7 @@ $clients = $createOrder->fetch_clients_data();
                             <input type="text" id="shipping_city" name="shipping_city"
                                 value="<?php echo esc_html($order_shipping['city']); ?>">
                         </div>
-                        <?php if (is_current_user_admin()): ?>
+                        <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                         <div class="om__orderShippingDetailsItem omShippingSubmitBtn">
                             <button type="button" class="allarnd--regular-button ml_add_loading"
                                 id="update-shipping-details"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
@@ -596,7 +611,7 @@ $clients = $createOrder->fetch_clients_data();
                     <?php endif; ?>
                 </div>
 
-                <?php if (is_current_user_admin()): ?>
+                <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                 
                 <div id="add-item-modal" class="mfp-hide add-item-to-order-modal product-details-modal" data-order_id="<?php echo $order_id; ?>" data-client_id="<?php echo $client_id; ?>">
                     <div class="form-container">
@@ -617,7 +632,7 @@ $clients = $createOrder->fetch_clients_data();
                 
                 <?php endif; ?>
                 <div class="om__afterTable_buttonSet">
-                    <?php if (is_current_user_admin()): ?>
+                    <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="addProductModal"><?php echo esc_html__('Add Product', 'hello-elementor'); ?></button>
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="sendProofOpenModal"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         
@@ -630,7 +645,7 @@ $clients = $createOrder->fetch_clients_data();
                                 class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
                         </div>
                     <?php endif; ?>
-                    <?php if (is_current_user_contributor() || is_current_user_admin()): ?>
+                    <?php if (is_current_user_contributor() || is_current_user_admin() || is_current_user_editor()): ?>
                         <button type="button" id="missingInfoOpenModal" class="allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Missing info', 'hello-elementor'); ?></button>
                         
                         <div id="missingInfoConfirmationModal" class="om__ConfirmationModal mfp-hide">
@@ -663,7 +678,7 @@ $clients = $createOrder->fetch_clients_data();
                         </div>
                     <?php endif; ?>
                     
-                    <?php if (is_current_user_author() || is_current_user_admin()): ?>
+                    <?php if (is_current_user_author() || is_current_user_admin() || is_current_user_editor()): ?>
                         <button type="button" class="allarnd--regular-button ml_add_loading"
                             id="printLabelOpenModal"><?php echo esc_html__('Print Label', 'hello-elementor'); ?></button>
                         <div id="printLabelConfirmationModal" class="om__ConfirmationModal mfp-hide">
@@ -674,7 +689,7 @@ $clients = $createOrder->fetch_clients_data();
                         </div>
                     <?php endif; ?>
 
-                    <?php if (is_current_user_admin()): ?>
+                    <?php if (is_current_user_admin() || is_current_user_editor()): ?>
                         <button type="button" class="allarnd--regular-button ml_add_loading" id="missingGraphicOpenModal"><?php echo esc_html__('Missing Graphic', 'hello-elementor'); ?></button>
                         <div id="missingGraphicConfirmModal" class="om__ConfirmationModal mfp-hide">
                             <h5>Are you sure the Graphic is Missing? </h5>
@@ -696,7 +711,7 @@ $clients = $createOrder->fetch_clients_data();
                 </div>
             </div>
 
-            <?php if (is_current_user_admin()): ?>
+            <?php if (is_current_user_admin() || is_current_user_editor()): ?>
             <div class="mockup-revision-activity-container">
 
                 <div class="mockup-proof-admin-comments">
