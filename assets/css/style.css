@@ -1149,7 +1149,10 @@ body.om__author .om__orderShippingDetails {
   width: calc(33.33% - 7px);
 }
 .om__orderSource {
-  min-width: 154px;
+  min-width: 130px;
+}
+.om__agentName {
+	width: 100px;
 }
 #om__orderStatus {
   text-transform: capitalize;

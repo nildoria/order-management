@@ -178,7 +178,6 @@ jQuery(document).ready(function ($) {
     });
   });
 
-
   // Handle Add to Cart button click
   $(".single_add_to_cart_button").on("click", function (e) {
     e.preventDefault();
@@ -469,6 +468,7 @@ jQuery(document).ready(function ($) {
 
     $(".sitewide_spinner").addClass("loading");
 
+    let agentID = $("#agent-select").val();
     let orderType = $("#order_type").val();
     let clientID = $("#client-select").val();
     let clientType = $("#client_type").val();
@@ -580,7 +580,7 @@ jQuery(document).ready(function ($) {
             .trigger("change");
           $("#client-select").val(null).trigger("change");
           // Create the order post
-          createOrderPost(response.data, orderType);
+          createOrderPost(response.data, orderType, agentID);
 
           $(".sitewide_spinner").removeClass("loading");
         } else {
@@ -659,7 +659,7 @@ jQuery(document).ready(function ($) {
     }
   }
 
-  function createOrderPost(orderData, orderType) {
+  function createOrderPost(orderData, orderType, agentID) {
     let root_domain = alarnd_create_order_vars.redirecturl;
 
     // Username and password for Basic Authentication
@@ -690,6 +690,7 @@ jQuery(document).ready(function ($) {
       item.printing_note = "";
     });
 
+    orderData.agent_id = agentID;
     orderData.order_type = orderType;
     orderData.order_source = "manual_order";
 
@@ -912,6 +913,9 @@ jQuery(document).ready(function ($) {
   updateCartTotal();
   validateCheckout();
 
+  // Initialize Select2 on the agent dropdown
+  $("#agent-select").select2();
+
   // Initialize Select2 on the category dropdown
   $("#category-select").select2();
 
@@ -1039,7 +1043,9 @@ jQuery(document).ready(function ($) {
           const option = $("<option>", {
             value: step.quantity || step.name,
             "data-amount": step.quantity ? step.amount : step.steps[0].amount,
-            "data-variation-id": step.variation_id ? step.variation_id : step.steps[0].variation_id,
+            "data-variation-id": step.variation_id
+              ? step.variation_id
+              : step.steps[0].variation_id,
             text: `${step.quantity || step.name}`,
           });
           quantitySelect.append(option);

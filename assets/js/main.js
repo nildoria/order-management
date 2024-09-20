@@ -1927,7 +1927,9 @@
     let shipping_address_2 = $("#shipping_address_2").val();
     let shipping_city = $("#shipping_city").val();
     let shipping_phone = $("#shipping_phone").val();
-    let shipping_method_text = $("#shipping-method-list option:selected").text();
+    let shipping_method_text = $(
+      "#shipping-method-list option:selected"
+    ).text();
 
     if (
       shipping_method_text ==
@@ -2054,6 +2056,15 @@
     closeBtnInside: true,
   });
 
+  // Open Modal on click of #missingInfoOpenModal
+  $("#DTFDoneOpenModal").magnificPopup({
+    items: {
+      src: "#DTFDoneConfirmationModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
   // Open Modal on click of #mockupDoneOpenModal
   $("#mockupDoneOpenModal").on("click", function (e) {
     e.preventDefault();
@@ -2163,7 +2174,7 @@
     let order_id = allaround_vars.order_id;
     let root_domain = allaround_vars.redirecturl;
     // let proof_url = proof_url = $('.om_artwork_url').attr('href');
-    
+
     $(this).addClass("ml_loading");
 
     let webhook_url = "";

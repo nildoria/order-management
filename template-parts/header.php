@@ -60,11 +60,12 @@ $header_nav_menu = wp_nav_menu([
 		</div>
 
 		<?php if ($header_nav_menu): ?>
-			<?php if (is_current_user_admin()): ?>
+			<?php if (is_current_user_admin() || is_current_user_editor()): ?>
 				<nav class="site-navigation" role="navigation">
 					<?php echo $header_nav_menu; ?>
 				</nav>
 			<?php endif; ?>
+
 		<?php endif; ?>
 	</header>
 
