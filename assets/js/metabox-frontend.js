@@ -43,8 +43,6 @@
     return false;
   });
 
-  const initial_order_type = $("#order_type").val();
-
   $("#order_type-form").on("submit", function (event) {
     event.preventDefault();
 
@@ -80,78 +78,6 @@
           // Store order_type and client_type in localStorage
           localStorage.setItem("order_type", response.data.order_type);
           localStorage.setItem("client_type", response.data.client_type);
-
-          // if initial_order_type is empty then do the bellow code
-          if (!initial_order_type) {
-            // Extract email, phone, full name, and total paid from the frontend
-            const email = $("#billing_email").val();
-            const phone = $("#billing_phone").val();
-            const fullName =
-              $("#billing_first_name").val() +
-              " " +
-              $("#billing_last_name").val();
-            let totalPaid = parseFloat(
-              $(".om__orderTotal").text().replace("₪", "").trim()
-            ); // Extract total without symbol and convert to a number
-
-            // Function to push the event to the dataLayer
-            function pushEvent(event) {
-              window.dataLayer = window.dataLayer || [];
-              window.dataLayer.push({
-                event: event,
-                email: email,
-                phone: phone,
-                full_name: fullName,
-                total_paid: totalPaid,
-              });
-            }
-
-            // Function to push events with thresholds based on totalPaid
-            function pushEventsWithThresholds(baseEvent) {
-              pushEvent(baseEvent); // Push the base event
-              if (totalPaid >= 100) pushEvent(`${baseEvent}_value100`);
-              if (totalPaid >= 200) pushEvent(`${baseEvent}_value200`);
-              if (totalPaid >= 300) pushEvent(`${baseEvent}_value300`);
-              if (totalPaid >= 400) pushEvent(`${baseEvent}_value400`);
-              if (totalPaid >= 500) pushEvent(`${baseEvent}_value500`);
-              if (totalPaid >= 600) pushEvent(`${baseEvent}_value600`);
-              if (totalPaid >= 700) pushEvent(`${baseEvent}_value700`);
-              if (totalPaid >= 800) pushEvent(`${baseEvent}_value800`);
-              if (totalPaid >= 900) pushEvent(`${baseEvent}_value900`);
-              if (totalPaid >= 1000) pushEvent(`${baseEvent}_value1000`);
-            }
-
-            // Check the client type and trigger the appropriate Data Layer events
-            if (
-              (response.data.old_client_type !== "company" &&
-                response.data.order_type === "company") ||
-              (!response.data.old_client_type &&
-                response.data.order_type === "company")
-            ) {
-              // New company purchase
-              pushEventsWithThresholds("ga4_new_company_purchase");
-            } else if (
-              response.data.old_client_type === "company" &&
-              response.data.order_type === "company"
-            ) {
-              // Repeated company purchase
-              pushEventsWithThresholds("ga4_repeated_company_purchase");
-            } else if (
-              !response.data.old_client_type &&
-              response.data.order_type === "personal"
-            ) {
-              // New personal purchase
-              pushEventsWithThresholds("ga4_new_personal_purchase");
-            } else if (
-              (response.data.old_client_type === "personal" &&
-                response.data.order_type === "personal") ||
-              (response.data.old_client_type === "company" &&
-                response.data.order_type === "personal")
-            ) {
-              // Repeated personal purchase
-              pushEventsWithThresholds("ga4_repeated_personal_purchase");
-            }
-          }
 
           Toastify({
             text: `Order Type Updated Successfully!!`,

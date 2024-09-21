@@ -53,6 +53,9 @@ $clients = $createOrder->fetch_clients_data();
             $agent_url = get_author_posts_url($agent_id);
         }
 
+        // previous client type
+        $prev_client_type = get_post_meta($current_id, 'prev_client_type', true);
+
         $client_id = get_post_meta($current_id, 'client_id', true);
         $client_name = '';
         $client_url = '';
@@ -639,7 +642,7 @@ $clients = $createOrder->fetch_clients_data();
                         <div id="sendProofConfirmationModal" class="om__ConfirmationModal mfp-hide">
                             <h5><?php echo esc_html__('Are you sure the proofs are ready?', 'hello-elementor'); ?></h5>
                             <p>Please confirm before sending.</p>
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" data-order_type="<?php echo esc_attr($order_type) ?>" data-prev_client_type="<?php echo esc_attr($prev_client_type ?: '') ?>" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         
                             <button type="button"
                                 class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
