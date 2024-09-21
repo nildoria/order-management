@@ -1023,6 +1023,9 @@ class AllAroundClientsDB
 
             $old_client_type = get_post_meta($client_id, 'client_type', true);
 
+            // Update Old client type
+            update_post_meta($post_id, 'prev_client_type', $old_client_type ?: '');
+
             $changes = array();  // Array to hold changed fields
 
             if (isset($filteredPostData) && !empty($filteredPostData)) {

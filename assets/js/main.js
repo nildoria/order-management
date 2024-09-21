@@ -31,6 +31,9 @@
     let customerEmail = $("#billing_email").val();
     let customerPhone = $("#billing_phone").val();
     let commentText = $("#mockup-proof-comments").val() || "";
+    let orderType = $(this).data("order_type");
+    let prevClientType = $(this).data("prev_client_type");
+    let totalPaid = $(".om__orderTotal").text().replace("₪", "").trim();
 
     if (!mainTable) {
       alert("Nothing to send! Please add Mockup to the order.");
@@ -100,6 +103,9 @@
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
+      total_paid: totalPaid,
+      order_type: orderType,
+      prev_client_type: prevClientType,
     };
 
     // Check if the order type is "company"

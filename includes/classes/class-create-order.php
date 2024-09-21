@@ -347,6 +347,27 @@ class AllAroundCreateOrder
                 $data['order_id'] = $data['id'];
                 $data['order_number'] = $data['number'];
                 $data['site_url'] = $domain;
+
+                // Initialize an array to hold item data
+                $items_data = [];
+
+                // Loop through the line items and get the item_id
+                if (isset($data['line_items']) && is_array($data['line_items'])) {
+                    foreach ($data['line_items'] as $item) {
+                        $items_data[] = [
+                            'item_id' => $item['id'],  // The item ID
+                            'product_id' => $item['product_id'],  // The product ID
+                            'product_name' => $item['name'],  // The product name
+                            'quantity' => $item['quantity'],  // The quantity of the item
+                            'total' => $item['total'],  // The total for this line item
+                            'printing_note' => "",  // The printing note for this line item
+                        ];
+                    }
+                }
+
+                // Add the items_data to the response
+                $data['line_items'] = $items_data;
+
                 wp_send_json_success($data);
             } else {
                 wp_send_json_error('Failed to create order: ' . $data['message']);

@@ -561,15 +561,6 @@ jQuery(document).ready(function ($) {
       data: orderData,
       success: function (response) {
         if (response.success) {
-          // Call the function to trigger Data Layer events before order creation
-          triggerDataLayerEvent(
-            orderType,
-            clientType,
-            totalPaid,
-            billing.email,
-            billing.phone,
-            billing.first_name + " " + billing.last_name
-          );
           // Clear the cart
           $(".content-cart ul").empty();
           $(".cart-total-number").text("0");
@@ -580,7 +571,11 @@ jQuery(document).ready(function ($) {
             .trigger("change");
           $("#client-select").val(null).trigger("change");
           // Create the order post
-          createOrderPost(response.data, orderType, agentID);
+          createOrderPost(
+            response.data,
+            orderType,
+            agentID
+          );
 
           $(".sitewide_spinner").removeClass("loading");
         } else {
@@ -600,64 +595,6 @@ jQuery(document).ready(function ($) {
       },
     });
   });
-
-  // Function to trigger GA4 Data Layer events based on the totalPaid value and client type
-  function triggerDataLayerEvent(
-    orderType,
-    clientType,
-    totalPaid,
-    email,
-    phone,
-    fullName
-  ) {
-    // Helper function to push events
-    function pushEvent(event) {
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({
-        event: event,
-        email: email,
-        phone: phone,
-        full_name: fullName,
-        total_paid: totalPaid,
-      });
-    }
-
-    // Helper function to push multiple events based on totalPaid
-    function pushEventsWithThresholds(baseEvent) {
-      pushEvent(baseEvent); // Base event
-      if (totalPaid >= 100) pushEvent(`${baseEvent}_value100`);
-      if (totalPaid >= 200) pushEvent(`${baseEvent}_value200`);
-      if (totalPaid >= 300) pushEvent(`${baseEvent}_value300`);
-      if (totalPaid >= 400) pushEvent(`${baseEvent}_value400`);
-      if (totalPaid >= 500) pushEvent(`${baseEvent}_value500`);
-      if (totalPaid >= 600) pushEvent(`${baseEvent}_value600`);
-      if (totalPaid >= 700) pushEvent(`${baseEvent}_value700`);
-      if (totalPaid >= 800) pushEvent(`${baseEvent}_value800`);
-      if (totalPaid >= 900) pushEvent(`${baseEvent}_value900`);
-      if (totalPaid >= 1000) pushEvent(`${baseEvent}_value1000`);
-    }
-
-    // Applying the same conditions to trigger the appropriate Data Layer events
-    if (
-      (clientType !== "company" && orderType === "company") ||
-      (!clientType && orderType === "company")
-    ) {
-      // New company purchase
-      pushEventsWithThresholds("ga4_new_company_purchase");
-    } else if (clientType === "company" && orderType === "company") {
-      // Repeated company purchase
-      pushEventsWithThresholds("ga4_repeated_company_purchase");
-    } else if (!clientType && orderType === "personal") {
-      // New personal purchase
-      pushEventsWithThresholds("ga4_new_personal_purchase");
-    } else if (
-      (clientType === "personal" && orderType === "personal") ||
-      (clientType === "company" && orderType === "personal")
-    ) {
-      // Repeated personal purchase
-      pushEventsWithThresholds("ga4_repeated_personal_purchase");
-    }
-  }
 
   function createOrderPost(orderData, orderType, agentID) {
     let root_domain = alarnd_create_order_vars.redirecturl;
