@@ -476,6 +476,31 @@ jQuery(document).ready(function ($) {
       $(".cart-total-number").text().replace("₪", "").trim()
     );
 
+    // Get invoice/receipt selections
+    let invoice = $("#payment_invoice").is(":checked") ? "yes" : "no";
+    let receipt = $("#payment_receipt").is(":checked") ? "yes" : "no";
+
+    // Get payment method selections
+    let wireTransfer = $("#wire_transfer").is(":checked") ? "yes" : "no";
+    let creditCard = $("#credit_card").is(":checked") ? "yes" : "no";
+    let cash = $("#cash").is(":checked") ? "yes" : "no";
+
+    // Get No Invoice selection
+    let noInvoice = $("#no_invoice").is(":checked") ? "yes" : "no";
+
+    // Get the selected date
+    let orderDate = $("#order_date").val();
+
+    const paymentData = {
+      invoice: invoice,
+      receipt: receipt,
+      order_date: orderDate,
+      wire_transfer: wireTransfer,
+      credit_card: creditCard,
+      cash: cash,
+      no_invoice: noInvoice,
+    };
+
     // Collect billing and shipping information
     const billing = {
       first_name: $("#billing_first_name").val(),
@@ -571,11 +596,7 @@ jQuery(document).ready(function ($) {
             .trigger("change");
           $("#client-select").val(null).trigger("change");
           // Create the order post
-          createOrderPost(
-            response.data,
-            orderType,
-            agentID
-          );
+          createOrderPost(response.data, orderType, agentID, paymentData);
 
           $(".sitewide_spinner").removeClass("loading");
         } else {
@@ -596,7 +617,51 @@ jQuery(document).ready(function ($) {
     });
   });
 
-  function createOrderPost(orderData, orderType, agentID) {
+  // Initialize the jQuery UI Datepicker on #order_date
+  $("#order_date").datepicker({
+    dateFormat: "dd/mm/yy", // Set the desired date format
+    // changeMonth: true,
+    // changeYear: true,
+    showButtonPanel: true,
+    // minDate: 0,
+  });
+
+  // Set the current date as the default selected date
+  $("#order_date").datepicker("setDate", new Date());
+
+  // Handle the payment method checkboxes
+  $('input[name="payment_method"]').on("change", function () {
+    // Uncheck other checkboxes when one is selected
+    $('input[name="payment_method"]').not(this).prop("checked", false);
+  });
+
+  // Handle the No Invoice checkbox
+  $("#no_invoice").on("change", function () {
+    if ($(this).is(":checked")) {
+      // Uncheck and disable all other checkboxes
+      $(
+        'input[name="payment_method"], input[name="order_date"]'
+        // 'input[name="payment_method"], input[name="invoice-receipt"], input[name="order_date"]'
+      )
+        .prop("checked", false)
+        .prop("disabled", true);
+      // add css opacity: 0.5 to .invoice-receipt-options and .payment-method-options
+      // $(
+      //   ".invoice-receipt-options, .payment-method-options, .order-date-field"
+      // ).css("opacity", "0.5");
+    } else {
+      // Enable the other checkboxes when No Invoice is unchecked
+      $(
+        'input[name="payment_method"], input[name="order_date"]'
+      ).prop("disabled", false);
+      // Remove CSS opacity from .invoice-receipt-options and .payment-method-options
+      // $(
+      //   ".invoice-receipt-options, .payment-method-options, .order-date-field"
+      // ).css("opacity", "1");
+    }
+  });
+
+  function createOrderPost(orderData, orderType, agentID, paymentData) {
     let root_domain = alarnd_create_order_vars.redirecturl;
 
     // Username and password for Basic Authentication
@@ -630,6 +695,7 @@ jQuery(document).ready(function ($) {
     orderData.agent_id = agentID;
     orderData.order_type = orderType;
     orderData.order_source = "manual_order";
+    orderData.payment_data = paymentData;
 
     $.ajax({
       url: `${root_domain}/wp-json/manage-order/v1/create`,
@@ -642,7 +708,7 @@ jQuery(document).ready(function ($) {
         alert("New Order created successfully!");
         // Redirect to the newly created order post
         if (response && response.post_url) {
-          window.location.href = response.post_url;
+          // window.location.href = response.post_url;
         } else {
           console.error("Post URL not returned in response.");
         }

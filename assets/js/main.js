@@ -1938,8 +1938,9 @@
     ).text();
 
     if (
-      shipping_method_text ==
-      "איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!"
+      shipping_method_text ===
+        "איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!" &&
+      shipping_method !== "local_pickup"
     ) {
       shipping_method = "local_pickup";
     }

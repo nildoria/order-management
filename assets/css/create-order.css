@@ -698,6 +698,65 @@ form#billing-form input {
   padding: 5px 10px;
 }
 
+/* Invoice / Receipt Data Selection */
+.om__createOrder_checkbox input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 30px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    margin-right: 8px;
+}
+
+/* Add checkmark on checked state */
+.om__createOrder_checkbox input[type="checkbox"]:checked {
+    background-color: #66de93;
+    border-color: #66de93;
+}
+
+/* Checkmark style */
+.om__createOrder_checkbox input[type="checkbox"]:checked::after {
+    content: '✔';
+    position: absolute;
+    color: white;
+    font-size: 20px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Label styling */
+.om__createOrder_checkbox label {
+    font-size: 16px;
+    margin-left: 20px;
+    display: inline-flex;
+    align-items: center;
+}
+.order-date-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 10px 20px 20px;
+}
+.order-date-field h4, .om__createOrder_checkbox h4 {
+    font-size: 18px;
+    min-width: 100px;
+    margin: 0;
+}
+.om__createOrder_checkbox {
+    margin: 20px 0;
+}
+.om__createOrder_checkbox h4 {
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
 @media (min-width: 768px) {
   .content-product .item {
     flex-basis: 100%;
