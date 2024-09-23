@@ -1245,6 +1245,12 @@ function create_order(WP_REST_Request $request)
             if (isset($shipping_line['method_id'])) {
                 $shipping_method_id = $shipping_line['method_id'];
                 $shipping_method_title = $shipping_line['method_title'];
+
+                // Check if the shipping method title matches the specified string
+                if ($shipping_method_title === 'איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!') {
+                    $shipping_method_id = 'local_pickup';
+                }
+
                 break; // Assuming you want the first shipping method ID
             }
         }
@@ -1598,6 +1604,7 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
     $order_source = isset($order_data['order_source']) ? $order_data['order_source'] : '';
     $order_type = isset($order_data['order_type']) ? $order_data['order_type'] : '';
     $shipping_method_title = isset($order_data['shipping_lines'][0]['method_title']) ? $order_data['shipping_lines'][0]['method_title'] : '';
+    $payment_details = isset($order_data['payment_data']) ? $order_data['payment_data'] : '';
 
     // error_log(print_r($client_details, true));
 
@@ -1616,7 +1623,16 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
         'total_price' => $total_price,
         'order_source' => $order_source,
         'order_type' => $order_type,
-        'post_url' => $post_url
+        'post_url' => $post_url,
+        'payment_details' => array(
+            'invoice' => isset($payment_details['invoice']) ? $payment_details['invoice'] : '',
+            'receipt' => isset($payment_details['receipt']) ? $payment_details['receipt'] : '',
+            'order_date' => isset($payment_details['order_date']) ? $payment_details['order_date'] : '',
+            'wire_transfer' => isset($payment_details['wire_transfer']) ? $payment_details['wire_transfer'] : '',
+            'credit_card' => isset($payment_details['credit_card']) ? $payment_details['credit_card'] : '',
+            'cash' => isset($payment_details['cash']) ? $payment_details['cash'] : '',
+            'no_invoice' => isset($payment_details['no_invoice']) ? $payment_details['no_invoice'] : '',
+        ),
     );
 
     $response = wp_remote_post(

@@ -36,10 +36,14 @@ class AllAroundCreateOrder
         wp_enqueue_style('create-order-style', get_template_directory_uri() . '/assets/css/create-order.css', [], HELLO_ELEMENTOR_VERSION);
 
         wp_enqueue_script('create-order-script', get_template_directory_uri() . '/assets/js/create-order.js', ['jquery'], HELLO_ELEMENTOR_VERSION, true);
+        // Enqueue jQuery UI (WordPress already includes jQuery)
+        wp_enqueue_script('jquery-ui-datepicker');
 
         // Enqueue Select2 CSS and JS
         wp_enqueue_style('select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
         wp_enqueue_script('select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
+        // Enqueue jQuery UI CSS (you can choose a different theme)
+        wp_enqueue_style('jquery-ui-style', '//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
 
         // Determine the API URL based on the current domain
         $current_domain = $_SERVER['SERVER_NAME'];

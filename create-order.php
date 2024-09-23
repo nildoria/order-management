@@ -470,6 +470,44 @@ $current_user_is_editor = is_current_user_editor();
                 </div>
                 <button id="checkout" disabled>Checkout</button>
             </div>
+
+            <!-- Invoice/Reciept Selection -->
+            <div class="invoice-receipt-options om__createOrder_checkbox">
+                <label for="payment_invoice">
+                    <input type="checkbox" checked disabled id="payment_invoice" name="invoice-receipt" value="payment_invoice"> Invoice
+                </label>
+                <label for="payment_receipt">
+                    <input type="checkbox" checked disabled id="payment_receipt" name="invoice-receipt" value="payment_receipt"> Receipt
+                </label>
+            </div>
+
+            <!-- Date Field -->
+            <div class="order-date-field">
+                <h4>Select Date</h4>
+                <input type="text" readonly id="order_date" name="order_date">
+            </div>
+
+            <!-- Payment Method Selection -->
+            <div class="payment-method-options om__createOrder_checkbox">
+                <h4>Select Payment Method</h4>
+                <label for="wire_transfer">
+                    <input type="checkbox" id="wire_transfer" name="payment_method" value="wire_transfer"> Wire Transfer
+                </label>
+                <label for="credit_card">
+                    <input type="checkbox" id="credit_card" name="payment_method" value="credit_card"> Credit Card
+                </label>
+                <label for="cash">
+                    <input type="checkbox" id="cash" name="payment_method" value="cash"> Cash
+                </label>
+            </div>
+
+            <!-- No Invoice Option -->
+            <div class="no-invoice-option om__createOrder_checkbox">
+                <h4>No Invoice Option</h4>
+                <label for="no_invoice">
+                    <input type="checkbox" id="no_invoice" name="no_invoice" value="no_invoice"> No Invoice
+                </label>
+            </div>
         </div>
     </div>
 </main>
