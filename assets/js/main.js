@@ -2012,7 +2012,6 @@
         setTimeout(() => {
           location.reload();
         }, 1000);
-        
       },
       error: function (xhr, status, error) {
         $("#printLabelSendWebhook").removeClass("ml_loading");
@@ -2073,6 +2072,15 @@
   $("#missingInfoOpenModal").magnificPopup({
     items: {
       src: "#missingInfoConfirmationModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
+  // Open Modal on click of #missingInfoOpenModal
+  $("#revisionOpenModal").magnificPopup({
+    items: {
+      src: "#revisionConfirmationModal",
       type: "inline",
     },
     closeBtnInside: true,

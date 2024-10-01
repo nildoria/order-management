@@ -714,7 +714,7 @@ jQuery(document).ready(function ($) {
         alert("New Order created successfully!");
         // Redirect to the newly created order post
         if (response && response.post_url) {
-          // window.location.href = response.post_url;
+          window.location.href = response.post_url;
         } else {
           console.error("Post URL not returned in response.");
         }

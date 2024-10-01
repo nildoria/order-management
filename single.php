@@ -670,6 +670,20 @@ $clients = $createOrder->fetch_clients_data();
                         
                             <button type="button" class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
                         </div>
+
+                        <?php if (!is_current_user_contributor()): ?>
+                            <button type="button" id="revisionOpenModal" class="allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Revision Needed', 'hello-elementor'); ?></button>
+                            
+                            <div id="revisionConfirmationModal" class="om__ConfirmationModal mfp-hide">
+                                <h5><?php echo esc_html__('Are you sure this needs revision.', 'hello-elementor'); ?></h5>
+                                <button type="button" data-status="revision_needed"
+                                    class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('YES - Needs Revision', 'hello-elementor'); ?></button>
+                            
+                                <button type="button"
+                                    class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                            </div>
+                        <?php endif; ?>
+
                         <button type="button" id="mockupDoneOpenModal" class="allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
 
                         <div id="mockupDoneConfirmationModal" class="om__ConfirmationModal mfp-hide">

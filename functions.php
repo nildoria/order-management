@@ -825,14 +825,6 @@ function update_order_shipping_method()
             $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
             $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
             break;
-        case 'https://main.lukpaluk.xyz':
-            $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-            $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-            break;
-        case 'https://min.lukpaluk.xyz':
-            $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
-            $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
-            break;
         case 'https://flash.allaround.co.il':
             $consumer_key = 'ck_68b709cb56ddc7704d68bb4fdbac0e89d708c651';
             $consumer_secret = 'cs_aaceb9b2a30adef0a6f16fe6842252d3747e693f';
@@ -840,6 +832,14 @@ function update_order_shipping_method()
         case 'https://fs.lukpaluk.xyz':
             $consumer_key = 'ck_88186089fa2d579b8c26ddc7d8acfe651da56f0f';
             $consumer_secret = 'cs_fa7a98acfb77960faa3b5d5e889f08840d0db584';
+            break;
+        case 'https://main.lukpaluk.xyz':
+            $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+            $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+            break;
+        case 'https://min.lukpaluk.xyz':
+            $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
+            $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
             break;
         case 'https://allaround.test':
             $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
@@ -1710,14 +1710,6 @@ function fetch_order_details($order_id, $domain)
                 $consumer_key = 'ck_30ee118f1704c40988482bf4fc688dcfd40ee56a';
                 $consumer_secret = 'cs_c182834653750f23eb79c090d44741f3680e0a30';
                 break;
-            case 'https://main.lukpaluk.xyz':
-                $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
-                $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
-                break;
-            case 'https://min.lukpaluk.xyz':
-                $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
-                $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
-                break;
             case 'https://flash.allaround.co.il':
                 $consumer_key = 'ck_68b709cb56ddc7704d68bb4fdbac0e89d708c651';
                 $consumer_secret = 'cs_aaceb9b2a30adef0a6f16fe6842252d3747e693f';
@@ -1725,6 +1717,14 @@ function fetch_order_details($order_id, $domain)
             case 'https://fs.lukpaluk.xyz':
                 $consumer_key = 'ck_88186089fa2d579b8c26ddc7d8acfe651da56f0f';
                 $consumer_secret = 'cs_fa7a98acfb77960faa3b5d5e889f08840d0db584';
+                break;
+            case 'https://main.lukpaluk.xyz':
+                $consumer_key = 'ck_c18ff0701de8832f6887537107b75afce3914b4c';
+                $consumer_secret = 'cs_cbc5250dea649ae1cc98fe5e2e81e854a60dacf4';
+                break;
+            case 'https://min.lukpaluk.xyz':
+                $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
+                $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
                 break;
             case 'https://allaround.test':
                 $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
@@ -1863,8 +1863,8 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     endif;
     if (!is_current_user_author()):
         echo '<th class="head"><strong>Printing Note</strong></th>';
+        echo '<th class="head"><strong>Graphics</strong></th>';
     endif;
-    echo '<th class="head"><strong>Graphics</strong></th>';
     echo '<th class="head mockup-head" colspan=""><strong>Mockups</strong></th>';
     echo '</tr></thead><tbody>';
 
@@ -2001,7 +2001,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '</span>';
             echo '</span>';
             echo '</td>';
-            
+
             // Printing Note Column with textarea field
             echo '<td class="printing_note_column">';
             echo '<textarea class="printing_note_textarea" data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</textarea>';
@@ -2017,36 +2017,38 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '<span class="om__itemQuantity om_onlyQuantity">' . esc_attr($item->quantity) . '</span>';
             echo '</td>';
         }
-        echo '<td class="item_graphics_column">';
-        $artworkFound = false;
-        foreach ($item->meta_data as $meta) {
-            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
-                $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
-                if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
-                    $filename = $matches[1];
-                    $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
-                    $class_name = 'file-format-' . strtolower($file_extension);
-                } else {
-                    $class_name = 'file-format-unknown';
+        if (!is_current_user_author()) {
+            echo '<td class="item_graphics_column">';
+            $artworkFound = false;
+            foreach ($item->meta_data as $meta) {
+                if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
+                    $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
+                    if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
+                        $filename = $matches[1];
+                        $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
+                        $class_name = 'file-format-' . strtolower($file_extension);
+                    } else {
+                        $class_name = 'file-format-unknown';
+                    }
+                    $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
+                    $artworkEdit = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
+                    $artworkDelete = '<label class="om__DeleteArtwork" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></label>';
+                    $artworkFileupload = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" style="display:none" />';
+                    $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $artworkDelete . $artworkEdit . $artworkFileupload . $value . '</div>';
+                    echo $value;
+                    $artworkFound = true;
                 }
-                $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                $artworkEdit = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
-                $artworkDelete = '<label class="om__DeleteArtwork" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></label>';
-                $artworkFileupload = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" style="display:none" />';
-                $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $artworkDelete . $artworkEdit . $artworkFileupload . $value . '</div>';
-                echo $value;
-                $artworkFound = true;
-            }
 
+            }
+            if (!$artworkFound) {
+                echo '<div class="uploaded_graphics">';
+                echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
+                echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
+                echo '<span class="no_artwork_text">No Artwork Attached</span>';
+                echo '</div>';
+            }
+            echo '</td>';
         }
-        if (!$artworkFound) {
-            echo '<div class="uploaded_graphics">';
-            echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
-            echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
-            echo '<span class="no_artwork_text">No Artwork Attached</span>';
-            echo '</div>';
-        }
-        echo '</td>';
         echo '</tr>';
     }
     echo '</tbody><tfoot>';
@@ -2718,30 +2720,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-            <div class="revision-activity customer-message mockup-approved-comment">
-                <div class="revision-activity-avatar">
-                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+        <div class="revision-activity customer-message mockup-approved-comment">
+            <div class="revision-activity-avatar">
+                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+            </div>
+            <div class="revision-activity-content">
+                <div class="revision-activity-title">
+                    <h5>AllAround</h5>
+                    <span>
+                        <?php
+                        if (!empty($proof_approved_time)) {
+                            echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                        }
+                        ?>
+                    </span>
                 </div>
-                <div class="revision-activity-content">
-                    <div class="revision-activity-title">
-                        <h5>AllAround</h5>
-                        <span>
-                            <?php
-                            if (!empty($proof_approved_time)) {
-                                echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                            }
-                            ?>
-                        </span>
-                    </div>
-                    <div class="revision-activity-description">
-                        <span class="revision-comment-title">
-                            ההדמיות אושרו על ידי הלקוח 
-                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
-                        </span>
-                    </div>
+                <div class="revision-activity-description">
+                    <span class="revision-comment-title">
+                        ההדמיות אושרו על ידי הלקוח
+                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                    </span>
                 </div>
             </div>
-            <?php
+        </div>
+        <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2772,9 +2774,9 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
             <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
                 <div class="revision-activity-avatar">
                     <?php if ($comment_name === 'AllAround'): ?>
-                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
                     <?php else: ?>
-                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                        <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="revision-activity-content">
