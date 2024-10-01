@@ -2077,7 +2077,7 @@
     closeBtnInside: true,
   });
 
-  // Open Modal on click of #missingInfoOpenModal
+  // Open Modal on click of #revisionOpenModal
   $("#revisionOpenModal").magnificPopup({
     items: {
       src: "#revisionConfirmationModal",
@@ -2086,7 +2086,7 @@
     closeBtnInside: true,
   });
 
-  // Open Modal on click of #missingInfoOpenModal
+  // Open Modal on click of #DTFDoneOpenModal
   $("#DTFDoneOpenModal").magnificPopup({
     items: {
       src: "#DTFDoneConfirmationModal",

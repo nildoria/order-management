@@ -714,6 +714,7 @@ class AllAroundClientsDB
 
         $post_id = isset($_POST['post_id']) ? sanitize_text_field(absint($_POST['post_id'])) : 0;
         $order_type = isset($_POST['order_type']) ? sanitize_text_field($_POST['order_type']) : '';
+        $order_id = isset($_POST['order_id']) ? sanitize_text_field($_POST['order_id']) : '';
 
         // check email empty or email not valid then return
         if (empty($post_id)) {
@@ -749,6 +750,11 @@ class AllAroundClientsDB
 
         $client_type = get_post_meta($client_id, 'client_type', true);
 
+        if (!empty($order_id)) {
+            // Send webhook
+            $this->send_order_type_webhook($order_id, $order_type);
+        }
+
         wp_send_json_success(
             array(
                 "message_type" => 'reqular',
@@ -758,8 +764,46 @@ class AllAroundClientsDB
                 "old_client_type" => $old_client_type
             )
         );
+
         wp_die();
 
+    }
+
+    public function send_order_type_webhook($order_id, $order_type)
+    {
+        // Prepare webhook data
+        $webhook_data = array(
+            'om_status' => "order_type_selected",
+            'order_id' => $order_id,
+            'status_chosen' => $order_type,
+        );
+
+        // Determine the correct webhook URL based on the environment
+        $root_domain = home_url();
+        $webhook_url = "";
+
+        if (strpos($root_domain, '.test') !== false || strpos($root_domain, 'lukpaluk.xyz') !== false) {
+            $webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+        } else {
+            $webhook_url = "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+        }
+
+        // Send the webhook
+        $response = wp_remote_post($webhook_url, array(
+            'method' => 'POST',
+            'headers' => array('Content-Type' => 'application/json'),
+            'body' => wp_json_encode($webhook_data),
+            'timeout' => 30,
+            'sslverify' => false,
+        ));
+
+        // Optionally, log or handle the response
+        if (is_wp_error($response)) {
+            error_log('Error sending webhook: ' . $response->get_error_message());
+        } else {
+            $body = wp_remote_retrieve_body($response);
+            // error_log('Webhook response: ' . $body);
+        }
     }
 
     public function om_update_client_company_logos()
