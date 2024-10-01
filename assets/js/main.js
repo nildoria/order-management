@@ -33,6 +33,7 @@
     let commentText = $("#mockup-proof-comments").val() || "";
     let orderType = $(this).data("order_type");
     let prevClientType = $(this).data("prev_client_type");
+    let orderSource = $(this).data("order_source");
     let totalPaid = $(".om__orderTotal").text().replace("₪", "").trim();
 
     if (!mainTable) {
@@ -106,6 +107,7 @@
       total_paid: totalPaid,
       order_type: orderType,
       prev_client_type: prevClientType,
+      order_source: orderSource,
     };
 
     // Check if the order type is "company"
@@ -1975,6 +1977,25 @@
 
     console.log("Data to send:", data);
 
+    let requestData = {
+      action: "update_order_transient",
+      order_id: order_id,
+    };
+
+    function handleResponse(response) {
+      Toastify({
+        text: "Webhook request sent successfully!",
+        duration: 3000,
+        close: true,
+        gravity: "bottom",
+        position: "right",
+        stopOnFocus: true,
+        style: {
+          background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+      }).showToast();
+    }
+
     // AJAX request to send the data to the webhook
     $.ajax({
       url: webhook_url,
@@ -1983,21 +2004,15 @@
       data: JSON.stringify(data),
       success: function (response) {
         console.log("Webhook request successful:", response);
-        // Optionally, you can show a success message to the user
-        Toastify({
-          text: "Webhook request sent successfully!",
-          duration: 3000,
-          close: true,
-          gravity: "bottom",
-          position: "right",
-          stopOnFocus: true,
-          style: {
-            background: "linear-gradient(to right, #00b09b, #96c93d)",
-          },
-        }).showToast();
+        ml_send_ajax(requestData, handleResponse);
 
         $("#printLabelSendWebhook").removeClass("ml_loading");
         $.magnificPopup.close();
+        // locatio reload after 1 sec
+        setTimeout(() => {
+          location.reload();
+        }, 1000);
+        
       },
       error: function (xhr, status, error) {
         $("#printLabelSendWebhook").removeClass("ml_loading");

@@ -31,8 +31,18 @@ $clients = $createOrder->fetch_clients_data();
         $order_source_options = array(
             'miniSite_order' => 'Mini Site',
             'mainSite_order' => 'Main Site',
+            'flashSale_order' => 'FlashSite',
             'manual_order' => 'Manual Order',
         );
+
+        // Check if the order source value is 'flashSale_order'
+        if ($order_source_value === 'flashSale_order') {
+            // Fetch the flash_id meta value
+            $flash_id = get_post_meta($current_id, 'flash_id', true);
+            // Update the flashSale_order text with the flash_id
+            $order_source_options['flashSale_order'] = 'FlashSite-' . $flash_id;
+        }
+
         // Get the corresponding text
         $order_source_text = isset($order_source_options[$order_source_value]) ? $order_source_options[$order_source_value] : 'Unknown';
 
@@ -642,7 +652,7 @@ $clients = $createOrder->fetch_clients_data();
                         <div id="sendProofConfirmationModal" class="om__ConfirmationModal mfp-hide">
                             <h5><?php echo esc_html__('Are you sure the proofs are ready?', 'hello-elementor'); ?></h5>
                             <p>Please confirm before sending.</p>
-                            <button type="button" class="allarnd--regular-button ml_add_loading" data-order_type="<?php echo esc_attr($order_type) ?>" data-prev_client_type="<?php echo esc_attr($prev_client_type ?: '') ?>" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" data-order_type="<?php echo esc_attr($order_type) ?>" data-prev_client_type="<?php echo esc_attr($prev_client_type ?: '') ?>" data-order_source="<?php echo esc_attr($order_source_value ?: '') ?>" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         
                             <button type="button"
                                 class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>

@@ -44,9 +44,10 @@ restrict_access_to_logged_in_users();
             $masked_token = '';
         }
 
+        $full_name = trim($fields['first_name'] . ' ' . $fields['last_name']);
         ?>
         <div id="create-client-form">
-            <h2>Edit: <?php the_title(); ?></h2>
+            <h2>Edit: <?php echo !empty($full_name) ? esc_html($full_name) : get_the_title(); ?></h2>
             <form id="addClientForm" data-type="edit" method="post">
                 <?php wp_nonce_field('create_client', 'create_client_nonce'); ?>
                 <input type="hidden" name="client_id" value="<?php echo $client_id; ?>">

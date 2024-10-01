@@ -494,7 +494,7 @@ $current_user_is_editor = is_current_user_editor();
                     <input type="checkbox" id="wire_transfer" name="payment_method" value="wire_transfer"> Wire Transfer
                 </label>
                 <label for="credit_card">
-                    <input type="checkbox" id="credit_card" name="payment_method" value="credit_card"> Credit Card
+                    <input type="checkbox" checked id="credit_card" name="payment_method" value="credit_card"> Credit Card
                 </label>
                 <label for="cash">
                     <input type="checkbox" id="cash" name="payment_method" value="cash"> Cash

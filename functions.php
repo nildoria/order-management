@@ -833,6 +833,14 @@ function update_order_shipping_method()
             $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
             $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
             break;
+        case 'https://flash.allaround.co.il':
+            $consumer_key = 'ck_68b709cb56ddc7704d68bb4fdbac0e89d708c651';
+            $consumer_secret = 'cs_aaceb9b2a30adef0a6f16fe6842252d3747e693f';
+            break;
+        case 'https://fs.lukpaluk.xyz':
+            $consumer_key = 'ck_88186089fa2d579b8c26ddc7d8acfe651da56f0f';
+            $consumer_secret = 'cs_fa7a98acfb77960faa3b5d5e889f08840d0db584';
+            break;
         case 'https://allaround.test':
             $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
             $consumer_secret = 'cs_b0af5f272796d15581feb8ed52fbf0d5469c67b4';
@@ -1093,6 +1101,7 @@ function order_details_metabox_content($post)
     echo '<option value="mainSite_order" ' . selected($order_source, 'mainSite_order', false) . '>Main Site</option>';
     echo '<option value="miniSite_order" ' . selected($order_source, 'miniSite_order', false) . '>Mini Site</option>';
     echo '<option value="manual_order" ' . selected($order_source, 'manual_order', false) . '>Manual Order</option>';
+    echo '<option value="flashSale_order" ' . selected($order_source, 'flashSale_order', false) . '>FlashSale Order</option>';
     echo '</select>';
 
     // Display Ordered Items
@@ -1363,6 +1372,14 @@ function create_order(WP_REST_Request $request)
         handle_order_source($post_id, $client_id, $order_source, $total_price);
     }
 
+    // Handle FlashSale ID
+    if (!empty($order_source) && $order_source === 'flashSale_order') {
+        $flash_id = isset($order_data['flash_id']) ? $order_data['flash_id'] : '';
+        if (!empty($flash_id)) {
+            update_post_meta($post_id, 'flash_id', $flash_id);
+        }
+    }
+
     // Send data to webhook
     send_order_data_to_webhook($order_id, $order_number, $order_data, get_permalink($post_id));
 
@@ -1549,6 +1566,22 @@ function handle_order_source($post_id, $client_id, $order_source, $total_price, 
             update_post_meta($post_id, 'order_source', 'miniSite_order');
             break;
 
+        case 'flashSale_order':
+            if ($increment_count) {
+                // Update the flashSale_orders meta
+                $flashSale_orders = get_post_meta($client_id, 'flashSale_orders', true);
+                $flashSale_orders = !empty($flashSale_orders) ? intval($flashSale_orders) + 1 : 1;
+                update_post_meta($client_id, 'flashSale_orders', $flashSale_orders);
+            }
+
+            // Update the flashSale_order_value meta with the total price
+            $flashSale_order_value = get_post_meta($client_id, 'flashSale_order_value', true);
+            $flashSale_order_value = !empty($flashSale_order_value) ? floatval($flashSale_order_value) + $total_price : $total_price;
+            update_post_meta($client_id, 'flashSale_order_value', $flashSale_order_value);
+
+            update_post_meta($post_id, 'order_source', 'flashSale_order');
+            break;
+
         case 'manual_order':
             if ($increment_count) {
                 // Update the manual_orders meta
@@ -1684,6 +1717,14 @@ function fetch_order_details($order_id, $domain)
             case 'https://min.lukpaluk.xyz':
                 $consumer_key = 'ck_1d40409af527f48fd380cbdbbc84f6b96c9b5842';
                 $consumer_secret = 'cs_6b95c1747901e41a8fb5b1fa863d476cd31d820b';
+                break;
+            case 'https://flash.allaround.co.il':
+                $consumer_key = 'ck_68b709cb56ddc7704d68bb4fdbac0e89d708c651';
+                $consumer_secret = 'cs_aaceb9b2a30adef0a6f16fe6842252d3747e693f';
+                break;
+            case 'https://fs.lukpaluk.xyz':
+                $consumer_key = 'ck_88186089fa2d579b8c26ddc7d8acfe651da56f0f';
+                $consumer_secret = 'cs_fa7a98acfb77960faa3b5d5e889f08840d0db584';
                 break;
             case 'https://allaround.test':
                 $consumer_key = 'ck_481effc1659aae451f1b6a2e4f2adc3f7bc3829f';
@@ -2451,7 +2492,7 @@ function save_printing_note()
 
     $post_id = intval($_POST['post_id']);
     $item_id = intval($_POST['item_id']);
-    $printing_note = sanitize_text_field($_POST['printing_note']);
+    $printing_note = sanitize_textarea_field($_POST['printing_note']);
 
     // Get the existing 'items' meta
     $items = get_post_meta($post_id, 'items', true);
@@ -2768,9 +2809,12 @@ function search_posts()
     $order_status_filter = !empty($_POST['order_status']) ? sanitize_text_field($_POST['order_status']) : '';
     $order_type_filter = !empty($_POST['order_type']) ? sanitize_text_field($_POST['order_type']) : '';
     $logo_filter = !empty($_POST['logo_filter']) ? sanitize_text_field($_POST['logo_filter']) : '';
+    $selected_month = !empty($_POST['month']) ? sanitize_text_field($_POST['month']) : '';
+    $selected_year = !empty($_POST['year']) ? sanitize_text_field($_POST['year']) : '';
+    $order_source_filter = !empty($_POST['order_source']) ? sanitize_text_field($_POST['order_source']) : '';
 
     // Determine if any filters are applied
-    $is_filtering = !empty($query) || !empty($order_status_filter) || !empty($order_type_filter);
+    $is_filtering = !empty($query) || !empty($order_status_filter) || !empty($order_type_filter) || !empty($selected_month) || !empty($selected_year) || !empty($order_source_filter);
 
     // Set up base arguments for the query
     $args = array(
@@ -2779,20 +2823,20 @@ function search_posts()
         'paged' => isset($_POST['page']) ? intval($_POST['page']) : 1, // Handle pagination if needed
         'meta_query' => array(
             'relation' => 'AND', // Both conditions (order_status and order_type) must match if provided
-        )
+        ),
+        'date_query' => array() // Initialize the date_query array
     );
 
+    // Search by post title
     if (!empty($query)) {
-        // Use the search query to search for partial matches in the title
         $args['s'] = $query;
-
         add_filter('posts_where', function ($where) use ($query) {
             global $wpdb;
             return $where . $wpdb->prepare(" AND {$wpdb->posts}.post_title LIKE %s", '%' . $wpdb->esc_like($query) . '%');
         });
     }
 
-    // Apply the order status filter
+    // Filter by order status
     if (!empty($order_status_filter)) {
         $args['meta_query'][] = array(
             'key' => 'order_status',
@@ -2801,10 +2845,9 @@ function search_posts()
         );
     }
 
-    // Apply the order type filter
+    // Filter by order type
     if (!empty($order_type_filter)) {
         if ($order_type_filter === 'not_tagged') {
-            // Filter for orders with no order_type meta data
             $args['meta_query'][] = array(
                 'key' => 'order_type',
                 'compare' => 'NOT EXISTS'
@@ -2818,41 +2861,62 @@ function search_posts()
         }
     }
 
-    // Handle the logo filter for company type orders
+    // Handle logo filter for company type orders
     if (!empty($order_type_filter) && $order_type_filter === 'company' && !empty($logo_filter)) {
-        // Query for client post type's meta
         $args['meta_query'][] = array(
             'key' => 'client_id',
             'compare' => 'EXISTS'
         );
     }
 
+    // Filter by selected month and year
+    if (!empty($selected_month) && !empty($selected_year)) {
+        $args['date_query'][] = array(
+            'year' => intval($selected_year), // Use the selected year
+            'monthnum' => intval($selected_month), // Use the selected month
+        );
+    } elseif (!empty($selected_year)) {
+        // If only the year is selected, filter by the year
+        $args['date_query'][] = array(
+            'year' => intval($selected_year),
+        );
+    }
+
+    // Filter by order source
+    if (!empty($order_source_filter)) {
+        $args['meta_query'][] = array(
+            'key' => 'order_source',
+            'value' => $order_source_filter,
+            'compare' => '='
+        );
+    }
+
     $posts = new WP_Query($args);
 
     $has_posts = false; // Track whether any post is displayed
+    $total_sum = 0; // Initialize total sum for items meta total
 
     if ($posts->have_posts()) {
         while ($posts->have_posts()) {
             $posts->the_post();
-            // Get the order_status and order_type meta
+
+            // Get the meta data
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
             $order_type = get_post_meta(get_the_ID(), 'order_type', true);
             $client_id = get_post_meta(get_the_ID(), 'client_id', true);
+            $items = get_post_meta(get_the_ID(), 'items', true); // Assuming items is stored as an array in the post meta
 
-            // If 'no logos' or 'with logos' filter is applied, check the client's dark_logo and lighter_logo meta
+            // Check for logo filters
             $skip_post = false;
             if (!empty($client_id)) {
-                // Retrieve the meta from the client post type
                 $dark_logo = get_post_meta($client_id, 'dark_logo', true);
                 $lighter_logo = get_post_meta($client_id, 'lighter_logo', true);
 
                 if ($logo_filter === 'no_logos') {
-                    // Skip this post if the client has either logo
                     if (!empty($dark_logo) && !empty($lighter_logo)) {
                         $skip_post = true;
                     }
                 } elseif ($logo_filter === 'with_logos') {
-                    // Skip this post if the client doesn't have both logos
                     if (empty($dark_logo) || empty($lighter_logo)) {
                         $skip_post = true;
                     }
@@ -2863,9 +2927,17 @@ function search_posts()
                 continue; // Skip this post if it doesn't meet the logos condition
             }
 
-            // Display post if it passes the filters
-            $has_posts = true; // Mark that at least one post is being displayed
+            // Calculate the subtotal for the 'total' field in the 'items' meta
+            if (!empty($items)) {
+                foreach ($items as $item) {
+                    if (isset($item['total'])) {
+                        $total_sum += floatval($item['total']); // Add the 'total' of each item to the subtotal
+                    }
+                }
+            }
 
+            // Display the post if it passes all filters
+            $has_posts = true;
             ?>
             <div class="post-item">
                 <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
@@ -2874,9 +2946,14 @@ function search_posts()
             </div>
             <?php
         }
+
+        // Output the total sum of 'total' fields from items meta
+        if ($total_sum > 0) {
+            echo '<div class="total-sum">Total Sum of Items: <br>' . number_format($total_sum, 2) . ' ₪</div>';
+        }
     }
 
-    // Show fallback text if no posts were found
+    // Show fallback message if no posts were found
     if (!$has_posts) {
         echo '<p>No Orders Found.</p>';
     }
@@ -2920,5 +2997,105 @@ function restrict_access_to_admin_and_editor()
         echo '<h3 class="login_require_error"><b>Access Denied</b>: You do not have permission to view this page.</h3>';
         // Optionally, you can exit the script to prevent further execution
         exit;
+    }
+}
+
+
+add_action('admin_menu', 'unsubscribe_clients_menu');
+function unsubscribe_clients_menu() {
+    add_menu_page(
+        'Unsubscribe Clients', // Page title
+        'Unsubscribe Clients', // Menu title
+        'manage_options', // Capability
+        'unsubscribe-clients', // Menu slug
+        'unsubscribe_clients_page', // Callback function
+        'dashicons-email-alt2', // Icon
+        6 // Position
+    );
+}
+function unsubscribe_clients_page() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    // Handle file upload
+    if (isset($_POST['submit']) && isset($_FILES['unsubscribe_csv'])) {
+        $csv_file = $_FILES['unsubscribe_csv'];
+
+        if ($csv_file['type'] === 'text/csv') {
+            $csv_data = file_get_contents($csv_file['tmp_name']);
+            unsubscribe_process_csv($csv_data);
+        } else {
+            echo '<div class="error"><p>Please upload a valid CSV file.</p></div>';
+        }
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>Unsubscribe Clients</h1>
+        <form method="post" enctype="multipart/form-data">
+            <label for="unsubscribe_csv">Upload CSV File:</label><br>
+            <input type="file" name="unsubscribe_csv" id="unsubscribe_csv" accept=".csv">
+            <br><br>
+            <input type="submit" name="submit" class="button button-primary" value="Unsubscribe">
+        </form>
+    </div>
+    <?php
+}
+function unsubscribe_process_csv($csv_data) {
+    $lines = explode(PHP_EOL, $csv_data);
+    $emails = [];
+
+    // Extract emails from CSV (Assuming column names in first row)
+    $header = str_getcsv(array_shift($lines)); // Get headers
+    $email_index = array_search('email', $header); // Find index of 'email' column
+
+    foreach ($lines as $line) {
+        $data = str_getcsv($line);
+        if (isset($data[$email_index])) {
+            $emails[] = trim($data[$email_index]);
+        }
+    }
+
+    if (!empty($emails)) {
+        global $wpdb;
+
+        // Loop through each email and find the client post
+        foreach ($emails as $email) {
+            if (!empty($email)) {
+                // Assuming clients are stored as custom post types with 'client' post type
+                $meta_query = new WP_Query(array(
+                    'post_type' => 'client', // Adjust as per your post type
+                    'meta_query' => array(
+                        array(
+                            'key' => 'email', // Meta key for email
+                            'value' => $email,
+                            'compare' => '='
+                        )
+                    )
+                ));
+
+                if ($meta_query->have_posts()) {
+                    while ($meta_query->have_posts()) {
+                        $meta_query->the_post();
+                        $client_id = get_the_ID();
+
+                        // Update 'subscribed' meta field to 'no'
+                        update_post_meta($client_id, 'subscribed', 'no');
+
+                        // Log the unsubscribe action
+                        error_log("Unsubscribed client with email: $email (Client ID: $client_id)");
+                    }
+                } else {
+                    error_log("No client found with email: $email");
+                }
+
+                wp_reset_postdata();
+            }
+        }
+
+        echo '<div class="updated"><p>CSV processed successfully and clients unsubscribed.</p></div>';
+    } else {
+        echo '<div class="error"><p>No emails found in the CSV file.</p></div>';
     }
 }

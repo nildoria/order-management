@@ -83,6 +83,18 @@ class AllAroundClientsDB
                 },
             )
         );
+
+        // New route for unsubscribing clients by email and/or phone
+        register_rest_route(
+            'manage-client/v1',
+            '/unsubscribe-client',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_unsubscribe_client'],
+                'permission_callback' => [$this, 'check_basic_auth'],
+                // 'permission_callback' => '__return_true',
+            )
+        );
     }
 
     public function check_basic_auth($request)
@@ -361,6 +373,82 @@ class AllAroundClientsDB
         wp_die();
     }
 
+    public function handle_unsubscribe_client(WP_REST_Request $request)
+    {
+        // Get the parameters
+        $email = sanitize_email($request->get_param('email'));
+        $phone = sanitize_text_field($request->get_param('phone'));
+
+        // Check if email is provided and valid
+        if (empty($email) || !is_email($email)) {
+            return new WP_Error('invalid_email', 'Email address is not valid.', array('status' => 400));
+        }
+
+        // Create the meta query array
+        $meta_query = array('relation' => 'OR');
+
+        // Add email to the query if it's provided
+        if (!empty($email)) {
+            $meta_query[] = array(
+                'key' => 'email',
+                'value' => $email,
+                'compare' => '='
+            );
+        }
+
+        // Add phone to the query if it's provided
+        if (!empty($phone)) {
+            $meta_query[] = array(
+                'key' => 'phone',
+                'value' => $phone,
+                'compare' => '='
+            );
+        }
+
+        // Query arguments
+        $args = array(
+            'post_type' => 'client',
+            'post_status' => 'publish',
+            'posts_per_page' => 100, // Limit to 10 at a time for batch processing
+            'meta_query' => $meta_query
+        );
+
+        // Run the query
+        $query = new WP_Query($args);
+
+        // If no clients found, return an error
+        if (!$query->have_posts()) {
+            return new WP_Error('client_not_found', 'No client found with the provided email and/or phone number.', array('status' => 404));
+        }
+
+        // Process each client found
+        $updated_clients = array();
+        while ($query->have_posts()) {
+            $query->the_post();
+            $client_id = get_the_ID();
+
+            // Update 'subscribed' meta to 'no'
+            update_post_meta($client_id, 'subscribed', 'no');
+
+            // Log the updated client
+            $updated_clients[] = array(
+                'client_id' => $client_id,
+                'email' => get_post_meta($client_id, 'email', true),
+                'phone' => get_post_meta($client_id, 'phone', true),
+                'subscribed' => 'no'
+            );
+        }
+
+        // Reset the post data
+        wp_reset_postdata();
+
+        // Return the list of updated clients
+        return new WP_REST_Response(array(
+            'message' => 'Clients unsubscribed successfully.',
+            'clients' => $updated_clients
+        ), 200);
+    }
+
 
     public function get_client_orders()
     {
@@ -534,6 +622,12 @@ class AllAroundClientsDB
                 update_post_meta($client_id, $key, $value);
             }
         }
+
+        $unique_id = uniqid();
+        $om_client_id = "$client_id-$unique_id";
+
+        // update the om_client_id
+        update_post_meta($client_id, 'om_client_id', $om_client_id);
 
         update_post_meta($client_id, 'full_name', $name);
 
@@ -1099,6 +1193,12 @@ class AllAroundClientsDB
             }
         }
 
+        $unique_id = uniqid();
+        $om_client_id = "$client_id-$unique_id";
+
+        // update the om_client_id
+        update_post_meta($client_id, 'om_client_id', $om_client_id);
+
         // Update the status to "client"
         update_post_meta($client_id, 'status', 'client');
         // Set client_type meta
@@ -1162,6 +1262,8 @@ class AllAroundClientsDB
             'mainSite_order_value' => get_post_meta($post->ID, 'mainSite_order_value', true),
             'miniSite_orders' => get_post_meta($post->ID, 'miniSite_orders', true),
             'miniSite_order_value' => get_post_meta($post->ID, 'miniSite_order_value', true),
+            'flashSale_orders' => get_post_meta($post->ID, 'flashSale_orders', true),
+            'flashSale_order_value' => get_post_meta($post->ID, 'flashSale_order_value', true),
             'manual_orders' => get_post_meta($post->ID, 'manual_orders', true),
             'manual_order_value' => get_post_meta($post->ID, 'manual_order_value', true),
         ];
@@ -1358,6 +1460,17 @@ class AllAroundClientsDB
             </p>
             <hr>
             <p>
+                <label for="flashSale_orders">FlashSale Orders:</label><br>
+                <input type="text" name="flashSale_orders" id="flashSale_orders"
+                    value="<?php echo esc_attr($fields['flashSale_orders']); ?>" />
+            </p>
+            <p>
+                <label for="flashSale_order_value">FlashSale Order Value:</label><br>
+                <input type="text" name="flashSale_order_value" id="flashSale_order_value"
+                    value="<?php echo esc_attr($fields['flashSale_order_value']); ?>" />
+            </p>
+            <hr>
+            <p>
                 <label for="manual_orders">Manual Orders:</label><br>
                 <input type="text" name="manual_orders" id="manual_orders"
                     value="<?php echo esc_attr($fields['manual_orders']); ?>" />
@@ -1415,6 +1528,8 @@ class AllAroundClientsDB
             'mainSite_order_value',
             'miniSite_orders',
             'miniSite_order_value',
+            'flashSale_orders',
+            'flashSale_order_value',
             'manual_orders',
             'manual_order_value',
         ];
@@ -1625,14 +1740,14 @@ class AllAroundClientsDB
                                     Lighter & Darker Logos
                                 </label>
                             </div>
-        
+
                             <input type="submit" value="Filter">
                         </div>
                     </form>
                 </div>
-        
+
             </div>
-        
+
             <div class="client-list-wrapper">
                 <?php
                 $args = array(
@@ -1777,7 +1892,7 @@ class AllAroundClientsDB
                             endwhile; ?>
                         </tbody>
                     </table>
-        
+
                     <!-- Pagination -->
                     <div class="pagination">
                         <?php
@@ -1800,7 +1915,7 @@ class AllAroundClientsDB
                         ));
                         ?>
                     </div>
-        
+
                     <?php wp_reset_postdata();
                 else: ?>
                     <p><?php _e('No clients found.'); ?></p>
