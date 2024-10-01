@@ -31,8 +31,18 @@ $clients = $createOrder->fetch_clients_data();
         $order_source_options = array(
             'miniSite_order' => 'Mini Site',
             'mainSite_order' => 'Main Site',
+            'flashSale_order' => 'FlashSite',
             'manual_order' => 'Manual Order',
         );
+
+        // Check if the order source value is 'flashSale_order'
+        if ($order_source_value === 'flashSale_order') {
+            // Fetch the flash_id meta value
+            $flash_id = get_post_meta($current_id, 'flash_id', true);
+            // Update the flashSale_order text with the flash_id
+            $order_source_options['flashSale_order'] = 'FlashSite-' . $flash_id;
+        }
+
         // Get the corresponding text
         $order_source_text = isset($order_source_options[$order_source_value]) ? $order_source_options[$order_source_value] : 'Unknown';
 
@@ -642,7 +652,7 @@ $clients = $createOrder->fetch_clients_data();
                         <div id="sendProofConfirmationModal" class="om__ConfirmationModal mfp-hide">
                             <h5><?php echo esc_html__('Are you sure the proofs are ready?', 'hello-elementor'); ?></h5>
                             <p>Please confirm before sending.</p>
-                            <button type="button" class="allarnd--regular-button ml_add_loading" data-order_type="<?php echo esc_attr($order_type) ?>" data-prev_client_type="<?php echo esc_attr($prev_client_type ?: '') ?>" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" data-order_type="<?php echo esc_attr($order_type) ?>" data-prev_client_type="<?php echo esc_attr($prev_client_type ?: '') ?>" data-order_source="<?php echo esc_attr($order_source_value ?: '') ?>" id="send-proof-button"><?php echo esc_html__('Send Proof', 'hello-elementor'); ?></button>
                         
                             <button type="button"
                                 class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
@@ -660,6 +670,20 @@ $clients = $createOrder->fetch_clients_data();
                         
                             <button type="button" class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
                         </div>
+
+                        <?php if (!is_current_user_contributor()): ?>
+                            <button type="button" id="revisionOpenModal" class="allarnd--regular-button ml_add_loading warning_btn"><?php echo esc_html__('Revision Needed', 'hello-elementor'); ?></button>
+                            
+                            <div id="revisionConfirmationModal" class="om__ConfirmationModal mfp-hide">
+                                <h5><?php echo esc_html__('Are you sure this needs revision.', 'hello-elementor'); ?></h5>
+                                <button type="button" data-status="revision_needed"
+                                    class="designerSendWebhook allarnd--regular-button ml_add_loading"><?php echo esc_html__('YES - Needs Revision', 'hello-elementor'); ?></button>
+                            
+                                <button type="button"
+                                    class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('CANCEL', 'hello-elementor'); ?></button>
+                            </div>
+                        <?php endif; ?>
+
                         <button type="button" id="mockupDoneOpenModal" class="allarnd--regular-button ml_add_loading"><?php echo esc_html__('Mockups Done', 'hello-elementor'); ?></button>
 
                         <div id="mockupDoneConfirmationModal" class="om__ConfirmationModal mfp-hide">

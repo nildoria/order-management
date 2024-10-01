@@ -70,7 +70,7 @@ td.item_quantity_column {
 }
 td.printing_note_column {
     position: relative;
-    max-width: 150px;
+    min-width: 200px;
 }
 button.save_printing_note {
     background-image: url(../images/mark_icon-svg.svg);
@@ -1931,6 +1931,7 @@ td.mockups-row {
     flex-wrap: wrap;
     margin-top: 35px;
     gap: 20px;
+    position: relative;
 }
 .post-item {
     width: calc(33.33% - 15px);
@@ -1939,6 +1940,22 @@ td.mockups-row {
     border-radius: 7px;
     position: relative;
 }
+.total-sum {
+    position: absolute;
+    top: -85px;
+    right: 15px;
+    font-size: 18px;
+    font-weight: 600;
+}
+.order-total-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-top: 20px;
+    width: calc(100% - 250px);
+}
+
 main#om__searchOrderPage {
   margin-top: 50px;
   margin-bottom: 50px;

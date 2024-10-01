@@ -20,6 +20,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
             <div class="allaround-client-top-left">
                 <h2>Clients</h2>
                 <a href="<?php echo esc_url(home_url('/create-client/')); ?>">Add New Client</a>
+                <?php do_action('om_campaign_action'); ?>
             </div>
             <div class="allaround-client-search">
                 <form method="get" action="<?php echo esc_url(home_url('/clients')); ?>">
@@ -184,10 +185,14 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                         <?php
                             $index = 1;
                             while ($clients_query->have_posts()):
-                                $clients_query->the_post(); ?>
+                            $clients_query->the_post();
+                            $first_name = get_post_meta(get_the_ID(), 'first_name', true);
+                            $last_name = get_post_meta(get_the_ID(), 'last_name', true);
+                            $full_name = trim($first_name . ' ' . $last_name);
+                            ?>
                             <tr>
                                 <td class="td_index"><?php echo $index; ?></td>
-                                <td><?php the_title(); ?></td>
+                                <td><?php echo !empty($full_name) ? esc_html($full_name) : get_the_title(); ?></td>
                                 <td><?php echo esc_html(get_post_meta(get_the_ID(), 'email', true)); ?></td>
                                 <td>
                                     <div class="allaround--client-actions">

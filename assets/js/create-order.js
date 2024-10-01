@@ -633,6 +633,11 @@ jQuery(document).ready(function ($) {
   $('input[name="payment_method"]').on("change", function () {
     // Uncheck other checkboxes when one is selected
     $('input[name="payment_method"]').not(this).prop("checked", false);
+
+    // Ensure at least one checkbox is checked
+    if (!$('input[name="payment_method"]:checked').length) {
+      $(this).prop("checked", true);
+    }
   });
 
   // Handle the No Invoice checkbox
@@ -651,9 +656,10 @@ jQuery(document).ready(function ($) {
       // ).css("opacity", "0.5");
     } else {
       // Enable the other checkboxes when No Invoice is unchecked
-      $(
-        'input[name="payment_method"], input[name="order_date"]'
-      ).prop("disabled", false);
+      $('input[name="payment_method"], input[name="order_date"]').prop(
+        "disabled",
+        false
+      );
       // Remove CSS opacity from .invoice-receipt-options and .payment-method-options
       // $(
       //   ".invoice-receipt-options, .payment-method-options, .order-date-field"
@@ -708,7 +714,7 @@ jQuery(document).ready(function ($) {
         alert("New Order created successfully!");
         // Redirect to the newly created order post
         if (response && response.post_url) {
-          // window.location.href = response.post_url;
+          window.location.href = response.post_url;
         } else {
           console.error("Post URL not returned in response.");
         }

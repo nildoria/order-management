@@ -44,6 +44,46 @@ restrict_access_to_logged_in_users();
 
             </div>
         </div>
+        <!-- Month and Order Source Filter -->
+        <div class="filter-group order-total-filters">
+
+            <select id="year-select">
+                <option value="">Select Year</option>
+                <?php
+                $current_year = date('Y');
+                for ($year = $current_year; $year >= ($current_year - 5); $year--) {
+                    // Automatically select the current year
+                    $selected = ($year == $current_year) ? 'selected' : '';
+                    echo "<option value='$year' $selected>$year</option>";
+                }
+                ?>
+            </select>
+            <select id="month-select">
+                <option value="">Select Month</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+
+            <select id="order-source-select">
+                <option value="">Select Source</option>
+                <option value="mainSite_order">MainSite Order</option>
+                <option value="miniSite_order">MiniSite Order</option>
+                <option value="flashSale_order">FlashSale Order</option>
+                <option value="manual_order">Manual Order</option>
+                <!-- Add more sources as needed -->
+            </select>
+        </div>
+
 
         <!-- Posts List -->
         <div id="post-list">
@@ -58,9 +98,12 @@ restrict_access_to_logged_in_users();
 
         function fetchPosts() {
             const searchQuery = $('#search-field').val();
-            const orderStatus = $('input[name="order_status"]:checked').val(); // Get the checked order status
-            const orderType = $('#order-type-select').val(); // Get the selected order type
-            const logoFilter = $('input[name="logo_filter"]:checked').val(); // Get the selected logo filter option
+            const orderStatus = $('input[name="order_status"]:checked').val();
+            const orderType = $('#order-type-select').val();
+            const logoFilter = $('input[name="logo_filter"]:checked').val();
+            const selectedMonth = $('#month-select').val(); // Get the selected month
+            const orderSource = $('#order-source-select').val(); // Get the selected order source
+            const selectedYear = $('#year-select').val();
 
             $.ajax({
                 url: '<?php echo admin_url('admin-ajax.php'); ?>',
@@ -70,13 +113,22 @@ restrict_access_to_logged_in_users();
                     query: searchQuery,
                     order_status: orderStatus,
                     order_type: orderType,
-                    logo_filter: logoFilter // Pass the logo filter value
+                    logo_filter: logoFilter,
+                    month: selectedMonth, // Pass the selected month
+                    year: selectedYear,
+                    order_source: orderSource // Pass the selected order source
                 },
                 success: function (response) {
                     $('#post-list').html(response);
                 }
             });
         }
+
+        // Add change event listeners for the new filters
+        $('#month-select, #order-source-select, #year-select').on('change', function () {
+            fetchPosts(); // Fetch posts when month or order source changes
+        });
+
 
         // Search functionality with debounce
         $('#search-field').on('input', function () {

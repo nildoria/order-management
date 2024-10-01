@@ -307,6 +307,7 @@ class AllAroundCreateOrder
         }
 
         $order_data = array(
+            'status' => 'processing',
             'payment_method' => 'zcredit_checkout_payment',
             'payment_method_title' => 'Secure Credit Card Payment',
             'set_paid' => true,
