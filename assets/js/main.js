@@ -2671,7 +2671,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let sendProofButton = document.querySelector("#send-proof-button");
 
-    tableBody.style.pointerEvents = "none";
+    // tableBody.style.pointerEvents = "none";
 
     fetch(allaround_vars.fileupload_url, {
       method: "POST",

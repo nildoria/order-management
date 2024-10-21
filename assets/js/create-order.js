@@ -66,7 +66,13 @@ jQuery(document).ready(function ($) {
 
   // Rate change event listener
   $(".grouped_custom_rate_input").on("input", function () {
-    let value = $(this).val().replace(/\D/g, ""); // Only numbers
+    let value = $(this)
+      .val()
+      .replace(/[^0-9.]/g, ""); // Allow only numbers and decimal point
+    // Ensure only one decimal point is allowed
+    if ((value.match(/\./g) || []).length > 1) {
+      value = value.replace(/\.+$/, "");
+    }
     $(this).val(value);
 
     const modal = $(this).closest(".product-details-modal");

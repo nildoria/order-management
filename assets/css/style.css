@@ -70,7 +70,7 @@ td.item_quantity_column {
 }
 td.printing_note_column {
     position: relative;
-    min-width: 200px;
+    min-width: 300px !important;
 }
 button.save_printing_note {
     background-image: url(../images/mark_icon-svg.svg);
@@ -102,7 +102,10 @@ body:not(.om__administrator) td.printing_note_column {
     border-radius: 7px;
     background-color: #f7f7f7;
     resize: none;
-    min-height: 80px;
+    min-height: 100px;
+}
+.printing_note_textarea.printing_note_text {
+    border: none;
 }
 .printing_note_column .printing_note_textarea::-webkit-scrollbar-track {
   -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);

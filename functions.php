@@ -2010,7 +2010,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         } else if (is_current_user_contributor()) {
             // Printing Note Column with text for designers
             echo '<td class="printing_note_column">';
-            echo '<span class="printing_note_text" data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</span>';
+            echo '<textarea class="printing_note_textarea printing_note_text" readonly data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</textarea>';
             echo '</td>';
         } else if (is_current_user_author()) {
             echo '<td class="item_quantity_column">';

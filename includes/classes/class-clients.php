@@ -1002,17 +1002,17 @@ class AllAroundClientsDB
                 $old_value = get_post_meta($client_id, $key, true);
                 if ($value !== $old_value) {
                     $changedFields[$key] = $value;
-                    if ("client_type" === $key && "company" === $old_client_type) {
-                        continue;
-                    }
+                    // if ("client_type" === $key && "company" === $old_client_type) {
+                    //     continue;
+                    // }
                     $this->ml_update_postmeta($client_id, $key, $value);
                 }
             }
         }
 
         // Log old and new names for debugging
-        error_log("Old First Name: $old_first_name, New First Name: $first_name");
-        error_log("Old Last Name: $old_last_name, New Last Name: $last_name");
+        // error_log("Old First Name: $old_first_name, New First Name: $first_name");
+        // error_log("Old Last Name: $old_last_name, New Last Name: $last_name");
 
         // if name changed update post title
         if ($old_first_name !== $first_name || $old_last_name !== $last_name) {
