@@ -28,6 +28,9 @@ class AllAroundClientsDB
         add_action('init', [$this, 'client_rewrite_rules']);
         add_action('admin_init', [$this, 'add_client_capabilities']);
 
+        add_action('admin_menu', [$this, 'add_admin_menu']);
+        add_action('admin_init', [$this, 'handle_trigger_button_action']);
+
         add_shortcode('allaround_client_lists', [$this, 'client_lists_shortcode']);
 
         // Register the REST API route
@@ -481,14 +484,16 @@ class AllAroundClientsDB
                             $order_number = get_post_meta($order->ID, 'order_number', true);
                             $site_url = get_post_meta($order->ID, 'site_url', true);
                             $order_status = get_post_meta($order->ID, 'order_status', true);
+                            $order_type = get_post_meta($order->ID, 'order_type', true);
                             ?>
                             <li>
                                 <a target="_blank" href="<?php echo esc_url(get_permalink($order->ID)); ?>"
                                     class="allaround--client-orders"><?php echo esc_html(get_permalink($order->ID)); ?></a>
-                                <?php echo !empty($order_id) ? '<span>Order ID: ' . $order_id . '</span>' : ''; ?>
+                                <!-- <?//php echo !empty($order_id) ? '<span>Order ID: ' . $order_id . '</span>' : ''; ?> -->
                                 <?php echo !empty($order_number) ? '<span>Order Number: ' . $order_number . '</span>' : ''; ?>
                                 <?php echo !empty($site_url) ? '<span>Site URL: ' . $site_url . '</span>' : ''; ?>
                                 <?php echo !empty($order_status) ? '<span>Order Status: ' . $order_status . '</span>' : ''; ?>
+                                <?php echo !empty($order_type) ? '<span>Order Type: ' . $order_type . '</span>' : ''; ?>
                             </li>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -739,6 +744,7 @@ class AllAroundClientsDB
         }
 
         $client_id = get_post_meta($post_id, 'client_id', true);
+        $order_number = get_post_meta($post_id, 'order_number', true);
         $old_client_type = get_post_meta($client_id, 'client_type', true);
 
         // update client_type to client only if client_type is not company
@@ -750,9 +756,9 @@ class AllAroundClientsDB
 
         $client_type = get_post_meta($client_id, 'client_type', true);
 
-        if (!empty($order_id)) {
+        if (!empty($order_number)) {
             // Send webhook
-            $this->send_order_type_webhook($order_id, $order_type);
+            $this->send_order_type_webhook($order_number, $order_type);
         }
 
         wp_send_json_success(
@@ -764,7 +770,6 @@ class AllAroundClientsDB
                 "old_client_type" => $old_client_type
             )
         );
-
         wp_die();
 
     }
@@ -1140,7 +1145,7 @@ class AllAroundClientsDB
         $last_name = isset($order_data['billing']['last_name']) ? $order_data['billing']['last_name'] : '';
         $email = isset($order_data['billing']['email']) ? $order_data['billing']['email'] : '';
         $client_type = isset($order_data['client_type']) ? sanitize_text_field($order_data['client_type']) : (isset($_POST['client_type']) ? sanitize_text_field($_POST['client_type']) : 'personal');
-
+		
         $order_type = isset($order_data['order_type']) ? sanitize_text_field($order_data['order_type']) : 'personal';
 
         // if $order_type is === 'company' then set $client_type to 'company'
@@ -1203,7 +1208,7 @@ class AllAroundClientsDB
             // Update the status to "client"
             $this->ml_update_postmeta($client_id, 'status', 'client');
             // Update client_type meta
-            update_post_meta($client_id, 'client_type', $client_type);
+            // update_post_meta($client_id, 'client_type', $client_type);
 
             // update client_id to the order post
             update_post_meta($post_id, 'client_id', $client_id);
@@ -1784,14 +1789,14 @@ class AllAroundClientsDB
                                     Lighter & Darker Logos
                                 </label>
                             </div>
-
+        
                             <input type="submit" value="Filter">
                         </div>
                     </form>
                 </div>
-
+        
             </div>
-
+        
             <div class="client-list-wrapper">
                 <?php
                 $args = array(
@@ -1936,7 +1941,7 @@ class AllAroundClientsDB
                             endwhile; ?>
                         </tbody>
                     </table>
-
+        
                     <!-- Pagination -->
                     <div class="pagination">
                         <?php
@@ -1959,7 +1964,7 @@ class AllAroundClientsDB
                         ));
                         ?>
                     </div>
-
+        
                     <?php wp_reset_postdata();
                 else: ?>
                     <p><?php _e('No clients found.'); ?></p>
@@ -2105,6 +2110,117 @@ class AllAroundClientsDB
 
         // Send CSV content in the response
         wp_send_json_success(array('csv' => $csv_output));
+    }
+
+
+    //** TEMP mini_url and mini_header filler functions */
+    public function add_admin_menu()
+    {
+        if (current_user_can('administrator')) { // Check if the user is an administrator
+            add_menu_page(
+                'Client Meta Filler',                // Page title
+                'Client Meta Filler',                // Menu title
+                'manage_options',                    // Capability (administrator only)
+                'client-meta-filler',                // Menu slug
+                [$this, 'admin_page_callback'],      // Callback function
+                'dashicons-admin-tools',             // Icon URL
+                6                                    // Position
+            );
+        }
+    }
+
+    // Callback for admin page display
+    public function admin_page_callback()
+    {
+        ?>
+            <div class="wrap">
+                <h1>Client Meta Filler</h1>
+                <p>Click the button below to run the client MiniSite URL and MiniSite Header meta filler process.</p>
+                <form method="post" action="">
+                    <?php submit_button('Run Meta Filler', 'primary', 'run_meta_filler'); ?>
+                </form>
+            </div>
+            <?php
+    }
+
+    // Handle button action
+    public function handle_trigger_button_action()
+    {
+        if (isset($_POST['run_meta_filler'])) {
+            $this->process_clients();
+        }
+    }
+
+    // Process each client and fill meta if empty
+    public function process_clients()
+    {
+        // Query clients of type 'company'
+        $args = [
+            'post_type' => 'client',
+            'posts_per_page' => -1,
+            'meta_query' => [
+                ['key' => 'client_type', 'value' => 'company', 'compare' => '='],
+            ],
+        ];
+
+        $clients_query = new WP_Query($args);
+        if ($clients_query->have_posts()) {
+            while ($clients_query->have_posts()) {
+                $clients_query->the_post();
+                $client_id = get_the_ID();
+
+                // Fill 'mini_header' if empty
+                $first_name = get_post_meta($client_id, 'first_name', true);
+                $last_name = get_post_meta($client_id, 'last_name', true);
+                $mini_header = get_post_meta($client_id, 'mini_header', true);
+
+                if (empty($mini_header)) {
+                    update_post_meta($client_id, 'mini_header', $first_name . ' ' . $last_name);
+                }
+
+                // Generate unique 'mini_url' if empty
+                $email = get_post_meta($client_id, 'email', true);
+                $mini_url = get_post_meta($client_id, 'mini_url', true);
+
+                if (empty($mini_url)) {
+                    $base_url = strtok($email, '@'); // Get email username
+                    $cleaned_url = str_replace('.', '-', $base_url); // Replace dots with hyphens
+                    $unique_url = $this->generate_unique_url($cleaned_url);
+
+                    update_post_meta($client_id, 'mini_url', $unique_url);
+                }
+            }
+            wp_reset_postdata();
+        }
+
+        add_action('admin_notices', function () {
+            echo '<div class="notice notice-success is-dismissible"><p>Client meta filler process completed successfully!</p></div>';
+        });
+    }
+
+    // Generate unique mini_url
+    private function generate_unique_url($base_url)
+    {
+        $counter = 0;
+        $unique_url = $base_url;
+
+        while ($this->is_url_exists($unique_url)) {
+            $counter++;
+            $unique_url = $base_url . $counter;
+        }
+        return $unique_url;
+    }
+
+    // Check if the mini_url already exists
+    private function is_url_exists($mini_url)
+    {
+        global $wpdb;
+        $query = $wpdb->prepare("
+            SELECT meta_value FROM {$wpdb->postmeta} 
+            WHERE meta_key = 'mini_url' AND meta_value = %s
+        ", $mini_url);
+
+        return $wpdb->get_var($query) !== null;
     }
 
 }

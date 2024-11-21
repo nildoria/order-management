@@ -662,10 +662,9 @@ jQuery(document).ready(function ($) {
       // ).css("opacity", "0.5");
     } else {
       // Enable the other checkboxes when No Invoice is unchecked
-      $('input[name="payment_method"], input[name="order_date"]').prop(
-        "disabled",
-        false
-      );
+      $(
+        'input[name="payment_method"], input[name="order_date"]'
+      ).prop("disabled", false);
       // Remove CSS opacity from .invoice-receipt-options and .payment-method-options
       // $(
       //   ".invoice-receipt-options, .payment-method-options, .order-date-field"

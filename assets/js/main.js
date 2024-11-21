@@ -52,8 +52,22 @@
     // Select the last element in the NodeList
     let lastItemMockupColumn = itemMockupColumns[itemMockupColumns.length - 1];
 
+    // If the column is not ready, show an alert
+    if (!lastItemMockupColumn) {
+      alert("Hey quicky! Wait for proofs to load, please.");
+      $("#send-proof-button").removeClass("ml_loading");
+      return;
+    }
+
     // Get the value of the 'data-version_number' attribute from the last <td>
     let version = lastItemMockupColumn.getAttribute("data-version_number");
+
+    // If version is missing, stop the process
+    if (!version) {
+      alert("Hey quicky! Wait for proofs to load, please.");
+      $("#send-proof-button").removeClass("ml_loading");
+      return;
+    }
 
     // set version value 1 if not set
     if (version == null) {
@@ -82,6 +96,13 @@
         }
       }
     });
+
+    // Check if imageUrls are empty
+    if (imageUrls.length === 0) {
+      alert("Hey quicky! Wait for proofs to load, please.");
+      $("#send-proof-button").removeClass("ml_loading");
+      return;
+    }
 
     let imageUrlString = imageUrls.join(",");
     console.log(imageUrlString); // Outputs: url1,url2,url3...
@@ -123,33 +144,7 @@
     };
 
     function handleResponse(data) {
-      if (data.error) {
-        Toastify({
-          text: `There was an error sending the proof: ${data.message}`,
-          className: "info",
-          gravity: "bottom", // `top` or `bottom`
-          position: "right", // `left`, `center` or `right`
-          style: {
-            background: "linear-gradient(to right, #cc3366, #a10036)",
-          },
-        }).showToast();
-      } else {
-        Toastify({
-          text: `#${orderNumber} Proof sent successfully!`,
-          duration: 3000,
-          close: true,
-          gravity: "bottom", // `top` or `bottom`
-          position: "right", // `left`, `center` or `right`
-          stopOnFocus: true, // Prevents dismissing of toast on hover
-          style: {
-            background: "linear-gradient(to right, #00b09b, #96c93d)",
-          },
-        }).showToast();
-        $("#send-proof-button").removeClass("ml_loading");
-        setTimeout(function () {
-          location.reload();
-        }, 1200);
-      }
+      console.log("handleResponse log:", data);
     }
 
     let proof_api = "";
@@ -170,18 +165,68 @@
       },
       body: JSON.stringify(data),
     })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((errData) => {
+            throw new Error(errData.message || "Failed to send proof.");
+          });
+        }
+        return response.json();
+      })
       .then((data) => {
-        // add the post url to the webhook data
-        webhookData.post_url = data.post_url;
+        console.log("Success:", data);
 
-        // Call the function to send data to the webhook
-        sendDataToWebhook(webhookData);
-        ml_send_ajax(requestData, handleResponse);
+        if (data.success) {
+          // Extract and use the returned data
+          webhookData.post_url = data.post_url; // Assuming `post_url` exists in response
+          webhookData.message = data.message || "Proof sent successfully";
+
+          // Call the function to send data to the webhook
+          sendDataToWebhook(webhookData);
+
+          // Trigger additional AJAX request to update proof status
+          ml_send_ajax(requestData, handleResponse);
+
+          // Show a success toast
+          Toastify({
+            text: `#${orderNumber} Proof sent successfully!`,
+            duration: 3000,
+            close: true,
+            gravity: "bottom", // `top` or `bottom`
+            position: "right", // `left`, `center` or `right`
+            stopOnFocus: true, // Prevents dismissing of toast on hover
+            style: {
+              background: "linear-gradient(to right, #00b09b, #96c93d)",
+            },
+          }).showToast();
+
+          $("#send-proof-button").removeClass("ml_loading");
+
+          // Optionally reload the page after a short delay
+          setTimeout(function () {
+            location.reload();
+          }, 2000);
+        } else {
+          // Handle cases where the response is not successful
+          throw new Error(data.message || "Unknown error occurred.");
+        }
       })
       .catch((error) => {
         console.error("Error:", error);
-        alert("There was an error sending the proof.");
+
+        // Show an error toast
+        Toastify({
+          text: `Error: ${error.message}`,
+          className: "info",
+          gravity: "bottom", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          style: {
+            background: "linear-gradient(to right, #cc3366, #a10036)",
+          },
+        }).showToast();
+
+        alert("There was an error sending the proof. Please try again.");
+        $("#send-proof-button").removeClass("ml_loading");
       });
   });
 
@@ -1096,8 +1141,8 @@
     dropdown.closest(".form-group").hide();
   }
 
-  // ********** Sending Data to Make.com Webhook **********//
-  function sendDataToWebhook(data) {
+  // ********** Sending Data to Make.com Webhook with Retry **********//
+  function sendDataToWebhook(data, retryCount = 3) {
     let root_domain = allaround_vars.redirecturl;
     let webhook_url;
 
@@ -1144,8 +1189,18 @@
         }).showToast();
       })
       .catch((error) => {
-        alert("Error sending data to webhook: " + error.message);
         console.error("Error sending data to webhook:", error);
+
+        if (retryCount > 0) {
+          console.log(`Retrying... Attempts remaining: ${retryCount}`);
+          // Retry after a short delay
+          setTimeout(() => {
+            sendDataToWebhook(data, retryCount - 1);
+          }, 2000); // Retry after 2 seconds
+        } else {
+          alert("Failed to send data to webhook after multiple attempts.");
+          console.error("Final error after retries:", error);
+        }
       });
   }
 
@@ -1631,84 +1686,34 @@
             new_order.push($(this).attr("id"));
           });
 
-          let order_id = allaround_vars.order_id;
-          let order_domain = allaround_vars.order_domain;
+          let post_id = allaround_vars.post_id;
 
           console.log("New Order:", new_order);
-          console.log("Order ID:", order_id);
-
-          let app_user, app_password;
-
-          switch (order_domain) {
-            case "https://allaround.co.il":
-              app_user = "admin";
-              app_password = "w2iX Qy2i OwVz bbj0 e3uL OH1C";
-              break;
-            case "https://sites.allaround.co.il":
-              app_user = "minisiteAdmin";
-              app_password = "uBaB oReq HHa7 9zIv BOdO OVMU";
-              break;
-            case "https://main.lukpaluk.xyz":
-              app_user = "admin";
-              app_password = "CT5Z jFxJ xUui TKtJ 8NoH EFNw";
-              break;
-            case "https://min.lukpaluk.xyz":
-              app_user = "minisiteAdmin";
-              app_password = "mXQU CLXY KIZe vSXX O4ud W8Ag";
-              break;
-            case "https://allaround.test":
-              app_user = "sabbir";
-              app_password = "7nyo my3s LbEG b29L CM3D EenF";
-              break;
-            case "https://localhost/ministore":
-              app_user = "admin";
-              app_password = "SmkV fgPh 6YLr pEnQ 5yW4 SQQk";
-              break;
-            default:
-              order_domain = "https://allaround.co.il";
-              app_user = "admin";
-              app_password = "w2iX Qy2i OwVz bbj0 e3uL OH1C";
-              break;
-          }
-
-          let requestData = {
-            action: "update_order_transient",
-            order_id: order_id,
-          };
-
-          function handleResponse() {
-            Toastify({
-              text: `Items Rearranged successfully!`,
-              duration: 3000,
-              close: true,
-              gravity: "bottom", // `top` or `bottom`
-              position: "right", // `left`, `center` or `right`
-              stopOnFocus: true, // Prevents dismissing of toast on hover
-              style: {
-                background: "linear-gradient(to right, #00b09b, #96c93d)",
-              },
-            }).showToast();
-
-            // location.reload();
-          }
 
           $.ajax({
-            url: `${order_domain}/wp-json/update-order/v1/rearrange-order-items`,
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-              order_id: order_id,
+            url: allaround_vars.ajax_url,
+            method: "POST",
+            data: {
+              action: "rearrange_items",
+              post_id: post_id,
               new_order: new_order,
-            }),
-            beforeSend: function (xhr) {
-              let auth = btoa(app_user + ":" + app_password);
-              xhr.setRequestHeader("Authorization", "Basic " + auth);
+              nonce: allaround_vars.nonce,
             },
             success: function (response) {
-              console.log("Response:", response);
               if (response.success) {
                 // alert(response.message);
-                ml_send_ajax(requestData, handleResponse);
+                Toastify({
+                  text: `Items Rearranged successfully!`,
+                  duration: 3000,
+                  close: true,
+                  gravity: "bottom", // `top` or `bottom`
+                  position: "right", // `left`, `center` or `right`
+                  stopOnFocus: true, // Prevents dismissing of toast on hover
+                  style: {
+                    background: "linear-gradient(to right, #00b09b, #96c93d)",
+                  },
+                }).showToast();
+                console.log("Response:", response.data);
               } else {
                 alert("Error: " + response.message);
                 console.log("Error:", response);
@@ -1925,6 +1930,7 @@
 
   $("#printLabelSendWebhook").on("click", function () {
     let order_id = allaround_vars.order_id;
+    let post_id = allaround_vars.post_id;
     let root_domain = allaround_vars.redirecturl;
 
     // Gather shipping details from input fields
@@ -1994,6 +2000,26 @@
           background: "linear-gradient(to right, #00b09b, #96c93d)",
         },
       }).showToast();
+
+      // Disable the button after success
+      $("#printLabelOpenModal").prop("disabled", true);
+
+      // Add _print_label_done meta to the order via AJAX
+      $.ajax({
+        url: allaround_vars.ajax_url,
+        type: "POST",
+        data: {
+          action: "add_print_label_meta",
+          post_id: post_id,
+          nonce: allaround_vars.nonce,
+        },
+        success: function (metaResponse) {
+          console.log("Meta updated successfully:", metaResponse);
+        },
+        error: function (xhr, status, error) {
+          console.error("Error updating meta:", error);
+        },
+      });
     }
 
     // AJAX request to send the data to the webhook
@@ -2203,7 +2229,6 @@
   $("#mockupApproved").on("click", function () {
     let order_id = allaround_vars.order_id;
     let root_domain = allaround_vars.redirecturl;
-    // let proof_url = proof_url = $('.om_artwork_url').attr('href');
 
     $(this).addClass("ml_loading");
 
@@ -2308,7 +2333,7 @@
       // Disable OM events if status is 'completed' or 'static'
       if (orderStatus === "completed" || orderStatus === "static") {
         $(".om__orderShippingDetails").hide();
-        $(".om__companyLogoUpload").hide();
+        // $(".om__companyLogoUpload").hide();
         $(".om__ordernoteContainer").hide();
 
         // $("#order_mngmnt_headings").css("pointer-events", "none");
@@ -2334,14 +2359,14 @@
         let post_id = $("input[name='post_id']").val();
 
         $.ajax({
-          url: allaround_vars.ajax_url, // Assuming this holds the correct ajax URL
+          url: allaround_vars.ajax_url,
           type: "POST",
           data: {
             action: "save_printing_note",
             item_id: item_id,
             printing_note: printing_note,
             post_id: post_id,
-            nonce: allaround_vars.nonce, // Pass the nonce for security
+            nonce: allaround_vars.nonce,
           },
           success: function (response) {
             if (response.success) {
@@ -2353,6 +2378,71 @@
           error: function (xhr, status, error) {
             console.log(xhr.responseText);
             alert("An error occurred.");
+          },
+        });
+      });
+
+      // Function to update button text based on selected items
+      function updateButtonText() {
+        const selectedItems = $(".combine-item-checkbox:checked");
+        const allCheckedHaveDisabled =
+          selectedItems.length > 0 &&
+          selectedItems.filter(".checked").length === selectedItems.length;
+
+        if (allCheckedHaveDisabled) {
+          $("#combine-items-button").text("Enable Items");
+        } else {
+          $("#combine-items-button").text("Disable Items");
+        }
+      }
+
+      // Listen for checkbox changes to update the button text
+      $(".combine-item-checkbox").on("change", updateButtonText);
+
+      // Combine items button click event
+      $("#combine-items-button").on("click", function () {
+        const selectedItems = [];
+        const post_id = $('input[name="post_id"]').val();
+
+        $(".combine-item-checkbox:checked").each(function () {
+          selectedItems.push($(this).val());
+        });
+
+        if (selectedItems.length < 1) {
+          alert("Please select at least one item.");
+          return;
+        }
+
+        console.log("Selected Items:", selectedItems);
+        console.log("Post ID:", post_id);
+
+        $.ajax({
+          url: allaround_vars.ajax_url,
+          method: "POST",
+          data: {
+            action: "combine_items",
+            post_id: post_id,
+            item_ids: selectedItems,
+            nonce: allaround_vars.nonce,
+          },
+          success: function (response) {
+            if (response.success) {
+              alert(response.data.message); // Show success message
+              location.reload(); // Reload the page to reflect changes
+            } else {
+              alert(response.data.message); // Show error message
+            }
+          },
+          error: function (xhr, status, error) {
+            let errorMessage = "An error occurred while combining the items.";
+            if (
+              xhr.responseJSON &&
+              xhr.responseJSON.data &&
+              xhr.responseJSON.data.message
+            ) {
+              errorMessage = xhr.responseJSON.data.message;
+            }
+            alert(errorMessage); // Show the JSON error message
           },
         });
       });
@@ -2687,6 +2777,18 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .then((responses) => {
         tableBody.style.pointerEvents = "all";
+
+        // Check if there are multiple file paths in the response
+        if (responses.length > 1) {
+          // Add the gallery icon to the top of .item_mockup_column
+          const galleryIcon = document.createElement("span");
+          galleryIcon.className = "mock-gallery-span";
+          galleryIcon.innerHTML =
+            '<span class="dashicons dashicons-format-gallery"></span>';
+
+          // Insert the gallery icon at the beginning of the mockup column
+          mockupColumn.insertAdjacentElement("afterbegin", galleryIcon);
+        }
 
         responses.forEach((data, index) => {
           if (data.success && data.file_path) {

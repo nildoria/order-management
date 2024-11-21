@@ -46,6 +46,10 @@ $clients = $createOrder->fetch_clients_data();
         // Get the corresponding text
         $order_source_text = isset($order_source_options[$order_source_value]) ? $order_source_options[$order_source_value] : 'Unknown';
 
+        $print_label_done = get_post_meta($current_id, '_print_label_done', true);
+        $disabled_attr = ($print_label_done === 'yes' && !is_current_user_admin()) ? 'disabled' : '';
+        $title_attr = ($print_label_done === 'yes') ? 'data-title="Print Label Done"' : '';
+
         $order_manage_general_comment = get_post_meta($current_id, '_order_manage_general_comment', true);
         $order_extra_attachments = get_post_meta($current_id, '_order_extra_attachments', true);
 
@@ -707,11 +711,11 @@ $clients = $createOrder->fetch_clients_data();
                     
                     <?php if (is_current_user_author() || is_current_user_admin() || is_current_user_editor()): ?>
                         <button type="button" class="allarnd--regular-button ml_add_loading"
-                            id="printLabelOpenModal"><?php echo esc_html__('Print Label', 'hello-elementor'); ?></button>
+                            id="printLabelOpenModal" <?php echo $disabled_attr; ?> <?php echo $title_attr; ?>><?php echo esc_html__('Print Label', 'hello-elementor'); ?></button>
                         <div id="printLabelConfirmationModal" class="om__ConfirmationModal mfp-hide">
                             <h5>Are you sure the order is 100% finalized? </h5>
                             <p>Please re-check all the order.</p>
-                            <button type="button" class="allarnd--regular-button ml_add_loading" id="printLabelSendWebhook"><?php echo esc_html__('YES - IT\'S READY', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button ml_add_loading" id="printLabelSendWebhook" <?php echo $disabled_attr; ?> <?php echo $title_attr; ?>><?php echo esc_html__('YES - IT\'S READY', 'hello-elementor'); ?></button>
                             <button type="button" class="allarnd--regular-button" id="printLabelCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
                         </div>
                     <?php endif; ?>

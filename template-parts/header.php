@@ -65,7 +65,13 @@ $header_nav_menu = wp_nav_menu([
 					<?php echo $header_nav_menu; ?>
 				</nav>
 			<?php endif; ?>
-
+			<?php if (is_current_user_contributor()): ?>
+				<nav class="site-navigation designer-nav" role="navigation">
+					<ul>
+						<li><a href="<?php echo esc_url(home_url('/')); ?>clients-without-logo">Clients Without Logos</a></li>
+					</ul>
+				</nav>
+			<?php endif; ?>
 		<?php endif; ?>
 	</header>
 

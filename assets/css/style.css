@@ -91,10 +91,12 @@ td.printing_note_column:focus-within button.save_printing_note, td.printing_note
     opacity: 1;
     top: 12px;
 }
+
 body:not(.om__administrator) td.printing_note_column {
     vertical-align: middle;
     text-align: center;
 }
+
 .printing_note_column .printing_note_textarea {
     width: 100%;
     padding: 10px;
@@ -1974,13 +1976,15 @@ main#om__searchOrderPage {
     flex: 1;
     width: 50%;
     display: flex;
-    flex-direction: column;
+    /* flex-direction: column; */
     gap: 15px;
+    align-items: center;
 }
 .filter-wrapper-order-search .filter-group label.bold {
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 5px;
+    min-width: 90px;
 }
 .filter-wrapper-order-search #logo-filter {
     display: flex;
@@ -2045,6 +2049,158 @@ td.item_mockup_column.last_send_version {
   background-color: #d0d0d0;
 }
 /* MLimon CSS END */
+
+/* Combine Items CSS */
+.om__combine_input {
+    position: absolute;
+    left: -30px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.om__combine_input input.combine-item-checkbox {
+    width: 20px;
+    height: 20px;
+}
+body.om__administrator .om_table_wraper table#tableMain {
+    padding-left: 30px;
+}
+tr.om__orderRow.disabled-item td.printing_note_column, tr.om__orderRow.disabled-item td.item_graphics_column, tr.om__orderRow.disabled-item td.item_mockup_column, tr.om__orderRow.disabled-item td.no-mockup-state {
+  position: relative;
+}
+tr.om__orderRow.disabled-item td.printing_note_column:before, tr.om__orderRow.disabled-item td.item_graphics_column:before, tr.om__orderRow.disabled-item td.item_mockup_column:before, tr.om__orderRow.disabled-item td.no-mockup-state:before {
+    background-color: #ddd;
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: calc(100% + 0px);
+    top: 0px;
+    left: 0px;
+    z-index: 99;
+}
+tr.om__orderRow.disabled-item .item_graphics_column::after {
+    content: "";
+    position: absolute;
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 10px solid #ddd;
+    margin-right: 5px;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+tr.om__orderRow.disabled-item:last-child > td:last-child {
+    /* border-radius: 0; */
+}
+.om__afterTable_buttonSet {
+    margin-top: 15px;
+}
+.om__afterTable_buttonSet > button {
+    margin-right: 10px;
+    margin-bottom: 15px;
+}
+/* Combine Items CSS END */
+
+.ui-widget.ui-widget-content {
+    width: 350px;
+}
+.ui-datepicker .ui-datepicker-title {
+    display: flex;
+    justify-content: center;
+}
+.ui-datepicker .ui-datepicker-prev, .ui-datepicker .ui-datepicker-next {
+    top: 10px !important;
+}
+#year-select, #month-select {
+    /*display: none;*/
+}
+
+.site-navigation.designer-nav ul {
+    list-style: none;
+    padding: 0;
+}
+.site-navigation.designer-nav ul li {
+    display: inline-block;
+}
+.site-navigation.designer-nav ul li a {
+    color: #fff;
+}
+.ui-datepicker-buttonpane .ui-datepicker-current.ui-priority-secondary {
+    display: none;
+}
+#loading-indicator {
+    position: fixed;
+    height: 100vh;
+    width: 100%;
+    left: 0;
+    top: 0;
+    z-index: 99;
+    background-color: rgba(255,255,255, 0.5);
+}
+.loading-indicator-inner {
+  color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.allarnd--regular-button[data-title] {
+  position: relative;
+  cursor: help;
+}
+
+.allarnd--regular-button[data-title]:hover::before {
+  content: attr(data-title);
+  position: absolute;
+  bottom: -26px;
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 2px;
+  background: #000;
+  color: #fff;
+  font-size: 12px;
+  font-family: sans-serif;
+  white-space: nowrap;
+  left: 0px;
+  border-radius: 5px;
+}
+.allarnd--regular-button[data-title]:hover::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 8px;
+  display: inline-block;
+  color: #fff;
+  border: 8px solid transparent;	
+  border-bottom: 8px solid #000;
+}
+.om_agent_sale_page {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+}
+.om__sales_by_month, .om__sales_by_days {
+    flex: 1;
+}
+.om_agent_page_header {
+  padding-top: 40px;
+  text-align: center;
+  padding-bottom: 20px;
+}
+
+.om__sales_by_month ul, .om__sales_by_days ul {
+    list-style: none;
+    padding: 0;
+}
+.om__sales_by_month ul li, .om__sales_by_days ul li {
+    display: block;
+    line-height: 1.8;
+}
 
 /*Responsive CSS*/
 
