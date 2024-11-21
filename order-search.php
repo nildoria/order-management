@@ -9,6 +9,10 @@ restrict_access_to_logged_in_users();
 
 ?>
 <main id="om__searchOrderPage" class="site-main" role="main">
+    <div id="loading-indicator" style="display:none;">
+        <div class="loading-indicator-inner">Loading...</div>
+    </div>
+
     <div id="post-search">
         <h2>Filter Orders</h2>
         <!-- Search Field -->
@@ -74,6 +78,9 @@ restrict_access_to_logged_in_users();
                 <option value="12">December</option>
             </select>
 
+            <!-- Day Filter -->
+            <input type="text" id="day-select" placeholder="Select Year / Month / Day" autocomplete="off">
+
             <select id="order-source-select">
                 <option value="">Select Source</option>
                 <option value="mainSite_order">MainSite Order</option>
@@ -95,6 +102,64 @@ restrict_access_to_logged_in_users();
 <script>
     jQuery(document).ready(function ($) {
         let debounceTimer;
+        // Custom handler function
+        var setCalsClearButton = function(year,month,elem){
+
+            var afterShow = function(){
+                var d = new $.Deferred();
+                var cnt = 0;
+                setTimeout(function(){
+                    if(elem.dpDiv[0].style.display === "block"){
+                        d.resolve();
+                    }
+                    if(cnt >= 500){
+                        d.reject("datepicker show timeout");
+                    }
+                    cnt++;
+                },10);
+                return d.promise();
+            }();
+
+            afterShow.done(function(){
+                $('.ui-datepicker').css('z-index', 2000);
+
+                var buttonPane = $( elem ).datepicker( "widget" ).find( ".ui-datepicker-buttonpane" );
+
+                var btn = $('<button class="ui-datepicker-current ui-state-default ui-priority-primary ui-corner-all" type="button">Clear</button>');
+                btn.off("click").on("click", function () {
+                    $.datepicker._clearDate( elem.input[0] );
+                });
+                btn.appendTo( buttonPane );
+            });
+        }
+        // Initialize datepicker for day selection
+        $('#day-select').datepicker({
+            dateFormat: 'yy-mm-dd', // Set date format for easy backend parsing
+            changeMonth: true, // Enable month dropdown
+            changeYear: true,  // Enable year dropdown
+            showButtonPanel: true,
+            beforeShow : function(inst, elem){
+                setCalsClearButton(null, null, elem);
+            },
+            onChangeMonthYear: setCalsClearButton,
+            onChangeMonthYear: function (year, month, inst) {
+                // Format month and year as "YYYY-MM" and set it in #day-select field
+                const formattedMonthYear = `${year}-${String(month).padStart(2, '0')}`;
+                
+                // Update the #day-select field with the selected month and year
+                $('#day-select').val(formattedMonthYear);
+                // Update the #year-select and #month-select dropdowns based on Datepicker month/year selection
+                $('#year-select').val(year); // Set the year in the dropdown
+                $('#month-select').val(String(month).padStart(2, '0')); // Set the month in the dropdown, padded to 2 digits
+
+                toggleDateFields();
+                fetchPosts(); // Trigger filtering as soon as the month or year changes
+            },
+            onSelect: function (dateText) {
+                toggleDateFields();
+                fetchPosts(); // Fetch posts when a full date (day included) is selected
+            }
+        });
 
         function fetchPosts() {
             const searchQuery = $('#search-field').val();
@@ -104,6 +169,10 @@ restrict_access_to_logged_in_users();
             const selectedMonth = $('#month-select').val(); // Get the selected month
             const orderSource = $('#order-source-select').val(); // Get the selected order source
             const selectedYear = $('#year-select').val();
+            const selectedDay = $('#day-select').val();
+
+            // Show the loading indicator
+            $('#loading-indicator').show();
 
             $.ajax({
                 url: '<?php echo admin_url('admin-ajax.php'); ?>',
@@ -114,12 +183,24 @@ restrict_access_to_logged_in_users();
                     order_status: orderStatus,
                     order_type: orderType,
                     logo_filter: logoFilter,
-                    month: selectedMonth, // Pass the selected month
+                    month: selectedMonth,
                     year: selectedYear,
-                    order_source: orderSource // Pass the selected order source
+                    order_source: orderSource,
+                    day: selectedDay
+                },
+                beforeSend: function () {
+                    // Optionally, show a loading state before the request starts
+                    $('#loading-indicator .loading-indicator-inner').text('Fetching data, please wait...');
                 },
                 success: function (response) {
                     $('#post-list').html(response);
+                },
+                error: function () {
+                    $('#post-list').html('<p>An error occurred while fetching data. Please try again.</p>');
+                },
+                complete: function () {
+                    // Hide the loading indicator when the request is complete
+                    $('#loading-indicator').hide();
                 }
             });
         }
@@ -128,6 +209,29 @@ restrict_access_to_logged_in_users();
         $('#month-select, #order-source-select, #year-select').on('change', function () {
             fetchPosts(); // Fetch posts when month or order source changes
         });
+
+        function toggleDateFields() {
+            const selectedDay = $('#day-select').val();
+
+            if (selectedDay !== '') {
+                // If #day-select is not empty, disable #year-select and #month-select
+                $('#year-select').attr('disabled', 'disabled').addClass('disabled');
+                $('#month-select').attr('disabled', 'disabled').addClass('disabled');
+            } else {
+                // If #day-select is empty, enable #year-select and #month-select
+                $('#year-select').removeAttr('disabled').removeClass('disabled');
+                $('#month-select').removeAttr('disabled').removeClass('disabled');
+            }
+        }
+
+        // Trigger the toggleDateFields function when #day-select changes
+        $('#day-select').on('change', function () {
+            fetchPosts(); // Fetch posts when the day is selected or cleared
+        });
+
+        // Initial check when the page loads
+        toggleDateFields();
+
 
 
         // Search functionality with debounce

@@ -458,6 +458,17 @@ function change_post_type_labels()
 add_action('init', 'change_post_type_labels');
 
 
+/**
+ * Change Author slug to Agent
+ */
+function change_author_slug_to_agent()
+{
+    global $wp_rewrite;
+    $wp_rewrite->author_base = 'agent'; // Change 'author' to 'agent'
+    $wp_rewrite->flush_rules(); // Flush rewrite rules
+}
+add_action('init', 'change_author_slug_to_agent');
+
 
 function add_cors_http_header()
 {
@@ -1072,6 +1083,7 @@ function order_details_metabox_content($post)
     $payment_method = get_post_meta($post->ID, 'payment_method', true);
     $payment_method_title = get_post_meta($post->ID, 'payment_method_title', true);
     $order_site_url = get_post_meta($post->ID, 'site_url', true);
+    $order_total = get_post_meta($post->ID, 'order_total', true);
 
 
     echo '<label for="order_id">Order ID:</label>';
@@ -1102,7 +1114,10 @@ function order_details_metabox_content($post)
     echo '<option value="miniSite_order" ' . selected($order_source, 'miniSite_order', false) . '>Mini Site</option>';
     echo '<option value="manual_order" ' . selected($order_source, 'manual_order', false) . '>Manual Order</option>';
     echo '<option value="flashSale_order" ' . selected($order_source, 'flashSale_order', false) . '>FlashSale Order</option>';
-    echo '</select>';
+    echo '</select><br><br>';
+
+    echo '<label for="order_total">Order Total:</label>';
+    echo '<input type="text" readonly id="order_total" name="order_total" value="' . esc_attr($order_total) . '" /><br>';
 
     // Display Ordered Items
     echo '<h3>Ordered Items</h3>';
@@ -1186,6 +1201,10 @@ function save_order_details_meta($post_id)
 
     if (isset($_POST['order_source'])) {
         update_post_meta($post_id, 'order_source', sanitize_text_field($_POST['order_source']));
+    }
+
+    if (isset($_POST['order_total'])) {
+        update_post_meta($post_id, 'order_total', sanitize_text_field($_POST['order_total']));
     }
 
     if (isset($_POST['items'])) {
@@ -1298,6 +1317,7 @@ function create_order(WP_REST_Request $request)
     update_post_meta($post_id, 'order_number', $order_number);
     update_post_meta($post_id, 'shipping_method', $shipping_method_id);
     update_post_meta($post_id, 'shipping_method_title', $shipping_method_title);
+    update_post_meta($post_id, 'order_total', $total_price);
     update_post_meta($post_id, 'items', isset($order_data['items']) ? $order_data['items'] : $order_data['line_items']);
     update_post_meta($post_id, 'billing', $order_data['billing'] ? $order_data['billing'] : []);
     update_post_meta($post_id, 'shipping', $order_data['shipping'] ? $order_data['shipping'] : []);
@@ -1827,10 +1847,16 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     $shipping_total = $order_data['shipping_total'];
     $shipping_text = $order->shipping_lines[0]->method_title;
     $shipping_method_id = $order->shipping_lines[0]->method_id;
+    $order_total = $order->total;
 
     $shipping_method_title = get_post_meta($post_id, 'shipping_method_title', true);
     $shipping_method_value = get_post_meta($post_id, 'shipping_method', true);
     $order_status_meta = get_post_meta($post_id, 'order_status', true);
+    $order_total_meta = get_post_meta($post_id, 'order_total', true);
+
+    if ($order_total !== $order_total_meta) {
+        update_post_meta($post_id, 'order_total', $order_total);
+    }
     // if shipping_method_value is empty then update it with shipping_method_id
     if (empty($shipping_method_value)) {
         update_post_meta($post_id, 'shipping_method', $shipping_method_id);
@@ -1852,6 +1878,36 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     // Call the separate function to update items meta
     update_new_items($order->line_items, $items, $post_id);
 
+    // Retrieve saved item order from meta
+    $saved_order = get_post_meta($post_id, '_order_item_order', true);
+
+    // Fetch items from the API response
+    $fetched_items = $order->line_items;
+
+    // Reorder items based on the saved order if it exists
+    if (is_array($saved_order) && !empty($saved_order)) {
+        $ordered_items = [];
+
+        // Add items in the saved order
+        foreach ($saved_order as $item_id) {
+            foreach ($fetched_items as $item) {
+                if ($item->id == $item_id) {
+                    $ordered_items[] = $item;
+                    break;
+                }
+            }
+        }
+
+        // Add remaining items that weren't in the saved order
+        foreach ($fetched_items as $item) {
+            if (!in_array($item->id, $saved_order)) {
+                $ordered_items[] = $item;
+            }
+        }
+
+        $fetched_items = $ordered_items;
+    }
+
     // Display the table with items (from existing meta or fetched items)
     ob_start();
 
@@ -1863,21 +1919,26 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     endif;
     if (!is_current_user_author()):
         echo '<th class="head"><strong>Printing Note</strong></th>';
-        echo '<th class="head"><strong>Graphics</strong></th>';
+    	echo '<th class="head"><strong>Graphics</strong></th>';
     endif;
     echo '<th class="head mockup-head" colspan=""><strong>Mockups</strong></th>';
     echo '</tr></thead><tbody>';
 
-    foreach ($order->line_items as $item) {
+    foreach ($fetched_items as $item) {
 
         $item_id = esc_attr($item->id);
         $product_id = esc_attr($item->product_id);
+        $is_disabled = false;
 
         // Retrieve printing_note for the current product_id
         $printing_note = '';
         if (!empty($items)) {
             foreach ($items as $saved_item) {
                 if (isset($saved_item['item_id']) && $saved_item['item_id'] == $item_id) {
+                    // Check if the item has graphics and mockups disabled
+                    $is_disabled = (isset($saved_item['graphics']) && $saved_item['graphics'] === 'disabled') ||
+                        (isset($saved_item['mockups']) && $saved_item['mockups'] === 'disabled');
+
                     if (isset($saved_item['printing_note'])) {
                         $printing_note = $saved_item['printing_note'];
                     }
@@ -1885,9 +1946,14 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             }
         }
 
-        echo '<tr class="om__orderRow" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
+        // Apply a disabled class if the item is marked as disabled
+        $disabled_class = $is_disabled ? 'disabled-item' : '';
+
+        echo '<tr class="om__orderRow ' . esc_attr($disabled_class) . '" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
         echo '<td class="item_product_column">';
         if (is_current_user_admin()):
+            // Add a checkbox before each item row
+            echo '<span class="om__combine_input"><input type="checkbox" class="combine-item-checkbox' . ($is_disabled ? ' checked' : '') . '" name="combine_items[]" value="' . esc_attr($item_id) . '" ></span>';
             echo '<span class="om__editItemMeta" title="Edit" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
             echo '<span class="om_duplicate_item" title="Duplicate"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="duplicate-icon" d="M10.5003 3.49996V1.74996C10.5003 1.59525 10.4389 1.44688 10.3295 1.33748C10.2201 1.22808 10.0717 1.16663 9.91699 1.16663H1.75033C1.59562 1.16663 1.44724 1.22808 1.33785 1.33748C1.22845 1.44688 1.16699 1.59525 1.16699 1.74996V9.91663C1.16699 10.0713 1.22845 10.2197 1.33785 10.3291C1.44724 10.4385 1.59562 10.5 1.75033 10.5H3.50033V12.25C3.50033 12.4047 3.56178 12.553 3.67118 12.6624C3.78058 12.7718 3.92895 12.8333 4.08366 12.8333H12.2503C12.405 12.8333 12.5534 12.7718 12.6628 12.6624C12.7722 12.553 12.8337 12.4047 12.8337 12.25V4.08329C12.8337 3.92858 12.7722 3.78021 12.6628 3.67081C12.5534 3.56142 12.405 3.49996 12.2503 3.49996H10.5003ZM2.33366 9.33329V2.33329H9.33366V9.33329H2.33366ZM11.667 11.6666H4.66699V10.5H9.91699C10.0717 10.5 10.2201 10.4385 10.3295 10.3291C10.4389 10.2197 10.5003 10.0713 10.5003 9.91663V4.66663H11.667V11.6666Z" fill="#1A1A1A"/></svg></span>';
             echo '<span class="om_delete_item" title="Delete"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></span>';
@@ -2001,7 +2067,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '</span>';
             echo '</span>';
             echo '</td>';
-
+            
             // Printing Note Column with textarea field
             echo '<td class="printing_note_column">';
             echo '<textarea class="printing_note_textarea" data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</textarea>';
@@ -2010,45 +2076,45 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         } else if (is_current_user_contributor()) {
             // Printing Note Column with text for designers
             echo '<td class="printing_note_column">';
-            echo '<span class="printing_note_text" data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</span>';
+            echo '<textarea class="printing_note_textarea printing_note_text" readonly data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</textarea>';
             echo '</td>';
         } else if (is_current_user_author()) {
             echo '<td class="item_quantity_column">';
             echo '<span class="om__itemQuantity om_onlyQuantity">' . esc_attr($item->quantity) . '</span>';
             echo '</td>';
         }
-        if (!is_current_user_author()) {
-            echo '<td class="item_graphics_column">';
-            $artworkFound = false;
-            foreach ($item->meta_data as $meta) {
-                if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
-                    $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
-                    if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
-                        $filename = $matches[1];
-                        $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
-                        $class_name = 'file-format-' . strtolower($file_extension);
-                    } else {
-                        $class_name = 'file-format-unknown';
-                    }
-                    $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                    $artworkEdit = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
-                    $artworkDelete = '<label class="om__DeleteArtwork" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></label>';
-                    $artworkFileupload = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" style="display:none" />';
-                    $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $artworkDelete . $artworkEdit . $artworkFileupload . $value . '</div>';
-                    echo $value;
-                    $artworkFound = true;
+		if (!is_current_user_author()) {
+        echo '<td class="item_graphics_column">';
+        $artworkFound = false;
+        foreach ($item->meta_data as $meta) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
+                $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
+                if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
+                    $filename = $matches[1];
+                    $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
+                    $class_name = 'file-format-' . strtolower($file_extension);
+                } else {
+                    $class_name = 'file-format-unknown';
                 }
+                $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
+                $artworkEdit = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
+                $artworkDelete = '<label class="om__DeleteArtwork" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></label>';
+                $artworkFileupload = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" style="display:none" />';
+                $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $artworkDelete . $artworkEdit . $artworkFileupload . $value . '</div>';
+                echo $value;
+                $artworkFound = true;
+            }
 
-            }
-            if (!$artworkFound) {
-                echo '<div class="uploaded_graphics">';
-                echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
-                echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
-                echo '<span class="no_artwork_text">No Artwork Attached</span>';
-                echo '</div>';
-            }
-            echo '</td>';
         }
+        if (!$artworkFound) {
+            echo '<div class="uploaded_graphics">';
+            echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
+            echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
+            echo '<span class="no_artwork_text">No Artwork Attached</span>';
+            echo '</div>';
+        }
+        echo '</td>';
+		}
         echo '</tr>';
     }
     echo '</tbody><tfoot>';
@@ -2067,6 +2133,12 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         echo '</tr>';
     endif;
     echo '</tfoot></table>';
+
+    if (is_current_user_admin()):
+    // Add submit button after the table
+    echo '<button type="button" id="combine-items-button" class="allarnd--regular-button ml_add_loading">Disable Items</button>';
+    endif;
+	
     echo '<input type="hidden" name="order_id" value="' . esc_attr($order_id) . '">';
     echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
 
@@ -2538,19 +2610,110 @@ add_action('wp_ajax_save_printing_note', 'save_printing_note');
 add_action('wp_ajax_nopriv_save_printing_note', 'save_printing_note');
 
 
+// ** Combine Items Function ** //
+function combine_items()
+{
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : '';
+    $item_ids = isset($_POST['item_ids']) ? $_POST['item_ids'] : '';
+
+    if (empty($item_ids) || !is_array($item_ids) || count($item_ids) < 1) {
+        wp_send_json_error(['message' => 'You must select at least one items.']);
+    }
+
+    // Fetch current items meta
+    $items = get_post_meta($post_id, 'items', true);
+    if (!is_array($items)) {
+        $items = maybe_unserialize($items);
+    }
+
+    if (!is_array($items)) {
+        wp_send_json_error(['message' => 'Invalid items meta format.']);
+    }
+
+    // Determine if all selected items are already disabled
+    $all_disabled = true;
+    foreach ($items as $item) {
+        if (
+            in_array($item['item_id'], $item_ids) &&
+            (empty($item['graphics']) || $item['graphics'] !== 'disabled')
+        ) {
+            $all_disabled = false;
+            break;
+        }
+    }
+
+    // Toggle disabled state based on current state
+    foreach ($items as &$item) {
+        if (in_array($item['item_id'], $item_ids)) {
+            if ($all_disabled) {
+                // Enable item if all selected items were disabled
+                $item['graphics'] = 'active';
+                $item['mockups'] = 'active';
+            } else {
+                // Disable item if there is a mix of disabled and enabled
+                $item['graphics'] = 'disabled';
+                $item['mockups'] = 'disabled';
+            }
+        }
+    }
+
+    // Save updated meta
+    update_post_meta($post_id, 'items', $items);
+
+    $message = $all_disabled ? 'Items enabled successfully!' : 'Items disabled successfully!';
+    wp_send_json_success(['message' => $message]);
+}
+add_action('wp_ajax_combine_items', 'combine_items');
+add_action('wp_ajax_nopriv_combine_items', 'combine_items');
+
+
+// ** Rearrange Items Function ** //
+function rearrange_items()
+{
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : '';
+    $new_order = isset($_POST['new_order']) ? $_POST['new_order'] : [];
+
+    if (empty($post_id) || empty($new_order)) {
+        wp_send_json_error(['message' => 'Invalid request data.']);
+    }
+
+    // Save the new order of item IDs as a serialized array in a new meta field
+    update_post_meta($post_id, '_order_item_order', $new_order);
+
+    wp_send_json_success(['message' => 'Items rearranged successfully!']);
+}
+add_action('wp_ajax_rearrange_items', 'rearrange_items');
+add_action('wp_ajax_nopriv_rearrange_items', 'rearrange_items');
+
+
 function update_new_items($order_items, $items, $post_id)
 {
-    // Check for new items in the order that are not in the meta
     $updated = false;
+
     foreach ($order_items as $order_item) {
         $item_id = esc_attr($order_item->id);
         $product_id = esc_attr($order_item->product_id);
+        $item_quantity = $order_item->quantity;
+        $item_total = $order_item->total;
+        $item_name = $order_item->name;
 
-        // Check if the item is already present in the meta
         $item_exists = false;
-        foreach ($items as $saved_item) {
+
+        foreach ($items as &$saved_item) {
             if (isset($saved_item['item_id']) && $saved_item['item_id'] == $item_id) {
                 $item_exists = true;
+
+                // Check if quantity or total has changed
+                if ($saved_item['quantity'] != $item_quantity || $saved_item['total'] != $item_total || $saved_item['product_name'] != $item_name) {
+                    $saved_item['quantity'] = $item_quantity;
+                    $saved_item['total'] = $item_total;
+                    $saved_item['product_name'] = $item_name;
+                    $updated = true; // Mark for update
+                }
                 break;
             }
         }
@@ -2560,13 +2723,13 @@ function update_new_items($order_items, $items, $post_id)
             $new_item = [
                 'item_id' => $item_id,
                 'product_id' => $product_id,
-                'quantity' => $order_item->quantity,
-                'product_name' => $order_item->name,
-                'total' => $order_item->total,
+                'quantity' => $item_quantity,
+                'product_name' => $item_name,
+                'total' => $item_total,
                 'printing_note' => '' // Initialize with empty printing note
             ];
             $items[] = $new_item;
-            $updated = true;
+            $updated = true; // Mark for update
         }
     }
 
@@ -2720,30 +2883,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-        <div class="revision-activity customer-message mockup-approved-comment">
-            <div class="revision-activity-avatar">
-                <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-            </div>
-            <div class="revision-activity-content">
-                <div class="revision-activity-title">
-                    <h5>AllAround</h5>
-                    <span>
-                        <?php
-                        if (!empty($proof_approved_time)) {
-                            echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                        }
-                        ?>
-                    </span>
+            <div class="revision-activity customer-message mockup-approved-comment">
+                <div class="revision-activity-avatar">
+                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
                 </div>
-                <div class="revision-activity-description">
-                    <span class="revision-comment-title">
-                        ההדמיות אושרו על ידי הלקוח
-                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
-                    </span>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5>AllAround</h5>
+                        <span>
+                            <?php
+                            if (!empty($proof_approved_time)) {
+                                echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                            }
+                            ?>
+                        </span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            ההדמיות אושרו על ידי הלקוח 
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <?php
+            <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -2774,9 +2937,9 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
             <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
                 <div class="revision-activity-avatar">
                     <?php if ($comment_name === 'AllAround'): ?>
-                        <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
                     <?php else: ?>
-                        <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="revision-activity-content">
@@ -2813,6 +2976,7 @@ function search_posts()
     $logo_filter = !empty($_POST['logo_filter']) ? sanitize_text_field($_POST['logo_filter']) : '';
     $selected_month = !empty($_POST['month']) ? sanitize_text_field($_POST['month']) : '';
     $selected_year = !empty($_POST['year']) ? sanitize_text_field($_POST['year']) : '';
+    $selected_day = !empty($_POST['day']) ? sanitize_text_field($_POST['day']) : '';
     $order_source_filter = !empty($_POST['order_source']) ? sanitize_text_field($_POST['order_source']) : '';
 
     // Determine if any filters are applied
@@ -2871,14 +3035,19 @@ function search_posts()
         );
     }
 
-    // Filter by selected month and year
-    if (!empty($selected_month) && !empty($selected_year)) {
+    // Date query for day, month, and year
+    if (!empty($selected_day)) {
         $args['date_query'][] = array(
-            'year' => intval($selected_year), // Use the selected year
-            'monthnum' => intval($selected_month), // Use the selected month
+            'year' => date('Y', strtotime($selected_day)),
+            'month' => date('m', strtotime($selected_day)),
+            'day' => date('d', strtotime($selected_day))
+        );
+    } elseif (!empty($selected_month) && !empty($selected_year)) {
+        $args['date_query'][] = array(
+            'year' => intval($selected_year),
+            'monthnum' => intval($selected_month),
         );
     } elseif (!empty($selected_year)) {
-        // If only the year is selected, filter by the year
         $args['date_query'][] = array(
             'year' => intval($selected_year),
         );
@@ -2906,7 +3075,11 @@ function search_posts()
             $order_status = get_post_meta(get_the_ID(), 'order_status', true);
             $order_type = get_post_meta(get_the_ID(), 'order_type', true);
             $client_id = get_post_meta(get_the_ID(), 'client_id', true);
-            $items = get_post_meta(get_the_ID(), 'items', true); // Assuming items is stored as an array in the post meta
+            $items = get_post_meta(get_the_ID(), 'items', true);
+            $order_total = get_post_meta(get_the_ID(), 'order_total', true);
+
+            // Ensure $order_total is a float value
+            $order_total = !empty($order_total) ? floatval($order_total) : 0;
 
             // Check for logo filters
             $skip_post = false;
@@ -2938,13 +3111,39 @@ function search_posts()
                 }
             }
 
+            // if (!empty($order_values)) {
+            //     $total_sum += floatval($order_values);
+            // }
+
+            // Calculate the subtotal for the 'total' field in the 'items' meta
+            // $items_total_sum = 0;
+            // if (!empty($items)) {
+            //     foreach ($items as $item) {
+            //         if (isset($item['total'])) {
+            //             $items_total_sum += floatval($item['total']); // Add the 'total' of each item to the subtotal
+            //         }
+            //     }
+            // }
+
+            // // Compare the items total with the order total
+            // $difference = ($items_total_sum != $order_total);
+
+            // if (!empty($order_total)) {
+            //     $total_sum += floatval($order_total);
+            // }
+			
             // Display the post if it passes all filters
             $has_posts = true;
             ?>
             <div class="post-item">
                 <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
                 <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
-                <span>Order Type: <?php echo esc_html($order_type); ?></span>
+                <span>Order Type: <?php echo esc_html($order_type); ?></span><br>
+                <!-- <span>Items Total: <?//php echo number_format($items_total_sum, 2); ?> ₪</span><br>
+                    <span>Order Total: <?//php echo number_format($order_total, 2); ?> ₪</span><br>
+                    <?//php if ($difference): ?>
+                        <span style="color: red;">Difference Detected!</span>
+                    <?//php endif; ?> -->
             </div>
             <?php
         }
@@ -2964,6 +3163,31 @@ function search_posts()
 }
 add_action('wp_ajax_search_posts', 'search_posts');
 add_action('wp_ajax_nopriv_search_posts', 'search_posts');
+
+
+
+/**
+ * Print Label Meta Update.
+ *
+ */
+add_action('wp_ajax_add_print_label_meta', 'handle_add_print_label_meta');
+add_action('wp_ajax_nopriv_add_print_label_meta', 'handle_add_print_label_meta');
+
+function handle_add_print_label_meta()
+{
+    check_ajax_referer('order_management_nonce', 'nonce');
+
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+
+    if (!$post_id) {
+        wp_send_json_error(['message' => 'Invalid order ID']);
+    }
+
+    // Add the meta data to the order
+    update_post_meta($post_id, '_print_label_done', 'yes');
+
+    wp_send_json_success(['message' => 'Meta updated successfully']);
+}
 
 
 /**
@@ -3003,101 +3227,351 @@ function restrict_access_to_admin_and_editor()
 }
 
 
-add_action('admin_menu', 'unsubscribe_clients_menu');
-function unsubscribe_clients_menu() {
+// Register the admin menu page
+function register_update_post_date_page()
+{
     add_menu_page(
-        'Unsubscribe Clients', // Page title
-        'Unsubscribe Clients', // Menu title
+        'Update Post Dates', // Page title
+        'Update Dates', // Menu title
         'manage_options', // Capability
-        'unsubscribe-clients', // Menu slug
-        'unsubscribe_clients_page', // Callback function
-        'dashicons-email-alt2', // Icon
-        6 // Position
+        'update_post_dates_page', // Menu slug
+        'render_update_post_date_page', // Callback function
+        'dashicons-update', // Icon
+        20 // Position
     );
 }
-function unsubscribe_clients_page() {
-    if (!current_user_can('manage_options')) {
+add_action('admin_menu', 'register_update_post_date_page');
+
+// Render the admin page content
+function render_update_post_date_page()
+{
+    ?>
+    <div class="wrap">
+        <h1>Update Post Dates</h1>
+        <p>Click the button below to update the post dates (shift 1 hour back) for posts from 2024-10-27 to today.</p>
+        <button id="trigger-update-post-dates" class="button button-primary">Run Update</button>
+        <div id="update-status"></div>
+    </div>
+
+    <script type="text/javascript">
+        jQuery(document).ready(function ($) {
+            $('#trigger-update-post-dates').on('click', function () {
+                if (confirm('Are you sure you want to update the post dates? This action cannot be undone.')) {
+                    $('#update-status').html('<p>Processing... Please wait.</p>');
+
+                    $.ajax({
+                        url: ajaxurl,
+                        method: 'POST',
+                        data: {
+                            action: 'update_post_dates_one_hour_back',
+                            nonce: '<?php echo wp_create_nonce('update_post_dates_nonce'); ?>'
+                        },
+                        success: function (response) {
+                            alert(response.data.message);
+                            $('#update-status').html('<p>' + response.data.message + '</p>');
+                        },
+                        error: function (xhr, status, error) {
+                            alert('An error occurred: ' + error);
+                            $('#update-status').html('<p style="color:red;">An error occurred. Check the console for details.</p>');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+    <?php
+}
+
+// AJAX handler for updating post dates
+function ajax_update_post_dates_one_hour_back()
+{
+    // Verify nonce for security
+    check_ajax_referer('update_post_dates_nonce', 'nonce');
+
+    // Define the date range
+    $start_date = '2024-10-27 00:00:00';
+    $end_date = current_time('mysql');
+
+    // Query for posts within the specified date range that haven't been updated yet
+    $args = array(
+        'post_type' => 'post',
+        'posts_per_page' => -1,
+        'date_query' => array(
+            'after' => $start_date,
+            'before' => $end_date,
+            'inclusive' => true,
+        ),
+        'meta_query' => array(
+            array(
+                'key' => '_post_date_updated_live',
+                'compare' => 'NOT EXISTS', // Only select posts that haven't been updated
+            ),
+        ),
+    );
+
+    $posts = get_posts($args);
+
+    if (!empty($posts)) {
+        $updated_count = 0;
+        foreach ($posts as $post) {
+            $post_id = $post->ID;
+
+            // Skip the specific post ID 13530
+            if ($post_id == 13530) {
+                continue;
+            }
+
+            $current_date = $post->post_date;
+            $current_date_gmt = $post->post_date_gmt;
+
+            // Calculate the new date-time (1 hour back)
+            $new_date = date('Y-m-d H:i:s', strtotime($current_date . ' -1 hour'));
+            $new_date_gmt = date('Y-m-d H:i:s', strtotime($current_date_gmt . ' -1 hour'));
+
+            // Update the post date and GMT date
+            wp_update_post(array(
+                'ID' => $post_id,
+                'post_date' => $new_date,
+                'post_date_gmt' => $new_date_gmt,
+            ));
+
+            // Add a meta key to mark this post as updated
+            update_post_meta($post_id, '_post_date_updated_live', '1');
+
+            $updated_count++;
+        }
+
+        wp_send_json_success(['message' => "Post dates updated successfully. Total posts updated: $updated_count"]);
+    } else {
+        wp_send_json_error(['message' => 'No posts found in the specified date range or all posts have already been updated.']);
+    }
+}
+add_action('wp_ajax_update_post_dates_one_hour_back', 'ajax_update_post_dates_one_hour_back');
+
+add_action('admin_menu', 'add_manual_orders_upload_page');
+
+function add_manual_orders_upload_page()
+{
+    add_menu_page(
+        'Manual Orders Upload',         // Page title
+        'Upload Orders',                // Menu title
+        'manage_options',               // Capability (only admins can access)
+        'manual-orders-upload',         // Menu slug
+        'manual_orders_upload_page',    // Callback function
+        'dashicons-upload',             // Icon (optional)
+        20                              // Position in the admin menu (optional)
+    );
+}
+
+function manual_orders_upload_page()
+{
+    ?>
+        <div class="wrap">
+            <h1>Upload Manual Orders CSV</h1>
+            <form id="manual-orders-form" method="post" enctype="multipart/form-data" action="">
+                <input type="file" name="manual_orders_csv" accept=".csv" />
+                <input type="submit" name="upload_manual_orders" class="button-primary" value="Upload CSV" />
+            </form>
+            <div id="progressWrapper" style="display:none;">
+                <p id="progressStatus">Processing orders... <span id="processedCount">0</span> processed.</p>
+            </div>
+        </div>
+
+        <script>
+            jQuery(document).ready(function ($) {
+                $('#manual-orders-form').on('submit', function (e) {
+                    e.preventDefault();
+                    var formData = new FormData(this);
+                    $('#progressWrapper').show();
+
+                    // Upload the CSV file first
+                    $.ajax({
+                        url: ajaxurl + '?action=upload_manual_orders_csv',
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (response) {
+                            if (response.success) {
+                                // Start processing the batches
+                                processBatch(0, response.total_batches);
+                            } else {
+                                $('#progressStatus').text('Error uploading the CSV.');
+                            }
+                        },
+                        error: function () {
+                            $('#progressStatus').text('An error occurred during upload.');
+                        }
+                    });
+
+                    function processBatch(batch_number, total_batches) {
+                        $.ajax({
+                            url: ajaxurl + '?action=process_manual_orders_batch&batch=' + batch_number,
+                            method: 'POST',
+                            success: function (response) {
+                                if (response.success) {
+                                    $('#processedCount').text(response.processed_count);
+                                    if (batch_number < total_batches - 1) {
+                                        processBatch(batch_number + 1, total_batches); // Process next batch
+                                    } else {
+                                        $('#progressStatus').text('Processing completed!');
+                                    }
+                                } else {
+                                    $('#progressStatus').text('Error processing batch ' + batch_number);
+                                }
+                            },
+                            error: function () {
+                                $('#progressStatus').text('An error occurred during batch processing.');
+                            }
+                        });
+                    }
+                });
+            });
+        </script>
+        <?php
+}
+
+add_action('wp_ajax_upload_manual_orders_csv', 'upload_manual_orders_csv');
+function upload_manual_orders_csv()
+{
+    if (!isset($_FILES['manual_orders_csv']['tmp_name'])) {
+        wp_send_json_error('No file uploaded.');
         return;
     }
 
-    // Handle file upload
-    if (isset($_POST['submit']) && isset($_FILES['unsubscribe_csv'])) {
-        $csv_file = $_FILES['unsubscribe_csv'];
+    $csv_file = $_FILES['manual_orders_csv']['tmp_name'];
 
-        if ($csv_file['type'] === 'text/csv') {
-            $csv_data = file_get_contents($csv_file['tmp_name']);
-            unsubscribe_process_csv($csv_data);
-        } else {
-            echo '<div class="error"><p>Please upload a valid CSV file.</p></div>';
+    // Move the uploaded CSV to a temporary directory
+    $upload_dir = wp_upload_dir();
+    $temp_csv = $upload_dir['basedir'] . '/manual_orders_temp.csv';
+    move_uploaded_file($csv_file, $temp_csv);
+
+    // Open the file to count the total number of rows
+    if (($handle = fopen($temp_csv, "r")) !== FALSE) {
+        $total_rows = 0;
+        while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            $total_rows++;
         }
+        fclose($handle);
     }
 
-    ?>
-    <div class="wrap">
-        <h1>Unsubscribe Clients</h1>
-        <form method="post" enctype="multipart/form-data">
-            <label for="unsubscribe_csv">Upload CSV File:</label><br>
-            <input type="file" name="unsubscribe_csv" id="unsubscribe_csv" accept=".csv">
-            <br><br>
-            <input type="submit" name="submit" class="button button-primary" value="Unsubscribe">
-        </form>
-    </div>
-    <?php
+    $batch_size = 100;
+    $total_batches = ceil($total_rows / $batch_size); // Calculate the total number of batches
+
+    wp_send_json_success(array('total_batches' => $total_batches));
 }
-function unsubscribe_process_csv($csv_data) {
-    $lines = explode(PHP_EOL, $csv_data);
-    $emails = [];
 
-    // Extract emails from CSV (Assuming column names in first row)
-    $header = str_getcsv(array_shift($lines)); // Get headers
-    $email_index = array_search('email', $header); // Find index of 'email' column
+add_action('wp_ajax_process_manual_orders_batch', 'process_manual_orders_batch');
+function process_manual_orders_batch()
+{
+    $batch_number = isset($_GET['batch']) ? intval($_GET['batch']) : 0;
+    $batch_size = 100;
+    $offset = $batch_number * $batch_size;
 
-    foreach ($lines as $line) {
-        $data = str_getcsv($line);
-        if (isset($data[$email_index])) {
-            $emails[] = trim($data[$email_index]);
-        }
-    }
+    // Load the temporary CSV
+    $upload_dir = wp_upload_dir();
+    $csv_file = $upload_dir['basedir'] . '/manual_orders_temp.csv';
 
-    if (!empty($emails)) {
-        global $wpdb;
+    if (($handle = fopen($csv_file, "r")) !== FALSE) {
+        $header = fgetcsv($handle, 1000, ","); // Get the header row
 
-        // Loop through each email and find the client post
-        foreach ($emails as $email) {
-            if (!empty($email)) {
-                // Assuming clients are stored as custom post types with 'client' post type
-                $meta_query = new WP_Query(array(
-                    'post_type' => 'client', // Adjust as per your post type
-                    'meta_query' => array(
-                        array(
-                            'key' => 'email', // Meta key for email
-                            'value' => $email,
-                            'compare' => '='
-                        )
-                    )
-                ));
-
-                if ($meta_query->have_posts()) {
-                    while ($meta_query->have_posts()) {
-                        $meta_query->the_post();
-                        $client_id = get_the_ID();
-
-                        // Update 'subscribed' meta field to 'no'
-                        update_post_meta($client_id, 'subscribed', 'no');
-
-                        // Log the unsubscribe action
-                        error_log("Unsubscribed client with email: $email (Client ID: $client_id)");
-                    }
-                } else {
-                    error_log("No client found with email: $email");
-                }
-
-                wp_reset_postdata();
-            }
+        // Skip rows until the current batch offset
+        for ($i = 0; $i < $offset; $i++) {
+            fgetcsv($handle, 1000, ",");
         }
 
-        echo '<div class="updated"><p>CSV processed successfully and clients unsubscribed.</p></div>';
+        $processed_count = 0;
+
+        // Process the current batch
+        while (($row = fgetcsv($handle, 1000, ",")) !== FALSE && $processed_count < $batch_size) {
+            $order_data = array_combine($header, $row);
+            manual_create_order($order_data);
+
+            $processed_count++;
+        }
+
+        fclose($handle);
+
+        wp_send_json_success(array('processed_count' => $processed_count));
     } else {
-        echo '<div class="error"><p>No emails found in the CSV file.</p></div>';
+        wp_send_json_error('Error processing the CSV file.');
     }
+}
+
+function manual_create_order($order_data)
+{
+    $order_number = isset($order_data['order_id']) ? sanitize_text_field($order_data['order_id']) : '';
+    
+    // Check if the order_number contains "MiniSite" and skip if true
+    if (strpos($order_number, 'MiniSite') !== false) {
+        return; // Skip this order
+    }
+
+    $order_date = isset($order_data['order_date']) ? sanitize_text_field($order_data['order_date']) : '';
+    $order_type = isset($order_data['order_type']) ? sanitize_text_field($order_data['order_type']) : 'personal';
+    $client_name = sanitize_text_field($order_data['client_name']);
+    $client_email = sanitize_email($order_data['client_email']);
+    $client_phone = sanitize_text_field($order_data['client_phone']);
+    $total_price = !empty($order_data['total_price']) ? floatval($order_data['total_price']) : 0;
+
+    $post_title = '#' . $order_number;
+
+    // Create the order post
+    $post_id = wp_insert_post(
+        array(
+            'post_title' => $post_title,
+            'post_status' => 'publish',
+            'post_author' => 1,
+            'post_type' => 'post',
+            'post_date' => $order_date,
+        )
+    );
+
+    if ($post_id == 0) {
+        return; // Skip if there's an error
+    }
+
+    // Add meta fields
+    update_post_meta($post_id, 'order_id', $order_number);
+    update_post_meta($post_id, 'order_number', $order_number);
+    update_post_meta($post_id, 'order_status', 'static');
+    update_post_meta($post_id, 'shipping_method', 'manual');
+    update_post_meta($post_id, 'order_type', $order_type);
+    update_post_meta($post_id, 'order_total', $total_price);
+    update_post_meta($post_id, 'billing', array('first_name' => $client_name, 'email' => $client_email, 'phone' => $client_phone));
+    update_post_meta($post_id, 'shipping', array('first_name' => $client_name, 'email' => $client_email, 'phone' => $client_phone));
+    update_post_meta(
+        $post_id,
+        'items',
+        array(
+            array(
+                'product_id' => 'freestyle',
+                'product_name' => 'Freestyle Item',
+                'quantity' => 1,
+                'total' => $total_price,
+            )
+        )
+    );
+    update_post_meta($post_id, 'payment_method', 'manual');
+    update_post_meta($post_id, 'payment_method_title', 'manual');
+    update_post_meta($post_id, 'site_url', 'https://om.allaround.co.il');
+
+    update_post_meta($post_id, 'self_hosted_manual_orders', true);
+
+    // Create or update the client
+    $order_data_for_client = array(
+        'billing' => array(
+            'first_name' => $client_name,
+            'email' => $client_email,
+            'phone' => $client_phone
+        ),
+        'client_type' => $order_type
+    );
+    do_action('all_around_create_client', $post_id, $order_data_for_client, $order_number, $order_number);
+
+    // get client_id meta
+    $client_id = get_post_meta($post_id, 'client_id', true);
+
+    // Update order source and related meta
+    handle_order_source($post_id, $client_id, 'manual_order', $total_price);
 }

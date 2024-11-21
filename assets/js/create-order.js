@@ -66,7 +66,13 @@ jQuery(document).ready(function ($) {
 
   // Rate change event listener
   $(".grouped_custom_rate_input").on("input", function () {
-    let value = $(this).val().replace(/\D/g, ""); // Only numbers
+    let value = $(this)
+      .val()
+      .replace(/[^0-9.]/g, ""); // Allow only numbers and decimal point
+    // Ensure only one decimal point is allowed
+    if ((value.match(/\./g) || []).length > 1) {
+      value = value.replace(/\.+$/, "");
+    }
     $(this).val(value);
 
     const modal = $(this).closest(".product-details-modal");
@@ -656,10 +662,9 @@ jQuery(document).ready(function ($) {
       // ).css("opacity", "0.5");
     } else {
       // Enable the other checkboxes when No Invoice is unchecked
-      $('input[name="payment_method"], input[name="order_date"]').prop(
-        "disabled",
-        false
-      );
+      $(
+        'input[name="payment_method"], input[name="order_date"]'
+      ).prop("disabled", false);
       // Remove CSS opacity from .invoice-receipt-options and .payment-method-options
       // $(
       //   ".invoice-receipt-options, .payment-method-options, .order-date-field"

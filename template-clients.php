@@ -48,6 +48,11 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             <label>
                                 <input type="radio" name="logo_filter" value="with_logos" id="filter-with-logos" <?php checked(isset($_GET['logo_filter']) && $_GET['logo_filter'] === 'with_logos'); ?>> With Lighter & Darker Logos
                             </label>
+
+                            <!-- New MiniSite Filter -->
+                            <label>
+                                <input type="checkbox" name="mini_site_filter" value="no_mini_site" id="filter-no-mini-site" <?php checked(isset($_GET['mini_site_filter']) && $_GET['mini_site_filter'] === 'no_mini_site'); ?>> No MiniSite URL & MiniSite Header
+                            </label>
                         </div>
                         
                         <a href="#" id="export-csv-btn" class="button">Export Clients</a>
@@ -108,6 +113,8 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
 
                 // Check the logo filter value
                 $logo_filter = isset($_GET['logo_filter']) ? sanitize_text_field($_GET['logo_filter']) : '';
+                // Check the MiniSite filter value
+                $mini_site_filter = isset($_GET['mini_site_filter']) ? sanitize_text_field($_GET['mini_site_filter']) : '';
 
                 if ($logo_filter === 'no_logos') {
                     // Filter for clients without logos
@@ -153,6 +160,32 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             'key' => 'lighter_logo',
                             'value' => '',
                             'compare' => '!='
+                        )
+                    );
+                }
+
+                // Handle the MiniSite filter
+                if ($mini_site_filter === 'no_mini_site') {
+                    // Filter for clients without MiniSite URL & MiniSite Header
+                    $args['meta_query'][] = array(
+                        'relation' => 'OR',
+                        array(
+                            'key' => 'mini_url',
+                            'compare' => 'NOT EXISTS'
+                        ),
+                        array(
+                            'key' => 'mini_header',
+                            'compare' => 'NOT EXISTS'
+                        ),
+                        array(
+                            'key' => 'mini_url',
+                            'value' => '',
+                            'compare' => '='
+                        ),
+                        array(
+                            'key' => 'mini_header',
+                            'value' => '',
+                            'compare' => '='
                         )
                     );
                 }
@@ -249,6 +282,7 @@ jQuery(document).ready(function ($) {
         } else {
             $('#logo-filter').hide();
             $('input[name="logo_filter"]').prop('checked', false); // Uncheck the radio buttons when hiding
+            $('input[name="mini_site_filter"]').prop('checked', false); // Uncheck the checkbox for MiniSite filter
         }
     });
 
