@@ -423,8 +423,34 @@ $clients = $createOrder->fetch_clients_data();
                 </div>
 
                 <div class="om__orderShippingDetails <?php echo ($shipping_method === "local_pickup") ? "local_pickup" : ""; ?>">
-                    <label
+                    <div class="om__orderShippingBoxTop">
+                        <label
                         for="om__orderShippingDetailsGrid"><?php echo esc_html__('Order Shipping Details', 'hello-elementor'); ?></label>
+                        <!-- Show this to Admin and Employee role -->
+                        <?php if (is_current_user_admin() || is_current_user_author()): ?>
+                            <div class="om__orderShippingDetailsItem shippingBoxesCont">
+                                <label for="shipping_boxes">Boxes:</label>
+                                
+                                <?php if (is_current_user_admin() || is_current_user_author()): ?>
+                                    <select id="shipping_boxes" name="shipping_boxes">
+                                        <?php
+                                        $selected_boxes = isset($order_shipping['boxes']) ? $order_shipping['boxes'] : '1';
+                                        ?>
+                                        <option value="1" <?php echo ($selected_boxes === '1') ? 'selected' : ''; ?>>1</option>
+                                        <option value="2" <?php echo ($selected_boxes === '2') ? 'selected' : ''; ?>>2</option>
+                                        <option value="3" <?php echo ($selected_boxes === '3') ? 'selected' : ''; ?>>3</option>
+                                        <option value="4" <?php echo ($selected_boxes === '4') ? 'selected' : ''; ?>>4</option>
+                                        <option value="5" <?php echo ($selected_boxes === '5') ? 'selected' : ''; ?>>5</option>
+                                    </select>
+                                <?php else: ?>
+                                    <?php
+                                    $boxes_value = !empty($order_shipping['boxes']) ? $order_shipping['boxes'] : '1';
+                                    ?>
+                                    <span><?php echo esc_html($boxes_value); ?></span>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                     <div class="om__orderShippingDetailsGrid">
                         <div class="om__orderShippingDetailsItem">
                             <label for="shipping_first_name">First Name</label>
@@ -456,7 +482,7 @@ $clients = $createOrder->fetch_clients_data();
                             <input type="text" id="shipping_city" name="shipping_city"
                                 value="<?php echo esc_html($order_shipping['city']); ?>">
                         </div>
-                        <?php if (is_current_user_admin() || is_current_user_editor()): ?>
+                        <?php if (is_current_user_admin() || is_current_user_editor() || is_current_user_author()): ?>
                         <div class="om__orderShippingDetailsItem omShippingSubmitBtn">
                             <button type="button" class="allarnd--regular-button ml_add_loading"
                                 id="update-shipping-details"><?php echo esc_html__('Update', 'hello-elementor'); ?></button>
@@ -590,7 +616,6 @@ $clients = $createOrder->fetch_clients_data();
                             <?php
                                 // Retrieve the items meta data
                                 $items = get_post_meta($current_id, 'items', true);
-
 
                                 // Check if items exist and is an array
                                 if (!empty($items) && is_array($items)) {
@@ -755,7 +780,7 @@ $clients = $createOrder->fetch_clients_data();
                 <h4>היסטוריית שינויים</h4>
                 <div class="revision-activities-all">
                     <?php
-                    echo fetch_display_artwork_comments($order_id, $current_id);
+                    echo fetch_display_artwork_comments($order_id, $order_number, $current_id);
                     ?>
                 </div>
             </div>

@@ -330,7 +330,7 @@ jQuery(document).ready(function ($) {
 
   $("#shipping_method").on("change", function () {
     if ($("#shipping_method").val() === "flat_rate") {
-      $(".content-cart .shipping-total-number").text("29.00");
+      $(".content-cart .shipping-total-number").text("38.00");
     } else {
       $(".content-cart .shipping-total-number").text("0.00");
     }

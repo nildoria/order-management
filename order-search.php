@@ -12,7 +12,7 @@ restrict_access_to_logged_in_users();
     <div id="loading-indicator" style="display:none;">
         <div class="loading-indicator-inner">Loading...</div>
     </div>
-
+	
     <div id="post-search">
         <h2>Filter Orders</h2>
         <!-- Search Field -->
@@ -102,6 +102,8 @@ restrict_access_to_logged_in_users();
 <script>
     jQuery(document).ready(function ($) {
         let debounceTimer;
+		
+
         // Custom handler function
         var setCalsClearButton = function(year,month,elem){
 
@@ -132,6 +134,7 @@ restrict_access_to_logged_in_users();
                 btn.appendTo( buttonPane );
             });
         }
+		
         // Initialize datepicker for day selection
         $('#day-select').datepicker({
             dateFormat: 'yy-mm-dd', // Set date format for easy backend parsing
@@ -224,15 +227,11 @@ restrict_access_to_logged_in_users();
             }
         }
 
-        // Trigger the toggleDateFields function when #day-select changes
-        $('#day-select').on('change', function () {
-            fetchPosts(); // Fetch posts when the day is selected or cleared
-        });
+        // Trigger fetchPosts when day changes
+        $('#day-select').on('change', fetchPosts);
 
         // Initial check when the page loads
         toggleDateFields();
-
-
 
         // Search functionality with debounce
         $('#search-field').on('input', function () {
