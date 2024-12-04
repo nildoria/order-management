@@ -1141,7 +1141,7 @@
     dropdown.closest(".form-group").hide();
   }
 
-  // ********** Sending Data to Make.com Webhook with Retry **********//
+  // ********** Sending Data to Make.com Webhook **********//
   function sendDataToWebhook(data, retryCount = 3) {
     let root_domain = allaround_vars.redirecturl;
     let webhook_url;
@@ -1250,6 +1250,7 @@
     event.preventDefault();
 
     let order_id = allaround_vars.order_id;
+    let order_number = allaround_vars.order_number;
     let order_domain = allaround_vars.order_domain;
     let shipping_method_id = document.querySelector(
       'select[name="shipping_method"]'
@@ -1262,7 +1263,7 @@
 
     let webhookData = {
       om_status: "shipping_method_updated",
-      order_id: order_id,
+      order_id: order_number,
       shipping_method: shipping_method_title,
     };
 
@@ -1753,6 +1754,7 @@
       address_2: $("#shipping_address_2").val(),
       city: $("#shipping_city").val(),
       phone: $("#shipping_phone").val(),
+      boxes: $("#shipping_boxes").val(),
       nonce: allaround_vars.nonce,
     };
 
@@ -1864,6 +1866,7 @@
 
   $(".designerSendWebhook").on("click", function () {
     let order_id = allaround_vars.order_id;
+    let order_number = allaround_vars.order_number;
     let status = $(this).data("status");
     let root_domain = allaround_vars.redirecturl;
     let missing_info_details = $(".designer_missing_info_text").val();
@@ -1884,7 +1887,7 @@
 
     // Data to send to the webhook
     let data = {
-      order_id: order_id,
+      order_id: order_number,
       om_status: status,
     };
 
@@ -1930,6 +1933,7 @@
 
   $("#printLabelSendWebhook").on("click", function () {
     let order_id = allaround_vars.order_id;
+    let order_number = allaround_vars.order_number;
     let post_id = allaround_vars.post_id;
     let root_domain = allaround_vars.redirecturl;
 
@@ -1941,9 +1945,11 @@
     let shipping_address_2 = $("#shipping_address_2").val();
     let shipping_city = $("#shipping_city").val();
     let shipping_phone = $("#shipping_phone").val();
-    let shipping_method_text = $(
-      "#shipping-method-list option:selected"
-    ).text();
+    let shipping_boxes = $("#shipping_boxes").val();
+    if (!shipping_boxes) {
+      shipping_boxes = 1;
+    }
+    let shipping_method_text = $("#shipping-method-list option:selected").text();
 
     if (
       shipping_method_text ===
@@ -1971,7 +1977,7 @@
 
     // Data to send to the webhook
     let data = {
-      order_id: order_id,
+      order_id: order_number,
       om_status: "Print Label",
       shipping_method: shipping_method,
       shipping_fullName: full_name,
@@ -1979,6 +1985,7 @@
       shipping_addressNumber: shipping_address_2,
       shipping_city: shipping_city,
       shipping_phone: shipping_phone,
+      boxes: shipping_boxes,
     };
 
     console.log("Data to send:", data);
@@ -2036,7 +2043,7 @@
         $.magnificPopup.close();
         // locatio reload after 1 sec
         setTimeout(() => {
-          location.reload();
+          // location.reload();
         }, 1000);
       },
       error: function (xhr, status, error) {
@@ -2170,6 +2177,7 @@
   // send to webhook with order id and om_status missing_graphic
   $("#missingGraphic").on("click", function () {
     let order_id = allaround_vars.order_id;
+    let order_number = allaround_vars.order_number;
     let root_domain = allaround_vars.redirecturl;
 
     $(this).addClass("ml_loading");
@@ -2188,7 +2196,7 @@
 
     // Data to send to the webhook
     let data = {
-      order_id: order_id,
+      order_id: order_number,
       om_status: "missing_graphic",
     };
 
@@ -2228,6 +2236,7 @@
   // send to webhook with order id and om_status missing_graphic
   $("#mockupApproved").on("click", function () {
     let order_id = allaround_vars.order_id;
+    let order_number = allaround_vars.order_number;
     let root_domain = allaround_vars.redirecturl;
 
     $(this).addClass("ml_loading");
@@ -2247,7 +2256,7 @@
     // Data to send to the webhook
     let data = {
       om_status: "mockups_approved",
-      order_id: order_id,
+      order_id: order_number,
     };
 
     // AJAX request to send the data to the webhook

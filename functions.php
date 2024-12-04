@@ -774,6 +774,7 @@ function update_post_shipping_details()
     $address = isset($_POST['address_1']) ? sanitize_text_field($_POST['address_1']) : '';
     $address_2 = isset($_POST['address_2']) ? sanitize_text_field($_POST['address_2']) : '';
     $city = isset($_POST['city']) ? sanitize_text_field($_POST['city']) : '';
+    $boxes = isset($_POST['boxes']) ? sanitize_text_field($_POST['boxes']) : '1';
 
     if (empty($post_id) || empty($phone)) {
         wp_send_json_error(
@@ -791,7 +792,8 @@ function update_post_shipping_details()
         'address_1' => $address,
         'address_2' => $address_2,
         'city' => $city,
-        'phone' => $phone
+        'phone' => $phone,
+        'boxes' => $boxes
     ];
 
     update_post_meta($post_id, 'shipping', $shipping_data);
@@ -956,7 +958,7 @@ function calculate_shipping_cost($shipping_method_id)
 {
     switch ($shipping_method_id) {
         case 'flat_rate':
-            return 29.00;
+            return 38.00;
         case 'free_shipping':
             return 0.00;
         case 'local_pickup':
@@ -1128,6 +1130,8 @@ function order_details_metabox_content($post)
             echo '<input type="text" readonly value="' . esc_attr($item['item_id']) . '" /><br>';
             echo '<label>Product ID:</label>';
             echo '<input type="text" readonly value="' . esc_attr($item['product_id']) . '" /><br>';
+            echo '<label>Product SKU:</label>';
+            echo '<input type="text" readonly value="' . esc_attr($item['product_sku']) . '" /><br>';
             echo '<label>Product Name:</label>';
             echo '<input type="text" readonly value="' . esc_attr($item['product_name']) . '" /><br>';
             echo '<label>Quantity:</label>';
@@ -1208,7 +1212,7 @@ function save_order_details_meta($post_id)
     }
 
     if (isset($_POST['items'])) {
-        update_post_meta($post_id, 'items', $_POST['items']);  // Assuming items are properly sanitized before storing
+        update_post_meta($post_id, 'items', $_POST['items']);
     }
 
     if (isset($_POST['billing'])) {
@@ -1265,6 +1269,17 @@ function create_order(WP_REST_Request $request)
     $order_source = isset($order_data['order_source']) ? $order_data['order_source'] : '';
     $total_price = isset($order_data['total']) ? floatval($order_data['total']) : 0;
     $order_date = isset($order_data['date_created']) ? $order_data['date_created'] : current_time('mysql');
+    $order_source_url = isset($order_data['site_url']) ? $order_data['site_url'] : '';
+
+    if (
+        empty($order_source_url) ||
+        ($order_source_url !== 'https://sites.allaround.co.il' &&
+            $order_source_url !== 'https://flash.allaround.co.il' &&
+            $order_source_url !== 'https://allaround.co.il')
+    ) {
+        error_log('Invalid order source URL: ' . $order_source_url);
+        return new WP_Error('unauthorized', 'Unauthorized request.', array('status' => 401));
+    }
 
     $shipping_method_id = '';
     $shipping_method_title = '';
@@ -1402,6 +1417,9 @@ function create_order(WP_REST_Request $request)
 
     // Send data to webhook
     send_order_data_to_webhook($order_id, $order_number, $order_data, get_permalink($post_id));
+
+    // Send data to stock management system
+    send_order_data_to_stock_management($order_data);
 
     // Return the ID of the new post
     return new WP_REST_Response(array('post_id' => $post_id, 'post_url' => get_permalink($post_id)), 200);
@@ -1659,7 +1677,8 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
     $shipping_method_title = isset($order_data['shipping_lines'][0]['method_title']) ? $order_data['shipping_lines'][0]['method_title'] : '';
     $payment_details = isset($order_data['payment_data']) ? $order_data['payment_data'] : '';
 
-    // error_log(print_r($client_details, true));
+    error_log('Sending order data to webhook');
+    error_log(print_r($order_data, true));
 
     $webhook_data = array(
         'om_status' => 'new_order',
@@ -1703,6 +1722,37 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
         error_log('Webhook request failed: ' . $response->get_error_message());
     } else {
         error_log('Webhook request successful: ' . $response['message']);
+    }
+}
+
+/**
+ * Send Order Data to Stock Management System.
+ */
+function send_order_data_to_stock_management($order_data) {
+    $root_domain = home_url();
+    $stock_management_url = "";
+
+    if (strpos($root_domain, '.test') !== false || strpos($root_domain, 'lukpaluk.xyz') !== false) {
+        $stock_management_url = "https://hook.us1.make.com/uc1dvpc4doc2m9xmczxuteifg9sw9ogq";
+    } else {
+        $stock_management_url = "https://hook.us1.make.com/uc1dvpc4doc2m9xmczxuteifg9sw9ogq";
+    }
+
+    $response = wp_remote_post(
+        $stock_management_url,
+        array(
+            'method' => 'POST',
+            'timeout' => 30,
+            'sslverify' => false,
+            'headers' => array('Content-Type' => 'application/json'),
+            'body' => wp_json_encode($order_data),
+        )
+    );
+
+    if (is_wp_error($response)) {
+        error_log('Stock management request failed: ' . $response->get_error_message());
+    } else {
+        error_log('Stock management request successful: ' . $response['message']);
     }
 }
 
@@ -1857,6 +1907,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     if ($order_total !== $order_total_meta) {
         update_post_meta($post_id, 'order_total', $order_total);
     }
+	
     // if shipping_method_value is empty then update it with shipping_method_id
     if (empty($shipping_method_value)) {
         update_post_meta($post_id, 'shipping_method', $shipping_method_id);
@@ -2694,12 +2745,34 @@ function update_new_items($order_items, $items, $post_id)
 {
     $updated = false;
 
+    // If the count of $order_items and $items do not match, overwrite $items with $order_items
+    if (count($order_items) != count($items)) {
+        $items = [];
+
+        foreach ($order_items as $order_item) {
+            $items[] = [
+                'item_id' => esc_attr($order_item->id),
+                'product_id' => esc_attr($order_item->product_id),
+                'quantity' => $order_item->quantity,
+                'product_name' => $order_item->name,
+                'total' => $order_item->total,
+                'printing_note' => '', // Initialize with empty printing note
+                'product_sku' => $order_item->sku,
+            ];
+        }
+
+        // Save the updated items meta
+        update_post_meta($post_id, 'items', $items);
+        return; // Exit since we've updated the full meta
+    }
+
     foreach ($order_items as $order_item) {
         $item_id = esc_attr($order_item->id);
         $product_id = esc_attr($order_item->product_id);
         $item_quantity = $order_item->quantity;
         $item_total = $order_item->total;
         $item_name = $order_item->name;
+        $item_sku = $order_item->sku;
 
         $item_exists = false;
 
@@ -2707,11 +2780,17 @@ function update_new_items($order_items, $items, $post_id)
             if (isset($saved_item['item_id']) && $saved_item['item_id'] == $item_id) {
                 $item_exists = true;
 
-                // Check if quantity or total has changed
-                if ($saved_item['quantity'] != $item_quantity || $saved_item['total'] != $item_total || $saved_item['product_name'] != $item_name) {
+                // Check if quantity, total, name, or SKU has changed
+                if (
+                    $saved_item['quantity'] != $item_quantity ||
+                    $saved_item['total'] != $item_total ||
+                    $saved_item['product_name'] != $item_name ||
+                    $saved_item['product_sku'] != $item_sku
+                ) {
                     $saved_item['quantity'] = $item_quantity;
                     $saved_item['total'] = $item_total;
                     $saved_item['product_name'] = $item_name;
+                    $saved_item['product_sku'] = $item_sku;
                     $updated = true; // Mark for update
                 }
                 break;
@@ -2726,7 +2805,8 @@ function update_new_items($order_items, $items, $post_id)
                 'quantity' => $item_quantity,
                 'product_name' => $item_name,
                 'total' => $item_total,
-                'printing_note' => '' // Initialize with empty printing note
+                'printing_note' => '', // Initialize with empty printing note
+                'product_sku' => $item_sku,
             ];
             $items[] = $new_item;
             $updated = true; // Mark for update
@@ -2807,7 +2887,7 @@ function fetch_artwork_post_by_id($post_id)
     return null;
 }
 
-function fetch_display_artwork_comments($order_id, $post_id = null)
+function fetch_display_artwork_comments($order_id, $order_number, $post_id = null)
 {
     $send_proof_last_version = get_post_meta($post_id, 'send_proof_last_version', true);
 
@@ -2819,10 +2899,12 @@ function fetch_display_artwork_comments($order_id, $post_id = null)
     $transient_key = 'artwork_post_' . $order_id;
     $post_id = get_transient($transient_key);
 
+    error_log('Fetching artwork comments for order ' . $order_id . ' and post ' . $post_id);
+
     if ($post_id) {
         // Fetch the post by ID directly
         $post = fetch_artwork_post_by_id($post_id);
-        if ($post && isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_id) {
+        if ($post && isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_number) {
             $approved_proof = $post->artwork_meta->approval_status;
             $proof_approved_time = $post->artwork_meta->proof_approved_time;
             $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
@@ -2856,7 +2938,7 @@ function fetch_display_artwork_comments($order_id, $post_id = null)
         // Loop through the posts
         foreach ($posts as $post) {
             // Check if the order number matches
-            if (isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_id) {
+            if (isset($post->artwork_meta->order_number) && $post->artwork_meta->order_number === $order_number) {
                 $approved_proof = $post->artwork_meta->approval_status;
                 $proof_approved_time = $post->artwork_meta->proof_approved_time;
                 $fetched_artwork_comments = $post->artwork_meta->artwork_comments;
@@ -3103,17 +3185,18 @@ function search_posts()
             }
 
             // Calculate the subtotal for the 'total' field in the 'items' meta
-            if (!empty($items)) {
-                foreach ($items as $item) {
-                    if (isset($item['total'])) {
-                        $total_sum += floatval($item['total']); // Add the 'total' of each item to the subtotal
-                    }
-                }
+            // if (!empty($items)) {
+            //     foreach ($items as $item) {
+            //         if (isset($item['total'])) {
+            //             $total_sum += floatval($item['total']); // Add the 'total' of each item to the subtotal
+            //         }
+            //     }
+            // }
+
+            if (!empty($order_total)) {
+                $total_sum += floatval($order_total);
             }
 
-            // if (!empty($order_values)) {
-            //     $total_sum += floatval($order_values);
-            // }
 
             // Calculate the subtotal for the 'total' field in the 'items' meta
             // $items_total_sum = 0;
@@ -3127,10 +3210,6 @@ function search_posts()
 
             // // Compare the items total with the order total
             // $difference = ($items_total_sum != $order_total);
-
-            // if (!empty($order_total)) {
-            //     $total_sum += floatval($order_total);
-            // }
 			
             // Display the post if it passes all filters
             $has_posts = true;
@@ -3139,11 +3218,6 @@ function search_posts()
                 <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
                 <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
                 <span>Order Type: <?php echo esc_html($order_type); ?></span><br>
-                <!-- <span>Items Total: <?//php echo number_format($items_total_sum, 2); ?> ₪</span><br>
-                    <span>Order Total: <?//php echo number_format($order_total, 2); ?> ₪</span><br>
-                    <?//php if ($difference): ?>
-                        <span style="color: red;">Difference Detected!</span>
-                    <?//php endif; ?> -->
             </div>
             <?php
         }
@@ -3224,354 +3298,4 @@ function restrict_access_to_admin_and_editor()
         // Optionally, you can exit the script to prevent further execution
         exit;
     }
-}
-
-
-// Register the admin menu page
-function register_update_post_date_page()
-{
-    add_menu_page(
-        'Update Post Dates', // Page title
-        'Update Dates', // Menu title
-        'manage_options', // Capability
-        'update_post_dates_page', // Menu slug
-        'render_update_post_date_page', // Callback function
-        'dashicons-update', // Icon
-        20 // Position
-    );
-}
-add_action('admin_menu', 'register_update_post_date_page');
-
-// Render the admin page content
-function render_update_post_date_page()
-{
-    ?>
-    <div class="wrap">
-        <h1>Update Post Dates</h1>
-        <p>Click the button below to update the post dates (shift 1 hour back) for posts from 2024-10-27 to today.</p>
-        <button id="trigger-update-post-dates" class="button button-primary">Run Update</button>
-        <div id="update-status"></div>
-    </div>
-
-    <script type="text/javascript">
-        jQuery(document).ready(function ($) {
-            $('#trigger-update-post-dates').on('click', function () {
-                if (confirm('Are you sure you want to update the post dates? This action cannot be undone.')) {
-                    $('#update-status').html('<p>Processing... Please wait.</p>');
-
-                    $.ajax({
-                        url: ajaxurl,
-                        method: 'POST',
-                        data: {
-                            action: 'update_post_dates_one_hour_back',
-                            nonce: '<?php echo wp_create_nonce('update_post_dates_nonce'); ?>'
-                        },
-                        success: function (response) {
-                            alert(response.data.message);
-                            $('#update-status').html('<p>' + response.data.message + '</p>');
-                        },
-                        error: function (xhr, status, error) {
-                            alert('An error occurred: ' + error);
-                            $('#update-status').html('<p style="color:red;">An error occurred. Check the console for details.</p>');
-                        }
-                    });
-                }
-            });
-        });
-    </script>
-    <?php
-}
-
-// AJAX handler for updating post dates
-function ajax_update_post_dates_one_hour_back()
-{
-    // Verify nonce for security
-    check_ajax_referer('update_post_dates_nonce', 'nonce');
-
-    // Define the date range
-    $start_date = '2024-10-27 00:00:00';
-    $end_date = current_time('mysql');
-
-    // Query for posts within the specified date range that haven't been updated yet
-    $args = array(
-        'post_type' => 'post',
-        'posts_per_page' => -1,
-        'date_query' => array(
-            'after' => $start_date,
-            'before' => $end_date,
-            'inclusive' => true,
-        ),
-        'meta_query' => array(
-            array(
-                'key' => '_post_date_updated_live',
-                'compare' => 'NOT EXISTS', // Only select posts that haven't been updated
-            ),
-        ),
-    );
-
-    $posts = get_posts($args);
-
-    if (!empty($posts)) {
-        $updated_count = 0;
-        foreach ($posts as $post) {
-            $post_id = $post->ID;
-
-            // Skip the specific post ID 13530
-            if ($post_id == 13530) {
-                continue;
-            }
-
-            $current_date = $post->post_date;
-            $current_date_gmt = $post->post_date_gmt;
-
-            // Calculate the new date-time (1 hour back)
-            $new_date = date('Y-m-d H:i:s', strtotime($current_date . ' -1 hour'));
-            $new_date_gmt = date('Y-m-d H:i:s', strtotime($current_date_gmt . ' -1 hour'));
-
-            // Update the post date and GMT date
-            wp_update_post(array(
-                'ID' => $post_id,
-                'post_date' => $new_date,
-                'post_date_gmt' => $new_date_gmt,
-            ));
-
-            // Add a meta key to mark this post as updated
-            update_post_meta($post_id, '_post_date_updated_live', '1');
-
-            $updated_count++;
-        }
-
-        wp_send_json_success(['message' => "Post dates updated successfully. Total posts updated: $updated_count"]);
-    } else {
-        wp_send_json_error(['message' => 'No posts found in the specified date range or all posts have already been updated.']);
-    }
-}
-add_action('wp_ajax_update_post_dates_one_hour_back', 'ajax_update_post_dates_one_hour_back');
-
-add_action('admin_menu', 'add_manual_orders_upload_page');
-
-function add_manual_orders_upload_page()
-{
-    add_menu_page(
-        'Manual Orders Upload',         // Page title
-        'Upload Orders',                // Menu title
-        'manage_options',               // Capability (only admins can access)
-        'manual-orders-upload',         // Menu slug
-        'manual_orders_upload_page',    // Callback function
-        'dashicons-upload',             // Icon (optional)
-        20                              // Position in the admin menu (optional)
-    );
-}
-
-function manual_orders_upload_page()
-{
-    ?>
-        <div class="wrap">
-            <h1>Upload Manual Orders CSV</h1>
-            <form id="manual-orders-form" method="post" enctype="multipart/form-data" action="">
-                <input type="file" name="manual_orders_csv" accept=".csv" />
-                <input type="submit" name="upload_manual_orders" class="button-primary" value="Upload CSV" />
-            </form>
-            <div id="progressWrapper" style="display:none;">
-                <p id="progressStatus">Processing orders... <span id="processedCount">0</span> processed.</p>
-            </div>
-        </div>
-
-        <script>
-            jQuery(document).ready(function ($) {
-                $('#manual-orders-form').on('submit', function (e) {
-                    e.preventDefault();
-                    var formData = new FormData(this);
-                    $('#progressWrapper').show();
-
-                    // Upload the CSV file first
-                    $.ajax({
-                        url: ajaxurl + '?action=upload_manual_orders_csv',
-                        method: 'POST',
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function (response) {
-                            if (response.success) {
-                                // Start processing the batches
-                                processBatch(0, response.total_batches);
-                            } else {
-                                $('#progressStatus').text('Error uploading the CSV.');
-                            }
-                        },
-                        error: function () {
-                            $('#progressStatus').text('An error occurred during upload.');
-                        }
-                    });
-
-                    function processBatch(batch_number, total_batches) {
-                        $.ajax({
-                            url: ajaxurl + '?action=process_manual_orders_batch&batch=' + batch_number,
-                            method: 'POST',
-                            success: function (response) {
-                                if (response.success) {
-                                    $('#processedCount').text(response.processed_count);
-                                    if (batch_number < total_batches - 1) {
-                                        processBatch(batch_number + 1, total_batches); // Process next batch
-                                    } else {
-                                        $('#progressStatus').text('Processing completed!');
-                                    }
-                                } else {
-                                    $('#progressStatus').text('Error processing batch ' + batch_number);
-                                }
-                            },
-                            error: function () {
-                                $('#progressStatus').text('An error occurred during batch processing.');
-                            }
-                        });
-                    }
-                });
-            });
-        </script>
-        <?php
-}
-
-add_action('wp_ajax_upload_manual_orders_csv', 'upload_manual_orders_csv');
-function upload_manual_orders_csv()
-{
-    if (!isset($_FILES['manual_orders_csv']['tmp_name'])) {
-        wp_send_json_error('No file uploaded.');
-        return;
-    }
-
-    $csv_file = $_FILES['manual_orders_csv']['tmp_name'];
-
-    // Move the uploaded CSV to a temporary directory
-    $upload_dir = wp_upload_dir();
-    $temp_csv = $upload_dir['basedir'] . '/manual_orders_temp.csv';
-    move_uploaded_file($csv_file, $temp_csv);
-
-    // Open the file to count the total number of rows
-    if (($handle = fopen($temp_csv, "r")) !== FALSE) {
-        $total_rows = 0;
-        while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
-            $total_rows++;
-        }
-        fclose($handle);
-    }
-
-    $batch_size = 100;
-    $total_batches = ceil($total_rows / $batch_size); // Calculate the total number of batches
-
-    wp_send_json_success(array('total_batches' => $total_batches));
-}
-
-add_action('wp_ajax_process_manual_orders_batch', 'process_manual_orders_batch');
-function process_manual_orders_batch()
-{
-    $batch_number = isset($_GET['batch']) ? intval($_GET['batch']) : 0;
-    $batch_size = 100;
-    $offset = $batch_number * $batch_size;
-
-    // Load the temporary CSV
-    $upload_dir = wp_upload_dir();
-    $csv_file = $upload_dir['basedir'] . '/manual_orders_temp.csv';
-
-    if (($handle = fopen($csv_file, "r")) !== FALSE) {
-        $header = fgetcsv($handle, 1000, ","); // Get the header row
-
-        // Skip rows until the current batch offset
-        for ($i = 0; $i < $offset; $i++) {
-            fgetcsv($handle, 1000, ",");
-        }
-
-        $processed_count = 0;
-
-        // Process the current batch
-        while (($row = fgetcsv($handle, 1000, ",")) !== FALSE && $processed_count < $batch_size) {
-            $order_data = array_combine($header, $row);
-            manual_create_order($order_data);
-
-            $processed_count++;
-        }
-
-        fclose($handle);
-
-        wp_send_json_success(array('processed_count' => $processed_count));
-    } else {
-        wp_send_json_error('Error processing the CSV file.');
-    }
-}
-
-function manual_create_order($order_data)
-{
-    $order_number = isset($order_data['order_id']) ? sanitize_text_field($order_data['order_id']) : '';
-    
-    // Check if the order_number contains "MiniSite" and skip if true
-    if (strpos($order_number, 'MiniSite') !== false) {
-        return; // Skip this order
-    }
-
-    $order_date = isset($order_data['order_date']) ? sanitize_text_field($order_data['order_date']) : '';
-    $order_type = isset($order_data['order_type']) ? sanitize_text_field($order_data['order_type']) : 'personal';
-    $client_name = sanitize_text_field($order_data['client_name']);
-    $client_email = sanitize_email($order_data['client_email']);
-    $client_phone = sanitize_text_field($order_data['client_phone']);
-    $total_price = !empty($order_data['total_price']) ? floatval($order_data['total_price']) : 0;
-
-    $post_title = '#' . $order_number;
-
-    // Create the order post
-    $post_id = wp_insert_post(
-        array(
-            'post_title' => $post_title,
-            'post_status' => 'publish',
-            'post_author' => 1,
-            'post_type' => 'post',
-            'post_date' => $order_date,
-        )
-    );
-
-    if ($post_id == 0) {
-        return; // Skip if there's an error
-    }
-
-    // Add meta fields
-    update_post_meta($post_id, 'order_id', $order_number);
-    update_post_meta($post_id, 'order_number', $order_number);
-    update_post_meta($post_id, 'order_status', 'static');
-    update_post_meta($post_id, 'shipping_method', 'manual');
-    update_post_meta($post_id, 'order_type', $order_type);
-    update_post_meta($post_id, 'order_total', $total_price);
-    update_post_meta($post_id, 'billing', array('first_name' => $client_name, 'email' => $client_email, 'phone' => $client_phone));
-    update_post_meta($post_id, 'shipping', array('first_name' => $client_name, 'email' => $client_email, 'phone' => $client_phone));
-    update_post_meta(
-        $post_id,
-        'items',
-        array(
-            array(
-                'product_id' => 'freestyle',
-                'product_name' => 'Freestyle Item',
-                'quantity' => 1,
-                'total' => $total_price,
-            )
-        )
-    );
-    update_post_meta($post_id, 'payment_method', 'manual');
-    update_post_meta($post_id, 'payment_method_title', 'manual');
-    update_post_meta($post_id, 'site_url', 'https://om.allaround.co.il');
-
-    update_post_meta($post_id, 'self_hosted_manual_orders', true);
-
-    // Create or update the client
-    $order_data_for_client = array(
-        'billing' => array(
-            'first_name' => $client_name,
-            'email' => $client_email,
-            'phone' => $client_phone
-        ),
-        'client_type' => $order_type
-    );
-    do_action('all_around_create_client', $post_id, $order_data_for_client, $order_number, $order_number);
-
-    // get client_id meta
-    $client_id = get_post_meta($post_id, 'client_id', true);
-
-    // Update order source and related meta
-    handle_order_source($post_id, $client_id, 'manual_order', $total_price);
 }

@@ -1043,7 +1043,7 @@ input#fetchProductList {
   border-top-color: #f7f7f7;
   background: transparent;
 }
-body.om__author .om__orderShippingDetails {
+body.om__author .om__orderShippingDetails .om__orderShippingDetailsGrid {
   pointer-events: none;
 }
 .om__orderShippingDetails {
@@ -2149,6 +2149,7 @@ tr.om__orderRow.disabled-item:last-child > td:last-child {
     font-weight: 700;
 }
 
+
 .allarnd--regular-button[data-title] {
   position: relative;
   cursor: help;
@@ -2201,6 +2202,191 @@ tr.om__orderRow.disabled-item:last-child > td:last-child {
     display: block;
     line-height: 1.8;
 }
+.om__orderShippingBoxTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.shippingBoxesCont {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 0px;
+    flex-direction: row;
+    align-items: center;
+}
+select#shipping_boxes {
+    width: 70px;
+    padding: 5px 15px;
+}
+
+
+/*Order Group Page CSS*/
+#om__orderGroupPage, #om__orderGroupSingle {
+    padding: 50px 0;
+}
+.orderGroup_title, .orderGroup_productList {
+    margin: 15px 0;
+}
+.orderGroup_postsList {
+    margin-top: 40px;
+}
+.order-group-select2-dropdown.select2-dropdown {
+    position: relative;
+    z-index: 10000;
+    top: 32px;
+}
+.orderGroup_productList .select2-container--default .select2-selection--multiple .select2-selection__choice__remove, .orderGroup_productList .select2-container--default .select2-selection--multiple .select2-selection__clear {
+    color: #e1306c;
+    top: 6px;
+}
+.orderGroup_productList .select2-container .select2-search--inline .select2-search__field {
+    height: 28px;
+    line-height: 1.7;
+}
+.orderGroup_productList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-between;
+}
+.orderGroup_siteItems {
+    flex: 1;
+}
+.orderGroup_siteItems > label, .orderGroup_title > label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.order-group-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.order-group-list li {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+.order-group-list li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    padding: 10px;
+    display: block;
+}
+
+.order-group-list li:hover {
+    background: #e9e9e9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.order-group-list li:hover a {
+    color: #0073aa;
+}
+
+.back-to-order-groups {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.back-to-order-groups .button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #0073aa;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.back-to-order-groups .button:hover {
+    background-color: #005177;
+}
+
+.grouping-product-thumbnail {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.order-group-select2-dropdown .select2-results .select2-results__option span, .orderGroup_productList .select2-container--default .select2-selection--multiple .select2-selection__choice__display>span {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.orderGroup_section {
+    margin-bottom: 40px;
+}
+
+.orderGroup_table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.orderGroup_table th,
+.orderGroup_table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.orderGroup_table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+.orderGroup_textInput {
+    width: 90%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.orderGroup_textInput {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+    background-color: transparent;
+    resize: none;
+}
+
+.save_order_group_text {
+    background-image: url(../images/mark_icon-svg.svg);
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-color: transparent;
+    text-indent: -999999px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    position: absolute;
+    top: 20px;
+    right: 15px;
+    opacity: 0;
+    transition: all ease 0.3s;
+}
+
+td.order_group_text_cell {
+    position: relative;
+}
+
+td.order_group_text_cell:hover .save_order_group_text {
+    opacity: 1;
+    top: 15px;
+}
+
+
 
 /*Responsive CSS*/
 
