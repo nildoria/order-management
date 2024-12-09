@@ -151,11 +151,12 @@ $products_flash = $alarndUtility->fetch_products_from_api($flash_sale_api);
                                     <?php foreach ($filtered_orders as $filtered_order_id):
                                         // Get saved meta text for this order
                                         $saved_text = get_post_meta($filtered_order_id, 'order_group_text', true);
+                                        $woo_order_number = get_post_meta($filtered_order_id, 'order_number', true);
                                         ?>
                                         <tr>
                                             <td>
                                                 <a href="<?php echo esc_url(get_permalink($filtered_order_id)); ?>" target="_blank">
-                                                    #<?php echo esc_html($filtered_order_id); ?>
+                                                    #<?php echo esc_html($woo_order_number); ?>
                                                 </a>
                                             </td>
                                             <td><?php echo esc_html(get_the_date('d/m/Y', $filtered_order_id)); ?></td>

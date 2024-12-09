@@ -2785,12 +2785,14 @@ function update_new_items($order_items, $items, $post_id)
                     $saved_item['quantity'] != $item_quantity ||
                     $saved_item['total'] != $item_total ||
                     $saved_item['product_name'] != $item_name ||
-                    $saved_item['product_sku'] != $item_sku
+                    $saved_item['product_sku'] != $item_sku ||
+                    $saved_item['product_id'] != $product_id
                 ) {
                     $saved_item['quantity'] = $item_quantity;
                     $saved_item['total'] = $item_total;
                     $saved_item['product_name'] = $item_name;
                     $saved_item['product_sku'] = $item_sku;
+                    $saved_item['product_id'] = $product_id;
                     $updated = true; // Mark for update
                 }
                 break;
