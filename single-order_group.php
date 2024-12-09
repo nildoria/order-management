@@ -78,6 +78,15 @@ if (have_posts()):
         }
         ?>
         <main id="om__orderGroupSingle" class="site-main" role="main">
+            <?php 
+            if (isset($_GET['dev'])) {
+                echo '<pre>';
+                print_r($selected_products_main);
+                print_r($selected_products_sites);
+                print_r($selected_products_flash);
+                echo '</pre>';
+            }
+            ?>
             <h2><?php echo esc_html($order_group_title); ?></h2>
 
             <!-- Product Selection Options -->
