@@ -38,6 +38,9 @@ class Alarnd_Utility
 
         add_action('wp_ajax_save_order_group_text', array($this, 'save_order_group_text'));
         add_action('wp_ajax_nopriv_save_order_group_text', array($this, 'save_order_group_text'));
+
+        add_action('wp_ajax_filter_agent_sales', array($this, 'handle_agent_sales_ajax'));
+        add_action('wp_ajax_filter_author_sales', array($this, 'handle_filter_author_sales'));
     }
 
     public function utility_rest_api_endpoints()
@@ -616,6 +619,174 @@ class Alarnd_Utility
         } else {
             wp_send_json_error(array('message' => 'Failed to save text.'));
         }
+    }
+
+    // Agents Sales AJAX Handler Function
+    public function handle_agent_sales_ajax()
+    {
+        // Check nonce
+        check_ajax_referer('order_group_nonce', 'nonce');
+
+        // Check and sanitize input
+        $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
+        $end_date = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
+        $selected_year = isset($_POST['year_filter']) ? sanitize_text_field($_POST['year_filter']) : date('Y');
+
+        // Fetch all agent role users
+        $agents = get_users(array('role' => 'editor'));
+        $sales_data = array();
+
+        // Fetch sales data for each agent
+        foreach ($agents as $agent) {
+            $agent_id = $agent->ID;
+            $agent_name = $agent->display_name;
+            $agent_url = get_author_posts_url($agent_id);
+
+            $sales_data[$agent_id] = array(
+                'name' => $agent_name,
+                'url' => $agent_url,
+                'sales' => array()
+            );
+
+            $args = array(
+                'post_type' => 'post',
+                'posts_per_page' => -1,
+                'author' => $agent_id,
+                'meta_query' => array(
+                    array(
+                        'key' => 'order_total',
+                        'compare' => 'EXISTS'
+                    )
+                )
+            );
+            $agent_posts = new WP_Query($args);
+
+            if ($agent_posts->have_posts()) {
+                while ($agent_posts->have_posts()) {
+                    $agent_posts->the_post();
+                    $order_total = get_post_meta(get_the_ID(), 'order_total', true);
+                    $order_date = get_the_date('Y-m');
+
+                    // Format the month as "Month YYYY"
+                    $formatted_month = date_i18n('F Y', strtotime($order_date . '-01'));
+
+                    if (!isset($sales_data[$agent_id]['sales'][$formatted_month])) {
+                        $sales_data[$agent_id]['sales'][$formatted_month] = 0;
+                    }
+
+                    $sales_data[$agent_id]['sales'][$formatted_month] += floatval($order_total);
+                }
+                wp_reset_postdata();
+            }
+        }
+
+        // Filter data based on provided filters
+        if ($start_date && $end_date) {
+            foreach ($sales_data as $agent_id => $data) {
+                foreach ($data['sales'] as $date => $total) {
+                    $timestamp = strtotime($date);
+                    $month_year = date('Y-m', $timestamp);
+                    if ($month_year < $start_date || $month_year > $end_date) {
+                        unset($sales_data[$agent_id]['sales'][$date]);
+                    }
+                }
+                if (empty($sales_data[$agent_id]['sales'])) {
+                    unset($sales_data[$agent_id]);
+                }
+            }
+        } else {
+            foreach ($sales_data as $agent_id => $data) {
+                foreach ($data['sales'] as $date => $total) {
+                    $timestamp = strtotime($date);
+                    $year = date('Y', $timestamp);
+                    if ($year !== $selected_year) {
+                        unset($sales_data[$agent_id]['sales'][$date]);
+                    }
+                }
+                if (empty($sales_data[$agent_id]['sales'])) {
+                    unset($sales_data[$agent_id]);
+                }
+            }
+        }
+
+        // Return JSON response
+        wp_send_json_success($sales_data);
+    }
+
+
+    public function handle_filter_author_sales()
+    {
+        // Get and sanitize inputs
+        $author_id = isset($_POST['author_id']) ? intval($_POST['author_id']) : 0;
+        $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
+        $end_date = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
+        $selected_year = isset($_POST['year_filter']) ? sanitize_text_field($_POST['year_filter']) : date('Y');
+
+        // Ensure the user has access
+        if (!current_user_can('administrator') && get_current_user_id() !== $author_id) {
+            wp_send_json_error(['message' => 'Access Denied']);
+        }
+
+        // Query the author's posts
+        $args = [
+            'author' => $author_id,
+            'posts_per_page' => -1,
+            'post_type' => 'post',
+            'post_status' => 'publish',
+        ];
+
+        if ($start_date && $end_date) {
+            $args['date_query'] = [
+                'after' => $start_date,
+                'before' => $end_date,
+                'inclusive' => true,
+            ];
+        } elseif ($selected_year) {
+            $args['date_query'] = [
+                [
+                    'year' => $selected_year,
+                ],
+            ];
+        }
+
+        $query = new WP_Query($args);
+
+        // Initialize sales data
+        $sales_by_month = [];
+        $sales_by_day = [];
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $order_total = get_post_meta(get_the_ID(), 'order_total', true);
+                if (is_numeric($order_total)) {
+                    $order_total = floatval($order_total);
+                    $post_date = get_the_date('d/m/Y');
+                    $post_month = get_the_date('Y-m');
+
+                    // Format the month as "Month YYYY"
+                    $formatted_month = date_i18n('F Y', strtotime($post_month . '-01'));
+
+                    // Sales by Month
+                    if (!isset($sales_by_month[$formatted_month])) {
+                        $sales_by_month[$formatted_month] = 0;
+                    }
+                    $sales_by_month[$formatted_month] += $order_total;
+
+                    // Sales by Day
+                    if (!isset($sales_by_day[$post_date])) {
+                        $sales_by_day[$post_date] = 0;
+                    }
+                    $sales_by_day[$post_date] += $order_total;
+                }
+            }
+            wp_reset_postdata();
+        }
+
+        wp_send_json_success([
+            'sales_by_month' => $sales_by_month,
+            'sales_by_day' => $sales_by_day,
+        ]);
     }
 
 }
