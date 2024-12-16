@@ -2387,6 +2387,78 @@ td.order_group_text_cell:hover .save_order_group_text {
 }
 
 
+/* Agent Admin Page Template */
+#agent-sales-page {
+    padding: 20px;
+}
+
+#agent-sales-page h2 {
+    margin-bottom: 20px;
+}
+
+#agent-sales-page form {
+    margin-bottom: 20px;
+}
+
+#agent-sales-page table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#agent-sales-page table th,
+#agent-sales-page table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+#agent-sales-page table th {
+    background-color: #f4f4f4;
+}
+
+#agent-sales-page table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+#filter-form .filter_submit {
+    background-color: #66de93;
+    color: #1a1a1a;
+    text-decoration: none;
+    padding: 8px 29px;
+    margin: 0;
+    border-radius: 7px;
+    margin-top: 15px;
+    margin-right: 10px;
+    font-weight: 600;
+}
+
+.date-range-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.date-range-form .form-group {
+    display: inline-block;
+}
+
+.date-range-form .form-group label {
+    margin-bottom: 5px;
+}
+
+.date-range-form .form-group input,
+.date-range-form .form-group button,
+.date-range-form .form-group .reset_button {
+    padding: 7px;
+    font-size: 14px;
+}
+
+select#year-select {
+    display: inline-block;
+    padding: 6px 10px;
+}
+
 
 /*Responsive CSS*/
 
