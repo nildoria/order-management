@@ -162,7 +162,7 @@ td.item_quantity_column:hover .om_itemQuantPriceEdit {
   font-size: 18px;
   font-weight: 600;
 }
-body.om__author td.item_quantity_column {
+body.om__author td.item_quantity_column, body.om__contributor td.item_quantity_column, body.om__editor td.item_mockup_column {
   text-align: center;
 }
 .om_itemQuantPriceEdit {
@@ -2047,6 +2047,14 @@ main#om__searchOrderPage {
 
 td.item_mockup_column.last_send_version {
   background-color: #d0d0d0;
+}
+button#orderCompletedOpenModal {
+    background-color: #3E58DB;
+    color: #fff;
+}
+button#orderCompletedOpenModal:hover {
+    background-color: #051e99 !important;
+    color: #fff;
 }
 /* MLimon CSS END */
 
