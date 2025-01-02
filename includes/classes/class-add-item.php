@@ -29,8 +29,10 @@ class AllAroundAddItem
 
             if (strpos($current_domain, '.test') !== false || strpos($current_domain, 'lukpaluk.xyz') !== false) {
                 $order_domain = 'https://main.lukpaluk.xyz';
-            } else {
+            } else if (strpos($current_domain, 'allaround.co.il') !== false) {
                 $order_domain = 'https://allaround.co.il';
+            } else {
+                $order_domain = 'https://main.lukpaluk.xyz';
             }
         }
 

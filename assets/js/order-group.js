@@ -115,172 +115,177 @@ jQuery(document).ready(function ($) {
     dateFormat: "yy-mm-dd",
   });
 
-  // Load current year's data on page load
-  loadSalesData({ year_filter: currentYear });
+  if (typeof currentYear !== "undefined") {
+    // Load current year's data on page load
+    loadSalesData({ year_filter: currentYear });
 
-  // Handle form submission
-  $("#filter-submit").on("click", function () {
-    const startDate = $("#start_date").val();
-    const endDate = $("#end_date").val();
-    const yearFilter = startDate && endDate ? "" : $("#year-select").val();
+    // Handle form submission
+    $("#filter-submit").on("click", function () {
+      const startDate = $("#start_date").val();
+      const endDate = $("#end_date").val();
+      const yearFilter = startDate && endDate ? "" : $("#year-select").val();
 
-    if (startDate && endDate) {
-      $("#year-select").prop("disabled", true);
-    } else {
+      if (startDate && endDate) {
+        $("#year-select").prop("disabled", true);
+      } else {
+        $("#year-select").prop("disabled", false);
+      }
+
+      loadSalesData({
+        start_date: startDate,
+        end_date: endDate,
+        year_filter: yearFilter,
+      });
+    });
+
+    // on click to reset filter enable year select
+    $(".reset_button").on("click", function () {
       $("#year-select").prop("disabled", false);
+
+      setTimeout(() => {
+        $("#filter-submit").trigger("click");
+        $("#filter-submit-agent").trigger("click");
+      }, 200);
+    });
+
+    // AJAX function to load sales data
+    function loadSalesData(params) {
+      const defaultParams = {
+        action: "filter_agent_sales",
+        nonce: alarnd_order_group_vars.nonce,
+      };
+
+      $.ajax({
+        url: alarnd_order_group_vars.ajax_url,
+        method: "POST",
+        data: { ...defaultParams, ...params },
+        beforeSend: function () {
+          $("#agent-sales-results").html("<p>Loading...</p>");
+        },
+        success: function (response) {
+          if (response.success) {
+            renderSalesData(response.data);
+          } else {
+            $("#agent-sales-results").html("<p>No sales data available!</p>");
+          }
+        },
+        error: function () {
+          $("#agent-sales-results").html("<p>Error loading data.</p>");
+        },
+      });
     }
 
-    loadSalesData({
-      start_date: startDate,
-      end_date: endDate,
-      year_filter: yearFilter,
-    });
-  });
+    // Render sales data
+    function renderSalesData(data) {
+      let html =
+        "<table><thead><tr><th>Agent Name</th><th>Month</th><th>Total Sales</th></tr></thead><tbody>";
+      if ($.isEmptyObject(data)) {
+        html += '<tr><td colspan="3">No sales data available!</td></tr>';
+      } else {
+        $.each(data, function (agentId, agent) {
+          const agentNameLink = `<a href="${agent.url}" target="_blank">${agent.name}</a>`;
+          html += `<tr><td rowspan="${
+            Object.keys(agent.sales).length + 1
+          }">${agentNameLink}</td></tr>`;
+          $.each(agent.sales, function (month, total) {
+            html += `<tr><td>${month}</td><td>${total.toFixed(2)}</td></tr>`;
+          });
+        });
+      }
+      html += "</tbody></table>";
+      $("#agent-sales-results").html(html);
+    }
 
-  // on click to reset filter enable year select
-  $(".reset_button").on("click", function () {
-    $("#year-select").prop("disabled", false);
+    // Check if authorId is defined before using it
+    if (typeof authorId !== "undefined") {
+      // Agent Single Sales Data Ajax
+      // Load current year's data on page load
+      loadAgentSalesData({ year_filter: currentYear });
 
-    setTimeout(() => {
-      $("#filter-submit").trigger("click");
-      $("#filter-submit-agent").trigger("click");
-    }, 200);
-  });
+      // Handle form submission
+      $("#filter-submit-agent").on("click", function () {
+        const startDate = $("#start_date").val();
+        const endDate = $("#end_date").val();
+        const yearFilter = startDate && endDate ? "" : $("#year-select").val();
 
-  // AJAX function to load sales data
-  function loadSalesData(params) {
-    const defaultParams = {
-      action: "filter_agent_sales",
-      nonce: alarnd_order_group_vars.nonce,
-    };
-
-    $.ajax({
-      url: alarnd_order_group_vars.ajax_url,
-      method: "POST",
-      data: { ...defaultParams, ...params },
-      beforeSend: function () {
-        $("#agent-sales-results").html("<p>Loading...</p>");
-      },
-      success: function (response) {
-        if (response.success) {
-          renderSalesData(response.data);
+        if (startDate && endDate) {
+          $("#year-select").prop("disabled", true);
         } else {
-          $("#agent-sales-results").html("<p>No sales data available!</p>");
+          $("#year-select").prop("disabled", false);
         }
-      },
-      error: function () {
-        $("#agent-sales-results").html("<p>Error loading data.</p>");
-      },
-    });
-  }
 
-  // Render sales data
-  function renderSalesData(data) {
-    let html =
-      "<table><thead><tr><th>Agent Name</th><th>Month</th><th>Total Sales</th></tr></thead><tbody>";
-    if ($.isEmptyObject(data)) {
-      html += '<tr><td colspan="3">No sales data available!</td></tr>';
-    } else {
-      $.each(data, function (agentId, agent) {
-        const agentNameLink = `<a href="${agent.url}" target="_blank">${agent.name}</a>`;
-        html += `<tr><td rowspan="${
-          Object.keys(agent.sales).length + 1
-        }">${agentNameLink}</td></tr>`;
-        $.each(agent.sales, function (month, total) {
-          html += `<tr><td>${month}</td><td>${total.toFixed(2)}</td></tr>`;
+        loadAgentSalesData({
+          author_id: authorId,
+          start_date: startDate,
+          end_date: endDate,
+          year_filter: yearFilter,
         });
       });
-    }
-    html += "</tbody></table>";
-    $("#agent-sales-results").html(html);
-  }
 
-  // Agent Single Sales Data Ajax
-  // Load current year's data on page load
-  loadAgentSalesData({ year_filter: currentYear });
+      // AJAX function to fetch sales data
+      function loadAgentSalesData(params) {
+        const defaultParams = {
+          action: "filter_author_sales",
+          author_id: authorId,
+        };
 
-  // Handle form submission
-  $("#filter-submit-agent").on("click", function () {
-    const startDate = $("#start_date").val();
-    const endDate = $("#end_date").val();
-    const yearFilter = startDate && endDate ? "" : $("#year-select").val();
+        $.ajax({
+          url: ajaxUrl,
+          method: "POST",
+          data: { ...defaultParams, ...params },
+          beforeSend: function () {
+            $("#ajax-results").html("<p>Loading...</p>");
+          },
+          success: function (response) {
+            if (response.success) {
+              renderAgentSalesData(response.data);
+            } else {
+              $("#ajax-results").html("<p>No sales data available!</p>");
+            }
+          },
+          error: function () {
+            $("#ajax-results").html("<p>Error loading data.</p>");
+          },
+        });
+      }
 
-    if (startDate && endDate) {
-      $("#year-select").prop("disabled", true);
-    } else {
-      $("#year-select").prop("disabled", false);
-    }
-    
-    loadAgentSalesData({
-      author_id: authorId,
-      start_date: startDate,
-      end_date: endDate,
-      year_filter: yearFilter,
-    });
-  });
+      // Render agent sales data in table format
+      function renderAgentSalesData(data) {
+        let html = '<div class="om_agent_sale_page">';
 
-  // AJAX function to fetch sales data
-  function loadAgentSalesData(params) {
-    const defaultParams = {
-      action: "filter_author_sales",
-      author_id: authorId,
-    };
-
-    $.ajax({
-      url: ajaxUrl,
-      method: "POST",
-      data: { ...defaultParams, ...params },
-      beforeSend: function () {
-        $("#ajax-results").html("<p>Loading...</p>");
-      },
-      success: function (response) {
-        if (response.success) {
-          renderAgentSalesData(response.data);
-        } else {
-          $("#ajax-results").html("<p>No sales data available!</p>");
+        // Sales by Month
+        if (!$.isEmptyObject(data.sales_by_month)) {
+          html += "<div class='om__sales_by_month'><h5>Sales By Month</h5>";
+          html +=
+            "<table><thead><tr><th>Month</th><th>Total Sales</th></tr></thead><tbody>";
+          $.each(data.sales_by_month, function (month, total) {
+            html += `<tr><td>${month}</td><td>${total.toFixed(2)}₪</td></tr>`;
+          });
+          html += "</tbody></table></div>";
         }
-      },
-      error: function () {
-        $("#ajax-results").html("<p>Error loading data.</p>");
-      },
-    });
-  }
 
-  // Render agent sales data in table format
-  function renderAgentSalesData(data) {
-    let html = '<div class="om_agent_sale_page">';
+        // Sales by Day
+        if (!$.isEmptyObject(data.sales_by_day)) {
+          html += "<div class='om__sales_by_days'><h5>Sales By Day</h5>";
+          html +=
+            "<table><thead><tr><th>Day</th><th>Total Sales</th></tr></thead><tbody>";
+          $.each(data.sales_by_day, function (day, total) {
+            html += `<tr><td>${day}</td><td>${total.toFixed(2)}₪</td></tr>`;
+          });
+          html += "</tbody></table></div>";
+        }
 
-    // Sales by Month
-    if (!$.isEmptyObject(data.sales_by_month)) {
-      html += "<div class='om__sales_by_month'><h5>Sales By Month</h5>";
-      html +=
-        "<table><thead><tr><th>Month</th><th>Total Sales</th></tr></thead><tbody>";
-      $.each(data.sales_by_month, function (month, total) {
-        html += `<tr><td>${month}</td><td>${total.toFixed(2)}₪</td></tr>`;
-      });
-      html += "</tbody></table></div>";
+        // If no data available
+        if (
+          $.isEmptyObject(data.sales_by_month) &&
+          $.isEmptyObject(data.sales_by_day)
+        ) {
+          html += "<p>No sales data available!</p>";
+        }
+
+        html += "</div>";
+        $("#ajax-results").html(html);
+      }
     }
-
-    // Sales by Day
-    if (!$.isEmptyObject(data.sales_by_day)) {
-      html += "<div class='om__sales_by_days'><h5>Sales By Day</h5>";
-      html +=
-        "<table><thead><tr><th>Day</th><th>Total Sales</th></tr></thead><tbody>";
-      $.each(data.sales_by_day, function (day, total) {
-        html += `<tr><td>${day}</td><td>${total.toFixed(2)}₪</td></tr>`;
-      });
-      html += "</tbody></table></div>";
-    }
-
-    // If no data available
-    if (
-      $.isEmptyObject(data.sales_by_month) &&
-      $.isEmptyObject(data.sales_by_day)
-    ) {
-      html += "<p>No sales data available!</p>";
-    }
-
-    html += "</div>";
-    $("#ajax-results").html(html);
   }
 });

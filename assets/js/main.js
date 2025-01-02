@@ -1150,10 +1150,14 @@
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
-    } else {
+    } else if (root_domain.includes("allaround.co.il")) {
       // Webhook URL for production environment
       webhook_url =
         "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    } else {
+      // Default to test webhook URL
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     }
 
     fetch(webhook_url, {
@@ -1873,16 +1877,20 @@
 
     $(this).addClass("ml_loading");
 
-    let webhook_url = "";
+    let webhook_url;
 
     if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
-    } else {
+    } else if (root_domain.includes("allaround.co.il")) {
       // Webhook URL for production environment
       webhook_url =
         "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    } else {
+      // Default to test webhook URL
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     }
 
     // Data to send to the webhook
@@ -1949,7 +1957,9 @@
     if (!shipping_boxes) {
       shipping_boxes = 1;
     }
-    let shipping_method_text = $("#shipping-method-list option:selected").text();
+    let shipping_method_text = $(
+      "#shipping-method-list option:selected"
+    ).text();
 
     if (
       shipping_method_text ===
@@ -1969,10 +1979,14 @@
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
-    } else {
+    } else if (root_domain.includes("allaround.co.il")) {
       // Webhook URL for production environment
       webhook_url =
         "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    } else {
+      // Default to test webhook URL
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     }
 
     // Data to send to the webhook
@@ -2188,10 +2202,14 @@
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
-    } else {
+    } else if (root_domain.includes("allaround.co.il")) {
       // Webhook URL for production environment
       webhook_url =
         "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    } else {
+      // Default to test webhook URL
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     }
 
     // Data to send to the webhook
@@ -2247,10 +2265,14 @@
       // Webhook URL for test environment
       webhook_url =
         "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
-    } else {
+    } else if (root_domain.includes("allaround.co.il")) {
       // Webhook URL for production environment
       webhook_url =
         "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
+    } else {
+      // Default to test webhook URL
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     }
 
     // Data to send to the webhook
@@ -2319,6 +2341,15 @@
     closeBtnInside: true,
   });
 
+  // Open Modal on click of #mockupApprovedOpenModal
+  $("#orderCompletedOpenModal").magnificPopup({
+    items: {
+      src: "#orderCompletedConfirmModal",
+      type: "inline",
+    },
+    closeBtnInside: true,
+  });
+
   // Close the modal on click of #printLabelCancel
   $(".confmodalCancel").on("click", function () {
     $.magnificPopup.close();
@@ -2336,7 +2367,7 @@
 
   // check the length of tableMain
   if ($("#tableMain").length) {
-    if (isEmployee() || isDesigner()) {
+    if (isDesigner()) {
       // Get the data-order_status attribute value from #om__orderStatus
       var orderStatus = $("#tableMain").data("order_status");
       // Disable OM events if status is 'completed' or 'static'
@@ -2452,6 +2483,68 @@
               errorMessage = xhr.responseJSON.data.message;
             }
             alert(errorMessage); // Show the JSON error message
+          },
+        });
+      });
+    }
+
+    if (isAdmin() || isEmployee()) {
+      // Handle the click event on the #orderCompleted button
+      $("#orderCompleted").on("click", function () {
+        let order_id = allaround_vars.order_id;
+        let order_number = allaround_vars.order_number;
+        let order_domain = allaround_vars.order_domain;
+        let post_id = allaround_vars.post_id;
+        let nonce = allaround_vars.nonce;
+
+        // Show loading spinner or disable button to prevent multiple clicks
+        $(this).addClass("ml_loading").prop("disabled", true);
+
+        let webhookData = {
+          om_status: "completed",
+          order_id: order_number,
+        };
+
+        let requestData = {
+          action: "update_order_transient",
+          order_id: order_id,
+        };
+
+        function handleResponse(response) {
+          $("#orderCompleted").removeClass("ml_loading");
+          alert("Order marked as completed successfully!");
+          // Optionally, you can reload the page or update the UI
+          location.reload();
+        }
+        // Send AJAX request to the WordPress backend
+        $.ajax({
+          type: "POST",
+          url: allaround_vars.ajax_url,
+          data: {
+            action: "complete_order",
+            order_id: order_id,
+            order_domain: order_domain,
+            post_id: post_id,
+            nonce: nonce,
+          },
+          success: function (response) {
+            if (response.success) {
+              sendDataToWebhook(webhookData);
+              ml_send_ajax(requestData, handleResponse);
+            } else {
+              alert(
+                "Failed to mark order as completed: " + response.data.message
+              );
+            }
+          },
+          error: function (xhr, status, error) {
+            alert("An error occurred: " + error);
+          },
+          complete: function () {
+            // Hide loading spinner or re-enable button
+            $("#orderCompleted")
+              .removeClass("ml_loading")
+              .prop("disabled", false);
           },
         });
       });

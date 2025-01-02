@@ -764,6 +764,19 @@ $clients = $createOrder->fetch_clients_data();
                                 id="mockupApprovedCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
                         </div>
                     <?php endif; ?>
+
+                    <!-- Visible for Admin and Employee/Author role -->
+                     <?php if (is_current_user_admin() || is_current_user_author()): ?>
+                        <button type="button" class="allarnd--regular-button ml_add_loading"
+                                id="orderCompletedOpenModal"><?php echo esc_html__('Completed', 'hello-elementor'); ?></button>
+                        <div id="orderCompletedConfirmModal" class="om__ConfirmationModal mfp-hide">
+                            <h5>Are you sure the Order is Completed? </h5>
+                            <p>Please re-check everything.</p>
+                            <button type="button" data-status="completed" class="allarnd--regular-button ml_add_loading"
+                                id="orderCompleted"><?php echo esc_html__('YES - Order Completed', 'hello-elementor'); ?></button>
+                            <button type="button" class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
