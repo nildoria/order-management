@@ -19,8 +19,8 @@ jQuery(document).ready(function ($) {
       data: formData,
       success: function (response) {
         if (response.success) {
-          //   window.location.href = response.data.redirect_url;
-          location.reload();
+        //   window.location.href = response.data.redirect_url;
+            location.reload();
         } else {
           alert("Failed to create Order Group: " + response.data.message);
         }
@@ -57,57 +57,60 @@ jQuery(document).ready(function ($) {
     dropdownCssClass: "order-group-select2-dropdown",
   });
 
-  $(".save_order_group_text").on("click", function (e) {
-    e.preventDefault();
 
-    let $button = $(this);
-    let orderId = $button.data("order-id");
-    let $textarea = $button.siblings(".orderGroup_textInput");
-    let textValue = $textarea.val();
+    $(".save_order_group_text").on("click", function (e) {
+        e.preventDefault();
 
-    // Add loading state to the button
-    $button.prop("disabled", true).text("Saving...");
+        let $button = $(this);
+        let orderId = $button.data("order-id");
+        let $textarea = $button.siblings(".orderGroup_textInput");
+        let textValue = $textarea.val();
 
-    $.ajax({
-      type: "POST",
-      url: alarnd_order_group_vars.ajax_url,
-      data: {
-        action: "save_order_group_text",
-        order_id: orderId,
-        text_value: textValue,
-        nonce: alarnd_order_group_vars.nonce,
-      },
-      success: function (response) {
-        if (response.success) {
-          $button.text("Saved!").removeClass("error");
-          Toastify({
-            text: `#${orderId} note saved successfully!`,
-            duration: 3000,
-            close: true,
-            gravity: "bottom", // `top` or `bottom`
-            position: "right", // `left`, `center` or `right`
-            stopOnFocus: true, // Prevents dismissing of toast on hover
-            style: {
-              background: "linear-gradient(to right, #00b09b, #96c93d)",
-            },
-          }).showToast();
-        } else {
-          alert("Failed to save text: " + response.data.message);
-          $button.addClass("error");
-        }
-      },
-      error: function (xhr, status, error) {
-        alert("An error occurred: " + error);
-      },
-      complete: function () {
-        // Reset the button state after 2 seconds
-        setTimeout(function () {
-          $button.prop("disabled", false).text("Save");
-        }, 2000);
-      },
+        // Add loading state to the button
+        $button.prop("disabled", true).text("Saving...");
+
+        $.ajax({
+        type: "POST",
+        url: alarnd_order_group_vars.ajax_url,
+        data: {
+            action: "save_order_group_text",
+            order_id: orderId,
+            text_value: textValue,
+            nonce: alarnd_order_group_vars.nonce,
+        },
+        success: function (response) {
+            if (response.success) {
+            $button.text("Saved!").removeClass("error");
+            Toastify({
+              text: `#${orderId} note saved successfully!`,
+              duration: 3000,
+              close: true,
+              gravity: "bottom", // `top` or `bottom`
+              position: "right", // `left`, `center` or `right`
+              stopOnFocus: true, // Prevents dismissing of toast on hover
+              style: {
+                background: "linear-gradient(to right, #00b09b, #96c93d)",
+              },
+            }).showToast();
+
+            } else {
+            alert("Failed to save text: " + response.data.message);
+            $button.addClass("error");
+            }
+        },
+        error: function (xhr, status, error) {
+            alert("An error occurred: " + error);
+        },
+        complete: function () {
+            // Reset the button state after 2 seconds
+            setTimeout(function () {
+            $button.prop("disabled", false).text("Save");
+            }, 2000);
+        },
+        });
     });
-  });
-
+	
+	
   // AGENT SALES JS START
 
   // Datepicker setup

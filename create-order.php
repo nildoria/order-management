@@ -447,7 +447,7 @@ $current_user_is_editor = is_current_user_editor();
                     <option value="">Select Shipping Option</option>
                     <option value="flat_rate">
                         שליח עד הבית לכל הארץ (3-5 ימי עסקים)</option>
-                    <option value="free_shipping">משלוח חינם ע"י שליח</option>
+                    <option value="free_shipping">משלוחמשלוח חינם ע"י שליח</option>
                     <option value="local_pickup">איסוף עצמי מ- הלהב 2, חולון (1-3 ימי עסקים) - חינם!</option>
                 </select>
             </div>

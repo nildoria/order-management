@@ -36,6 +36,8 @@
     let orderSource = $(this).data("order_source");
     let totalPaid = $(".om__orderTotal").text().replace("₪", "").trim();
 
+    console.log("Email Address:", customerEmail);
+
     if (!mainTable) {
       alert("Nothing to send! Please add Mockup to the order.");
       return;
@@ -1888,7 +1890,7 @@
 
     $(this).addClass("ml_loading");
 
-    let webhook_url;
+    let webhook_url = "";
 
     if (root_domain.includes(".test") || root_domain.includes("lukpaluk.xyz")) {
       // Webhook URL for test environment
@@ -1900,8 +1902,7 @@
         "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
     } else {
       // Default to test webhook URL
-      webhook_url =
-        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+      webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     }
 
     // Data to send to the webhook
@@ -1968,9 +1969,7 @@
     if (!shipping_boxes) {
       shipping_boxes = 1;
     }
-    let shipping_method_text = $(
-      "#shipping-method-list option:selected"
-    ).text();
+    let shipping_method_text = $("#shipping-method-list option:selected").text();
 
     if (
       shipping_method_text ===
@@ -2068,7 +2067,7 @@
         $.magnificPopup.close();
         // locatio reload after 1 sec
         setTimeout(() => {
-          // location.reload();
+          location.reload();
         }, 1000);
       },
       error: function (xhr, status, error) {
@@ -2354,7 +2353,7 @@
     closeBtnInside: true,
   });
 
-  // Open Modal on click of #mockupApprovedOpenModal
+  // Open Modal on click of #orderCompletedOpenModal
   $("#orderCompletedOpenModal").magnificPopup({
     items: {
       src: "#orderCompletedConfirmModal",

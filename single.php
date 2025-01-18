@@ -426,6 +426,7 @@ $clients = $createOrder->fetch_clients_data();
                     <div class="om__orderShippingBoxTop">
                         <label
                         for="om__orderShippingDetailsGrid"><?php echo esc_html__('Order Shipping Details', 'hello-elementor'); ?></label>
+                        
                         <!-- Show this to Admin and Employee role -->
                         <?php if (is_current_user_admin() || is_current_user_author()): ?>
                             <div class="om__orderShippingDetailsItem shippingBoxesCont">
@@ -616,6 +617,7 @@ $clients = $createOrder->fetch_clients_data();
                             <?php
                                 // Retrieve the items meta data
                                 $items = get_post_meta($current_id, 'items', true);
+
 
                                 // Check if items exist and is an array
                                 if (!empty($items) && is_array($items)) {

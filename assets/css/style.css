@@ -1043,8 +1043,12 @@ input#fetchProductList {
   border-top-color: #f7f7f7;
   background: transparent;
 }
-body.om__author .om__orderShippingDetails .om__orderShippingDetailsGrid {
+body.om__author .om__orderShippingDetails .om__orderShippingDetailsGrid .om__orderShippingDetailsItem {
   pointer-events: none;
+}
+
+body.om__author .om__orderShippingDetails .om__orderShippingDetailsGrid .om__orderShippingDetailsItem.omShippingSubmitBtn {
+      pointer-events: all;
 }
 .om__orderShippingDetails {
   background-color: #f7f7f7;
@@ -2393,6 +2397,7 @@ td.order_group_text_cell:hover .save_order_group_text {
     opacity: 1;
     top: 15px;
 }
+
 
 
 /* Agent Admin Page Template */
