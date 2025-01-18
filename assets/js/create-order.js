@@ -569,6 +569,8 @@ jQuery(document).ready(function ($) {
     const shippingMethodTitle = $("#shipping_method option:selected").text();
     const shippingTotal = $(".shipping-total-number").text();
 
+    console.log(shippingMethodTitle);
+
     const orderData = {
       action: "create_order_from_form",
       security: alarnd_create_order_vars.nonce,
@@ -590,6 +592,7 @@ jQuery(document).ready(function ($) {
     $.post({
       url: alarnd_create_order_vars.ajax_url,
       data: orderData,
+      timeout: 30000, // Set timeout to 30 seconds
       success: function (response) {
         if (response.success) {
           // Clear the cart
@@ -662,9 +665,10 @@ jQuery(document).ready(function ($) {
       // ).css("opacity", "0.5");
     } else {
       // Enable the other checkboxes when No Invoice is unchecked
-      $(
-        'input[name="payment_method"], input[name="order_date"]'
-      ).prop("disabled", false);
+      $('input[name="payment_method"], input[name="order_date"]').prop(
+        "disabled",
+        false
+      );
       // Remove CSS opacity from .invoice-receipt-options and .payment-method-options
       // $(
       //   ".invoice-receipt-options, .payment-method-options, .order-date-field"

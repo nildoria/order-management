@@ -1597,6 +1597,7 @@
       data: formData,
       processData: false,
       contentType: false,
+      timeout: 300000,
       success: function (response) {
         if (response.success) {
           $("#add-designer-note").removeClass("ml_loading");
@@ -1646,8 +1647,18 @@
           alert("Something went wrong: " + response.data);
         }
       },
-      error: function (error) {
-        alert("An error occurred: " + error.responseText);
+      error: function (xhr, status, error) {
+        let errorMessage = "An error occurred: " + error;
+        if (xhr.responseText) {
+          errorMessage += "\nResponse: " + xhr.responseText;
+        }
+        if (xhr.status) {
+          errorMessage += "\nStatus: " + xhr.status;
+        }
+        if (xhr.statusText) {
+          errorMessage += "\nStatus Text: " + xhr.statusText;
+        }
+        alert(errorMessage);
       },
     });
   });
@@ -2193,6 +2204,7 @@
     let order_id = allaround_vars.order_id;
     let order_number = allaround_vars.order_number;
     let root_domain = allaround_vars.redirecturl;
+    let customerEmail = $("#billing_email").val();
 
     $(this).addClass("ml_loading");
 
@@ -2215,6 +2227,7 @@
     // Data to send to the webhook
     let data = {
       order_id: order_number,
+      customer_email: customerEmail,
       om_status: "missing_graphic",
     };
 

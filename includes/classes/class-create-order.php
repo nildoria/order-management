@@ -280,7 +280,7 @@ class AllAroundCreateOrder
         $shipping = $billing;
         $line_items = json_decode(stripslashes($_POST['line_items']), true);
         $shipping_method = sanitize_text_field($_POST['shipping_method']);
-        $shipping_method_title = sanitize_text_field($_POST['shipping_method_title']);
+        $shipping_method_title = wp_unslash(sanitize_text_field($_POST['shipping_method_title']));
 
         $shipping_total = sanitize_text_field($_POST['shipping_total']);
 

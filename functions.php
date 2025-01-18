@@ -570,7 +570,7 @@ function save_order_general_comment()
     $attachments = is_array($existing_attachments) ? $existing_attachments : array();
 
     if (!empty($_FILES['order_extra_attachments'])) {
-        $new_attachments = handle_file_uploads($_FILES['order_extra_attachments'], $post_id);
+        $new_attachments = handle_notes_file_uploads($_FILES['order_extra_attachments'], $post_id);
         if (is_wp_error($new_attachments)) {
             wp_send_json_error($new_attachments->get_error_message());
         }
@@ -629,23 +629,32 @@ add_action('wp_ajax_nopriv_delete_order_attachment', 'delete_order_attachment');
 function save_order_designer_notes()
 {
     // Check nonce for security
-    check_ajax_referer('order_management_nonce', 'nonce');
+    if (!check_ajax_referer('order_management_nonce', 'nonce', false)) {
+        wp_send_json_error(['error' => 'Invalid nonce.']);
+    }
 
     $post_id = intval($_POST['post_id']);
     $order_designer_notes = sanitize_textarea_field($_POST['order_designer_notes']);
 
     if (empty($post_id) || (empty($order_designer_notes) && empty($_FILES['order_designer_extra_attachments']))) {
-        wp_send_json_error('Invalid post ID or notes.');
+        wp_send_json_error(['error' => 'Invalid post ID or notes.']);
     }
 
     $existing_attachments = get_post_meta($post_id, '_order_designer_extra_attachments', true);
-    $attachments = is_array($existing_attachments) ? $existing_attachments : array();
-
+    if (!empty($existing_attachments) && is_array($existing_attachments)) {
+        $attachments = $existing_attachments;
+    } else {
+        $attachments = [];
+    }
+    
     if (!empty($_FILES['order_designer_extra_attachments'])) {
-        $new_attachments = handle_file_uploads($_FILES['order_designer_extra_attachments'], $post_id);
+        $new_attachments = handle_notes_file_uploads($_FILES['order_designer_extra_attachments'], $post_id);
+
         if (is_wp_error($new_attachments)) {
-            wp_send_json_error($new_attachments->get_error_message());
+            error_log("File upload error: " . $new_attachments->get_error_message());
+            wp_send_json_error(['error' => $new_attachments->get_error_message()]);
         }
+
         $attachments = array_merge($attachments, $new_attachments);
         update_post_meta($post_id, '_order_designer_extra_attachments', $attachments);
     }
@@ -656,12 +665,11 @@ function save_order_designer_notes()
         $order_designer_notes = get_post_meta($post_id, '_order_manage_designer_notes', true);
     }
 
-    wp_send_json_success(
-        array(
-            'order_designer_notes' => nl2br($order_designer_notes), // Convert new lines to <br> tags
-            'attachments' => $attachments
-        )
-    );
+    error_log("AJAX function completed successfully." . print_r($attachments, true));
+    wp_send_json_success([
+        'order_designer_notes' => nl2br($order_designer_notes), // Convert new lines to <br> tags
+        'attachments' => $attachments,
+    ]);
 }
 add_action('wp_ajax_save_order_designer_notes', 'save_order_designer_notes');
 add_action('wp_ajax_nopriv_save_order_designer_notes', 'save_order_designer_notes');
@@ -672,53 +680,71 @@ add_action('wp_ajax_nopriv_save_order_designer_notes', 'save_order_designer_note
  * Handle file uploads for order attachments
  @returns array
  */
-function handle_file_uploads($files, $post_id)
+function handle_notes_file_uploads($files, $post_id)
 {
-    ini_set('memory_limit', '1024M'); // Temporarily increase memory limit
+    $uploads = [];
 
-    $attachments = array();
-
-    foreach ($files['name'] as $key => $value) {
-        if ($files['error'][$key] === UPLOAD_ERR_OK) {
-            $file = array(
+    foreach ($files['name'] as $key => $name) {
+        if ($files['error'][$key] == UPLOAD_ERR_OK) {
+            $file = [
                 'name' => $files['name'][$key],
                 'type' => $files['type'][$key],
                 'tmp_name' => $files['tmp_name'][$key],
                 'error' => $files['error'][$key],
-                'size' => $files['size'][$key]
-            );
+                'size' => $files['size'][$key],
+            ];
 
-            // Validate the image dimensions
-            $validation_result = validate_image_dimensions($file, 3000, 3000);
-            if (is_wp_error($validation_result)) {
-                // Resize the image if validation failed
-                resize_image($file, 3000, 3000);
+            // Handle upload
+            $upload = wp_handle_upload($file, ['test_form' => false]);
 
-                // Validate the resized image dimensions again
-                $validation_result = validate_image_dimensions($file, 3000, 3000);
-                if (is_wp_error($validation_result)) {
-                    return $validation_result;
-                }
+            if (isset($upload['error'])) {
+                error_log("Upload error for file $name: " . $upload['error']);
+                continue; // Skip this file and continue with others.
             }
 
-            // Upload the file and get the attachment ID
-            $attachment_id = media_handle_sideload($file, $post_id);
+            // Create attachment
+            $attachment = [
+                'guid' => $upload['url'],
+                'post_mime_type' => $upload['type'],
+                'post_title' => sanitize_file_name($name),
+                'post_content' => '',
+                'post_status' => 'inherit',
+            ];
 
+            $attachment_id = wp_insert_attachment($attachment, $upload['file'], $post_id);
             if (is_wp_error($attachment_id)) {
-                continue;
-            } else {
-                $attachment_url = wp_get_attachment_url($attachment_id);
-                $attachments[] = array(
-                    'id' => $attachment_id,
-                    'url' => $attachment_url,
-                    'name' => $file['name']
-                );
+                error_log("wp_insert_attachment failed: " . $attachment_id->get_error_message());
+                continue; // Skip this file and continue with others.
             }
+
+            // Check file type for metadata generation
+            $mime_type = $upload['type'];
+            if (strpos($mime_type, 'image/') === 0) {
+                require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+                $attachment_data = wp_generate_attachment_metadata($attachment_id, $upload['file']);
+                if (is_wp_error($attachment_data)) {
+                    // error_log("wp_generate_attachment_metadata failed: " . $attachment_data->get_error_message());
+                    continue; // Skip this file and continue with others.
+                }
+            } else {
+                error_log("Skipping metadata generation for non-image file: " . $name);
+            }
+
+            $uploads[] = [
+                'id' => $attachment_id,
+                'url' => $upload['url'],
+                'name' => $name,
+            ];
+        } else {
+            error_log("Upload error for file $name: Code " . $files['error'][$key]);
+            continue; // Skip this file and continue with others.
         }
     }
 
-    return $attachments;
+    return $uploads;
 }
+
 
 function validate_image_dimensions($file, $max_width, $max_height)
 {
@@ -3065,30 +3091,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-                                                            <div class="revision-activity customer-message mockup-approved-comment">
-                                                                <div class="revision-activity-avatar">
-                                                                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                </div>
-                                                                <div class="revision-activity-content">
-                                                                    <div class="revision-activity-title">
-                                                                        <h5>AllAround</h5>
-                                                                        <span>
-                                                                            <?php
-                                                                            if (!empty($proof_approved_time)) {
-                                                                                echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                                                                            }
-                                                                            ?>
-                                                                        </span>
+                                                                    <div class="revision-activity customer-message mockup-approved-comment">
+                                                                        <div class="revision-activity-avatar">
+                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                        </div>
+                                                                        <div class="revision-activity-content">
+                                                                            <div class="revision-activity-title">
+                                                                                <h5>AllAround</h5>
+                                                                                <span>
+                                                                                    <?php
+                                                                                    if (!empty($proof_approved_time)) {
+                                                                                        echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                                                                                    }
+                                                                                    ?>
+                                                                                </span>
+                                                                            </div>
+                                                                            <div class="revision-activity-description">
+                                                                                <span class="revision-comment-title">
+                                                                                    ההדמיות אושרו על ידי הלקוח 
+                                                                                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
-                                                                    <div class="revision-activity-description">
-                                                                        <span class="revision-comment-title">
-                                                                            ההדמיות אושרו על ידי הלקוח 
-                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <?php
+                                                                    <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -3116,29 +3142,29 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
                 $image_html .= '</div>';
             }
             ?>
-                                                                                    <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                                                                                        <div class="revision-activity-avatar">
-                                                                                            <?php if ($comment_name === 'AllAround'): ?>
-                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                            <?php else: ?>
-                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                                                                                            <?php endif; ?>
-                                                                                        </div>
-                                                                                        <div class="revision-activity-content">
-                                                                                            <div class="revision-activity-title">
-                                                                                                <h5><?php echo esc_html($comment_name); ?></h5>
-                                                                                                <span><?php echo esc_html($comment_date); ?></span>
-                                                                                            </div>
-                                                                                            <div class="revision-activity-description">
-                                                                                                <span class="revision-comment-title">
-                                                                                                    <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                                                                                                </span>
-                                                                                                <?php echo $image_html; ?>
-                                                                                                <div><?php echo $comment_text; ?></div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <?php
+                                                                                                <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                                                                                                    <div class="revision-activity-avatar">
+                                                                                                        <?php if ($comment_name === 'AllAround'): ?>
+                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                                                                                                        <?php else: ?>
+                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                                                                                                        <?php endif; ?>
+                                                                                                    </div>
+                                                                                                    <div class="revision-activity-content">
+                                                                                                        <div class="revision-activity-title">
+                                                                                                            <h5><?php echo esc_html($comment_name); ?></h5>
+                                                                                                            <span><?php echo esc_html($comment_date); ?></span>
+                                                                                                        </div>
+                                                                                                        <div class="revision-activity-description">
+                                                                                                            <span class="revision-comment-title">
+                                                                                                                <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                                                                                                            </span>
+                                                                                                            <?php echo $image_html; ?>
+                                                                                                            <div><?php echo $comment_text; ?></div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                                <?php
         }
     }
 
@@ -3314,12 +3340,12 @@ function search_posts()
             // Display the post if it passes all filters
             $has_posts = true;
             ?>
-                                                                                    <div class="post-item">
-                                                                                        <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                                                                                        <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
-                                                                                        <span>Order Type: <?php echo esc_html($order_type); ?></span><br>
-                                                                                    </div>
-                                                                                    <?php
+                                                                                                <div class="post-item">
+                                                                                                    <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                                                                                                    <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
+                                                                                                    <span>Order Type: <?php echo esc_html($order_type); ?></span><br>
+                                                                                                </div>
+                                                                                                <?php
         }
 
         // Output the total sum of 'total' fields from items meta
