@@ -64,7 +64,7 @@ $current_year = date('Y');
                 <input type="text" id="end_date" name="end_date">
             </div>
             <div class="form-group">
-                <button type="button" id="filter-submit-agent" class="filter_submit" data-author-id="<?php echo esc_attr($author_id); ?>">Filter</button>
+                <button type="button" id="filter-submit-agent" class="filter_submit">Filter</button>
                 <button type="reset" class="reset_button">Reset</button>
             </div>
         </form>

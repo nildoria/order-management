@@ -554,6 +554,17 @@ function save_order_manage_metabox($post_id)
 add_action('save_post', 'save_order_manage_metabox');
 
 
+function fix_pdf_mime_check($data, $file, $filename, $mimes) {
+    $ext = pathinfo($filename, PATHINFO_EXTENSION);
+    if ($ext === 'pdf') {
+        $data['ext'] = 'pdf';
+        $data['type'] = 'application/pdf';
+    }
+    return $data;
+}
+add_filter('wp_check_filetype_and_ext', 'fix_pdf_mime_check', 10, 4);
+
+
 function save_order_general_comment()
 {
     // Check nonce for security
@@ -665,7 +676,7 @@ function save_order_designer_notes()
         $order_designer_notes = get_post_meta($post_id, '_order_manage_designer_notes', true);
     }
 
-    error_log("AJAX function completed successfully." . print_r($attachments, true));
+    // error_log("AJAX function completed successfully." . print_r($attachments, true));
     wp_send_json_success([
         'order_designer_notes' => nl2br($order_designer_notes), // Convert new lines to <br> tags
         'attachments' => $attachments,
@@ -680,6 +691,7 @@ add_action('wp_ajax_nopriv_save_order_designer_notes', 'save_order_designer_note
  * Handle file uploads for order attachments
  @returns array
  */
+
 function handle_notes_file_uploads($files, $post_id)
 {
     $uploads = [];
@@ -1332,7 +1344,7 @@ function save_order_details_meta($post_id)
     }
 
     if (isset($_POST['items'])) {
-        update_post_meta($post_id, 'items', $_POST['items']);
+        update_post_meta($post_id, 'items', $_POST['items']);  // Assuming items are properly sanitized before storing
     }
 
     if (isset($_POST['billing'])) {
@@ -1392,10 +1404,11 @@ function create_order(WP_REST_Request $request)
     $order_source_url = isset($order_data['site_url']) ? $order_data['site_url'] : '';
 
     if (
-        empty($order_source_url)
-        // ($order_source_url !== 'https://sites.allaround.co.il' &&
-        //     $order_source_url !== 'https://flash.allaround.co.il' &&
-        //     $order_source_url !== 'https://allaround.co.il')
+        empty($order_source_url) ||
+        ($order_source_url !== 'https://sites.allaround.co.il' &&
+            $order_source_url !== 'https://flash.allaround.co.il' &&
+            $order_source_url !== 'https://allaround.co.il') &&
+            $order_source_url !== 'https://allaround.test'
     ) {
         error_log('Invalid order source URL: ' . $order_source_url);
         return new WP_Error('unauthorized', 'Unauthorized request.', array('status' => 401));
@@ -1537,9 +1550,6 @@ function create_order(WP_REST_Request $request)
 
     // Send data to webhook
     send_order_data_to_webhook($order_id, $order_number, $order_data, get_permalink($post_id));
-
-    // Send data to stock management system
-    send_order_data_to_stock_management($order_data);
 
     // Return the ID of the new post
     return new WP_REST_Response(array('post_id' => $post_id, 'post_url' => get_permalink($post_id)), 200);
@@ -1799,8 +1809,7 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
     $shipping_method_title = isset($order_data['shipping_lines'][0]['method_title']) ? $order_data['shipping_lines'][0]['method_title'] : '';
     $payment_details = isset($order_data['payment_data']) ? $order_data['payment_data'] : '';
 
-    error_log('Sending order data to webhook');
-    error_log(print_r($order_data, true));
+    // error_log(print_r($client_details, true));
 
     $webhook_data = array(
         'om_status' => 'new_order',
@@ -1844,38 +1853,6 @@ function send_order_data_to_webhook($order_id, $order_number, $order_data, $post
         error_log('Webhook request failed: ' . $response->get_error_message());
     } else {
         error_log('Webhook request successful: ' . $response['message']);
-    }
-}
-
-/**
- * Send Order Data to Stock Management System.
- */
-function send_order_data_to_stock_management($order_data)
-{
-    $root_domain = home_url();
-    $stock_management_url = "";
-
-    if (strpos($root_domain, '.test') !== false || strpos($root_domain, 'lukpaluk.xyz') !== false) {
-        $stock_management_url = "https://hook.us1.make.com/uc1dvpc4doc2m9xmczxuteifg9sw9ogq";
-    } else {
-        $stock_management_url = "https://hook.us1.make.com/uc1dvpc4doc2m9xmczxuteifg9sw9ogq";
-    }
-
-    $response = wp_remote_post(
-        $stock_management_url,
-        array(
-            'method' => 'POST',
-            'timeout' => 30,
-            'sslverify' => false,
-            'headers' => array('Content-Type' => 'application/json'),
-            'body' => wp_json_encode($order_data),
-        )
-    );
-
-    if (is_wp_error($response)) {
-        error_log('Stock management request failed: ' . $response->get_error_message());
-    } else {
-        error_log('Stock management request successful: ' . $response['message']);
     }
 }
 
@@ -2030,7 +2007,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     if ($order_total !== $order_total_meta) {
         update_post_meta($post_id, 'order_total', $order_total);
     }
-
+	
     // if shipping_method_value is empty then update it with shipping_method_id
     if (empty($shipping_method_value)) {
         update_post_meta($post_id, 'shipping_method', $shipping_method_id);
@@ -2091,7 +2068,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     echo '<th class="head"><strong>Quantity</strong></th>';
     if (!is_current_user_author()):
         echo '<th class="head"><strong>Printing Note</strong></th>';
-        echo '<th class="head"><strong>Graphics</strong></th>';
+    	echo '<th class="head"><strong>Graphics</strong></th>';
     endif;
     echo '<th class="head mockup-head" colspan=""><strong>Mockups</strong></th>';
     echo '</tr></thead><tbody>';
@@ -2239,7 +2216,7 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '</span>';
             echo '</span>';
             echo '</td>';
-
+            
             // Printing Note Column with textarea field
             echo '<td class="printing_note_column">';
             echo '<textarea class="printing_note_textarea" data-item_id="' . esc_attr($item_id) . '">' . esc_html($printing_note) . '</textarea>';
@@ -2258,38 +2235,38 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '<span class="om__itemQuantity om_onlyQuantity">' . esc_attr($item->quantity) . '</span>';
             echo '</td>';
         }
-        if (!is_current_user_author()) {
-            echo '<td class="item_graphics_column">';
-            $artworkFound = false;
-            foreach ($item->meta_data as $meta) {
-                if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
-                    $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
-                    if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
-                        $filename = $matches[1];
-                        $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
-                        $class_name = 'file-format-' . strtolower($file_extension);
-                    } else {
-                        $class_name = 'file-format-unknown';
-                    }
-                    $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
-                    $artworkEdit = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
-                    $artworkDelete = '<label class="om__DeleteArtwork" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></label>';
-                    $artworkFileupload = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" style="display:none" />';
-                    $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $artworkDelete . $artworkEdit . $artworkFileupload . $value . '</div>';
-                    echo $value;
-                    $artworkFound = true;
+		if (!is_current_user_author()) {
+        echo '<td class="item_graphics_column">';
+        $artworkFound = false;
+        foreach ($item->meta_data as $meta) {
+            if (in_array($meta->key, ["קובץ מצורף", "Attachment", "Additional Attachment"])) {
+                $clean_key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $meta->key));
+                if (preg_match('/<p>(.*?)<\/p>/', $meta->value, $matches)) {
+                    $filename = $matches[1];
+                    $file_extension = pathinfo($filename, PATHINFO_EXTENSION);
+                    $class_name = 'file-format-' . strtolower($file_extension);
+                } else {
+                    $class_name = 'file-format-unknown';
                 }
+                $value = preg_replace('/<p>.*?<\/p>/', '', $meta->value);
+                $artworkEdit = '<label class="om__editItemArtwork" for="om__upload_artwork_' . $clean_key . $item_id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
+                $artworkDelete = '<label class="om__DeleteArtwork" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.57313 3.65873H2.02533L3.08046 12.4715C3.10055 12.6826 3.28143 12.8333 3.49246 12.8333H10.5065C10.7176 12.8333 10.8884 12.6826 10.9185 12.4715L11.9737 3.65873H12.4258C12.657 3.65873 12.8378 3.47785 12.8378 3.24673C12.8378 3.01561 12.657 2.83473 12.4258 2.83473H11.6018H9.27052V1.57863C9.27052 1.3475 9.08964 1.16663 8.85852 1.16663H5.14046C4.90934 1.16663 4.72846 1.3475 4.72846 1.57863V2.83473H2.39714H1.57313C1.34201 2.83473 1.16113 3.01561 1.16113 3.24673C1.16113 3.47785 1.35206 3.65873 1.57313 3.65873ZM5.55246 1.99063H8.44652V2.83473H5.55246V1.99063ZM11.1396 3.65873L10.1448 12.0193H3.85421L2.85938 3.65873H11.1396Z" fill="#1A1A1A"/><path d="M5.6327 10.7633C5.86383 10.7633 6.04471 10.5825 6.04471 10.3513V5.41737C6.04471 5.18625 5.86383 5.00537 5.6327 5.00537C5.40158 5.00537 5.2207 5.18625 5.2207 5.41737V10.3513C5.2207 10.5825 5.40158 10.7633 5.6327 10.7633Z" fill="#1A1A1A"/><path d="M8.3661 10.7633C8.59723 10.7633 8.7781 10.5825 8.7781 10.3513V5.41737C8.7781 5.18625 8.59723 5.00537 8.3661 5.00537C8.13498 5.00537 7.9541 5.18625 7.9541 5.41737V10.3513C7.9541 10.5825 8.14503 10.7633 8.3661 10.7633Z" fill="#1A1A1A"/></svg></label>';
+                $artworkFileupload = '<input type="file" class="om__upload_artwork" id="om__upload_artwork_' . $clean_key . $item_id . '" data-item_id="' . $item_id . '" data-meta_id="' . $meta->id . '" data-meta_key="' . $clean_key . '" style="display:none" />';
+                $value = '<div class="uploaded_graphics ' . esc_attr($class_name) . '">' . $artworkDelete . $artworkEdit . $artworkFileupload . $value . '</div>';
+                echo $value;
+                $artworkFound = true;
+            }
 
-            }
-            if (!$artworkFound) {
-                echo '<div class="uploaded_graphics">';
-                echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
-                echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
-                echo '<span class="no_artwork_text">No Artwork Attached</span>';
-                echo '</div>';
-            }
-            echo '</td>';
         }
+        if (!$artworkFound) {
+            echo '<div class="uploaded_graphics">';
+            echo '<input type="file" class="om__upload_artwork" id="om__upload_artwork_attachment_' . $item_id . '" data-item_id="' . $item_id . '" data-meta_key="attachment" style="display:none" />';
+            echo '<label class="om__editItemArtwork" for="om__upload_artwork_attachment_' . $item_id . '" data-meta_key="attachment" data-item_id="' . $item_id . '"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.733 8.86672V10.7334C10.733 10.9809 10.6347 11.2183 10.4596 11.3934C10.2846 11.5684 10.0472 11.6667 9.79967 11.6667H3.26634C3.01881 11.6667 2.78141 11.5684 2.60637 11.3934C2.43134 11.2183 2.33301 10.9809 2.33301 10.7334V4.20006C2.33301 3.95252 2.43134 3.71512 2.60637 3.54009C2.78141 3.36506 3.01881 3.26672 3.26634 3.26672H5.13301" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.23281 8.77337L11.6661 4.29337L9.70615 2.33337L5.27281 6.76671L5.13281 8.86671L7.23281 8.77337Z" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></label>';
+            echo '<span class="no_artwork_text">No Artwork Attached</span>';
+            echo '</div>';
+        }
+        echo '</td>';
+		}
         echo '</tr>';
     }
     echo '</tbody><tfoot>';
@@ -2310,10 +2287,10 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
     echo '</tfoot></table>';
 
     if (is_current_user_admin()):
-        // Add submit button after the table
-        echo '<button type="button" id="combine-items-button" class="allarnd--regular-button ml_add_loading">Disable Items</button>';
+    // Add submit button after the table
+    echo '<button type="button" id="combine-items-button" class="allarnd--regular-button ml_add_loading">Disable Items</button>';
     endif;
-
+	
     echo '<input type="hidden" name="order_id" value="' . esc_attr($order_id) . '">';
     echo '<input type="hidden" name="post_id" value="' . esc_attr($post_id) . '">';
 
@@ -2869,27 +2846,6 @@ function update_new_items($order_items, $items, $post_id)
 {
     $updated = false;
 
-    // If the count of $order_items and $items do not match, overwrite $items with $order_items
-    if (count($order_items) != count($items)) {
-        $items = [];
-
-        foreach ($order_items as $order_item) {
-            $items[] = [
-                'item_id' => esc_attr($order_item->id),
-                'product_id' => esc_attr($order_item->product_id),
-                'quantity' => $order_item->quantity,
-                'product_name' => $order_item->name,
-                'total' => $order_item->total,
-                'printing_note' => '', // Initialize with empty printing note
-                'product_sku' => $order_item->sku,
-            ];
-        }
-
-        // Save the updated items meta
-        update_post_meta($post_id, 'items', $items);
-        return; // Exit since we've updated the full meta
-    }
-
     foreach ($order_items as $order_item) {
         $item_id = esc_attr($order_item->id);
         $product_id = esc_attr($order_item->product_id);
@@ -2904,14 +2860,8 @@ function update_new_items($order_items, $items, $post_id)
             if (isset($saved_item['item_id']) && $saved_item['item_id'] == $item_id) {
                 $item_exists = true;
 
-                // Check if quantity, total, name, or SKU has changed
-                if (
-                    $saved_item['quantity'] != $item_quantity ||
-                    $saved_item['total'] != $item_total ||
-                    $saved_item['product_name'] != $item_name ||
-                    $saved_item['product_sku'] != $item_sku ||
-                    $saved_item['product_id'] != $product_id
-                ) {
+                // Check if quantity or total has changed
+                if ($saved_item['quantity'] != $item_quantity || $saved_item['total'] != $item_total || $saved_item['product_name'] != $item_name || $saved_item['product_sku'] != $item_sku || $saved_item['product_id'] != $product_id) {
                     $saved_item['quantity'] = $item_quantity;
                     $saved_item['total'] = $item_total;
                     $saved_item['product_name'] = $item_name;
@@ -2931,8 +2881,9 @@ function update_new_items($order_items, $items, $post_id)
                 'quantity' => $item_quantity,
                 'product_name' => $item_name,
                 'total' => $item_total,
-                'printing_note' => '', // Initialize with empty printing note
+                'printing_note' => '',
                 'product_sku' => $item_sku,
+
             ];
             $items[] = $new_item;
             $updated = true; // Mark for update
@@ -3025,7 +2976,7 @@ function fetch_display_artwork_comments($order_id, $order_number, $post_id = nul
     $transient_key = 'artwork_post_' . $order_id;
     $post_id = get_transient($transient_key);
 
-    error_log('Fetching artwork comments for order ' . $order_id . ' and post ' . $post_id);
+    error_log('Fetching artwork comments for order ' . $order_number . ' and post ' . $post_id);
 
     if ($post_id) {
         // Fetch the post by ID directly
@@ -3091,30 +3042,30 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
 
     if ($approved_proof) {
         ?>
-                                                                    <div class="revision-activity customer-message mockup-approved-comment">
-                                                                        <div class="revision-activity-avatar">
-                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                        </div>
-                                                                        <div class="revision-activity-content">
-                                                                            <div class="revision-activity-title">
-                                                                                <h5>AllAround</h5>
-                                                                                <span>
-                                                                                    <?php
-                                                                                    if (!empty($proof_approved_time)) {
-                                                                                        echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
-                                                                                    }
-                                                                                    ?>
-                                                                                </span>
-                                                                            </div>
-                                                                            <div class="revision-activity-description">
-                                                                                <span class="revision-comment-title">
-                                                                                    ההדמיות אושרו על ידי הלקוח 
-                                                                                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <?php
+            <div class="revision-activity customer-message mockup-approved-comment">
+                <div class="revision-activity-avatar">
+                    <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                </div>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5>AllAround</h5>
+                        <span>
+                            <?php
+                            if (!empty($proof_approved_time)) {
+                                echo esc_html(date_i18n(get_option('date_format') . ' \ב- ' . get_option('time_format'), strtotime($proof_approved_time)));
+                            }
+                            ?>
+                        </span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            ההדמיות אושרו על ידי הלקוח 
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/mark_icon-svg.svg" alt="">
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <?php
     }
 
     if (empty($fetched_artwork_comments)) {
@@ -3142,29 +3093,29 @@ function display_artwork_comments($approved_proof, $proof_approved_time, $fetche
                 $image_html .= '</div>';
             }
             ?>
-                                                                                                <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
-                                                                                                    <div class="revision-activity-avatar">
-                                                                                                        <?php if ($comment_name === 'AllAround'): ?>
-                                                                                                                                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
-                                                                                                        <?php else: ?>
-                                                                                                                                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
-                                                                                                        <?php endif; ?>
-                                                                                                    </div>
-                                                                                                    <div class="revision-activity-content">
-                                                                                                        <div class="revision-activity-title">
-                                                                                                            <h5><?php echo esc_html($comment_name); ?></h5>
-                                                                                                            <span><?php echo esc_html($comment_date); ?></span>
-                                                                                                        </div>
-                                                                                                        <div class="revision-activity-description">
-                                                                                                            <span class="revision-comment-title">
-                                                                                                                <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
-                                                                                                            </span>
-                                                                                                            <?php echo $image_html; ?>
-                                                                                                            <div><?php echo $comment_text; ?></div>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                                <?php
+            <div class="revision-activity <?php echo $comment_name === 'AllAround' ? 'allaround-message' : 'customer-message'; ?>">
+                <div class="revision-activity-avatar">
+                    <?php if ($comment_name === 'AllAround'): ?>
+                            <img src="<?php echo get_template_directory_uri(); ?>/assets/images/Favicon-2.png" />
+                    <?php else: ?>
+                            <span><?php echo esc_html(substr($comment_name, 0, 2)); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="revision-activity-content">
+                    <div class="revision-activity-title">
+                        <h5><?php echo esc_html($comment_name); ?></h5>
+                        <span><?php echo esc_html($comment_date); ?></span>
+                    </div>
+                    <div class="revision-activity-description">
+                        <span class="revision-comment-title">
+                            <?php echo $comment_name === 'AllAround' ? 'הדמיה הועלתה' : 'ההערות הבאות נוספו:'; ?>
+                        </span>
+                        <?php echo $image_html; ?>
+                        <div><?php echo $comment_text; ?></div>
+                    </div>
+                </div>
+            </div>
+            <?php
         }
     }
 
@@ -3336,16 +3287,16 @@ function search_posts()
 
             // // Compare the items total with the order total
             // $difference = ($items_total_sum != $order_total);
-
+			
             // Display the post if it passes all filters
             $has_posts = true;
             ?>
-                                                                                                <div class="post-item">
-                                                                                                    <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-                                                                                                    <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
-                                                                                                    <span>Order Type: <?php echo esc_html($order_type); ?></span><br>
-                                                                                                </div>
-                                                                                                <?php
+            <div class="post-item">
+                <h2><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
+                <span>Order Status: <?php echo esc_html($order_status); ?></span><br>
+                <span>Order Type: <?php echo esc_html($order_type); ?></span><br>
+            </div>
+            <?php
         }
 
         // Output the total sum of 'total' fields from items meta

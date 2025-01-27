@@ -99,7 +99,7 @@
           // set timeout to reload the page after 1 seconds
           setTimeout(() => {
             location.reload();
-          } , 1000);
+          }, 1000);
         } else {
           $(".om_order_type_submit").removeClass("pulse");
           alert(response.data.message);
@@ -329,6 +329,59 @@
     },
   });
 
+  // Update Client Profile data on Client List Page
+  // Handle click on the edit icon
+  $(".edit-icon").on("click", function () {
+    const cell = $(this).closest("td");
+    cell.find(".cell-text").hide(); // Hide the text
+    cell.find(".editable-field").show().focus(); // Show the input field
+    cell.find(".submit-icon").show(); // Show the submit icon
+    $(this).hide(); // Hide the edit icon
+  });
+
+  // Handle click on the submit icon
+  $(".submit-icon").on("click", function () {
+    const cell = $(this).closest("td");
+    const clientId = cell.closest("tr").data("client-id");
+    const field = cell.find(".editable-field").data("field");
+    const value = cell.find(".editable-field").val();
+
+    // Send AJAX request
+    $.ajax({
+      url: all_around_clients_vars.ajax_url, // WordPress AJAX URL
+      type: "POST",
+      data: {
+        action: "update_client_meta", // AJAX action hook
+        client_id: clientId,
+        field: field,
+        value: value,
+        nonce: all_around_clients_vars.nonce, // Nonce for security
+      },
+      success: function (response) {
+        if (response.success) {
+          // Update the text and revert to non-edit mode
+          cell.find(".cell-text").text(value).show();
+          cell.find(".editable-field").hide();
+          cell.find(".submit-icon").hide();
+          cell.find(".edit-icon").show();
+        } else {
+          alert("Error updating client data.");
+        }
+      },
+      error: function () {
+        alert("AJAX request failed.");
+      },
+    });
+  });
+
+  // Handle pressing Enter key in the input field
+  $(".editable-field").on("keypress", function (e) {
+    if (e.which === 13) {
+      // Enter key
+      $(this).closest("td").find(".submit-icon").click();
+    }
+  });
+
   // Update Client Profile data on Order page
   $("#update-order-client").on("click", function () {
     const $this = $(this);
@@ -458,7 +511,6 @@
           filename += ".csv";
 
           console.log("CSV data:", response.data.csv);
-          
 
           // Create a blob with CSV data and download it
           const csvData = new Blob([response.data.csv], { type: "text/csv" });

@@ -20,6 +20,8 @@ class AllAroundClientsDB
 
         add_action('wp_ajax_om_update_client_company_logos', array($this, 'om_update_client_company_logos'));
 
+        add_action('wp_ajax_update_client_meta', array($this, 'update_client_meta_callback'));
+
         add_action('wp_ajax_export_clients_csv', array($this, 'export_clients_csv'));
         add_action('wp_ajax_nopriv_export_clients_csv', array($this, 'export_clients_csv'));
 
@@ -901,6 +903,36 @@ class AllAroundClientsDB
         }
     }
 
+    // Callback Function to Update Clients meta at Client List page
+    public function update_client_meta_callback()
+    {
+        // Verify nonce for security
+        if (!wp_verify_nonce($_POST['nonce'], 'client_nonce')) {
+            wp_send_json_error('Invalid nonce.');
+        }
+
+        // Get client ID, field, and value from AJAX request
+        $client_id = intval($_POST['client_id']);
+        $field = sanitize_text_field($_POST['field']);
+        $value = sanitize_text_field($_POST['value']);
+
+        if (empty($client_id)) {
+            wp_send_json_error(
+                array(
+                    "message_type" => 'regular',
+                    "message" => esc_html__("Invalid client ID.", "hello-elementor")
+                )
+            );
+            wp_die();
+        }
+
+        // Update client meta field
+        update_post_meta($client_id, $field, $value);
+
+        // Send success response
+        wp_send_json_success('Client data updated.');
+    }
+
     // Function to retrieve attachment ID from a URL
     private function get_attachment_id_from_url($url)
     {
@@ -988,7 +1020,8 @@ class AllAroundClientsDB
                 'logo_type',
                 'mini_url',
                 'mini_header',
-                'logo'
+                'logo',
+                'minisite_created'
             ];
 
             $allowedFields = array_merge($allowedFields, $addition_fields);

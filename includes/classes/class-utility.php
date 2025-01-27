@@ -165,6 +165,7 @@ class Alarnd_Utility
         ), 200);
     }
 
+
     public function add_translation_options_page()
     {
         add_menu_page(
