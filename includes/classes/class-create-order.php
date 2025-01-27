@@ -267,12 +267,12 @@ class AllAroundCreateOrder
         }
 
         $billing = array(
-            'first_name' => sanitize_text_field($_POST['first_name']),
-            'last_name' => sanitize_text_field($_POST['last_name']),
-            'address_1' => sanitize_text_field($_POST['address_1']),
-            'address_2' => sanitize_text_field($_POST['address_2']),
-            'company' => sanitize_text_field($_POST['company']),
-            'city' => sanitize_text_field($_POST['city']),
+            'first_name' => wp_unslash(sanitize_text_field($_POST['first_name'])),
+            'last_name' => wp_unslash(sanitize_text_field($_POST['last_name'])),
+            'address_1' => wp_unslash(sanitize_text_field($_POST['address_1'])),
+            'address_2' => wp_unslash(sanitize_text_field($_POST['address_2'])),
+            'company' => wp_unslash(sanitize_text_field($_POST['company'])),
+            'city' => wp_unslash(sanitize_text_field($_POST['city'])),
             'country' => !empty($_POST['country']) ? sanitize_text_field($_POST['country']) : 'Israel',
             'email' => sanitize_email($_POST['email']),
             'phone' => sanitize_text_field($_POST['phone']),

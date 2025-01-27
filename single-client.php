@@ -13,6 +13,7 @@ restrict_access_to_logged_in_users();
         $client_id = get_the_ID();
 
         $subscribed = get_post_meta($client_id, 'subscribed', true);
+        $minisite_created = get_post_meta($post->ID, 'minisite_created', true);
 
         $fields = [
             'client_type' => get_post_meta($client_id, 'client_type', true),
@@ -35,6 +36,7 @@ restrict_access_to_logged_in_users();
             'mini_header' => get_post_meta($client_id, 'mini_header', true),
             'invoice' => get_post_meta($client_id, 'invoice', true),
             'logo' => get_post_meta($client_id, 'logo', true),
+            'minisite_created' => !empty($minisite_created) ? $minisite_created : 'no',
         ];
 
         $token = esc_attr($fields['token']);
@@ -266,6 +268,20 @@ restrict_access_to_logged_in_users();
                                     style="max-width: 300px; display: <?php echo $fields['logo'] ? 'block' : 'none'; ?>;" />
                             </div>
                             <br>
+                            <div class="form-group form-group-row">
+                                <label>Minisite Created?:</label>
+                                <div class="form-group-flex">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="minisite_created" id="yes" value="yes"
+                                        <?php checked($fields['minisite_created'], 'yes', true); ?>>
+                                        <label class="form-check-label" for="yes">Yes</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="minisite_created" id="no" value="no" <?php checked($fields['minisite_created'], 'no'); ?>>
+                                        <label class="form-check-label" for="no">No</label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

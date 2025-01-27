@@ -224,16 +224,20 @@ select#order_type {
 
 .allaround--client-actions a {
   text-decoration: underline;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .allaround--client-actions a.allaround--client-orders {
-  background-color: #2673e7;
-  color: white;
-  text-decoration: none;
-  padding: 5px 10px;
-  margin: 0;
-  border-radius: 4px;
+    color: #1a1a1a;
+    text-decoration: none;
+    padding: 5px 10px;
+    margin: 0;
+    border-radius: 4px;
+    background: #f7f7f7;
+    position: relative;
+    border: 1px solid #ccc;
+    float: left;
+    font-weight: 600;
 }
 
 .allrnd--order-lists-modal.white-popup-block {
@@ -303,4 +307,59 @@ select#order_type {
     color-stop(0.5, transparent),
     to(transparent)
   );
+}
+.order-count-bubble {
+    display: inline-block;
+    background-color: #e1306c;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 5px;
+    padding: 2px 10px;
+    margin-left: 5px;
+    vertical-align: middle;
+    position: relative;
+    top: -10px;
+}
+.client-list-bubble {
+    position: absolute;
+    margin-left: -5px;
+    padding: 1px 8px;
+}
+
+
+#client-table td {
+    position: relative;
+    vertical-align: middle;
+    padding-right: 5px;
+}
+
+#client-table .edit-icon {
+    display: none;
+    cursor: pointer;
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#client-table td:hover .edit-icon {
+    display: inline-block;
+}
+
+#client-table .submit-icon {
+    cursor: pointer;
+    /* margin-left: 5px; */
+}
+#client-table input.editable-field {
+    max-width: fit-content;
+    width: 100px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+#client-table td.client-email input.editable-field {
+  width: auto;
+}
+td.client-last-name, td.client-first-name, td.client-mini-header, td.client-mini-url {
+    width: 150px;
 }

@@ -1262,6 +1262,8 @@ function order_details_metabox_content($post)
             echo '<input type="text" readonly value="' . esc_attr($item['item_id']) . '" /><br>';
             echo '<label>Product ID:</label>';
             echo '<input type="text" readonly value="' . esc_attr($item['product_id']) . '" /><br>';
+            echo '<label>Product SKU:</label>';
+            echo '<input type="text" readonly value="' . esc_attr($item['product_sku']) . '" /><br>';
             echo '<label>Product Name:</label>';
             echo '<input type="text" readonly value="' . esc_attr($item['product_name']) . '" /><br>';
             echo '<label>Quantity:</label>';
@@ -1405,7 +1407,8 @@ function create_order(WP_REST_Request $request)
         empty($order_source_url) ||
         ($order_source_url !== 'https://sites.allaround.co.il' &&
             $order_source_url !== 'https://flash.allaround.co.il' &&
-            $order_source_url !== 'https://allaround.co.il')
+            $order_source_url !== 'https://allaround.co.il') &&
+            $order_source_url !== 'https://allaround.test'
     ) {
         error_log('Invalid order source URL: ' . $order_source_url);
         return new WP_Error('unauthorized', 'Unauthorized request.', array('status' => 401));
@@ -2849,6 +2852,7 @@ function update_new_items($order_items, $items, $post_id)
         $item_quantity = $order_item->quantity;
         $item_total = $order_item->total;
         $item_name = $order_item->name;
+        $item_sku = $order_item->sku;
 
         $item_exists = false;
 
@@ -2857,10 +2861,11 @@ function update_new_items($order_items, $items, $post_id)
                 $item_exists = true;
 
                 // Check if quantity or total has changed
-                if ($saved_item['quantity'] != $item_quantity || $saved_item['total'] != $item_total || $saved_item['product_name'] != $item_name || $saved_item['product_id'] != $product_id) {
+                if ($saved_item['quantity'] != $item_quantity || $saved_item['total'] != $item_total || $saved_item['product_name'] != $item_name || $saved_item['product_sku'] != $item_sku || $saved_item['product_id'] != $product_id) {
                     $saved_item['quantity'] = $item_quantity;
                     $saved_item['total'] = $item_total;
                     $saved_item['product_name'] = $item_name;
+                    $saved_item['product_sku'] = $item_sku;
                     $saved_item['product_id'] = $product_id;
                     $updated = true; // Mark for update
                 }
@@ -2876,7 +2881,9 @@ function update_new_items($order_items, $items, $post_id)
                 'quantity' => $item_quantity,
                 'product_name' => $item_name,
                 'total' => $item_total,
-                'printing_note' => '' // Initialize with empty printing note
+                'printing_note' => '',
+                'product_sku' => $item_sku,
+
             ];
             $items[] = $new_item;
             $updated = true; // Mark for update

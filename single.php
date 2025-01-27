@@ -71,6 +71,10 @@ $clients = $createOrder->fetch_clients_data();
         $prev_client_type = get_post_meta($current_id, 'prev_client_type', true);
 
         $client_id = get_post_meta($current_id, 'client_id', true);
+
+        global $wpdb;
+
+        $order_count = 0;
         $client_name = '';
         $client_url = '';
         if (!empty($client_id)) {
@@ -135,6 +139,15 @@ $clients = $createOrder->fetch_clients_data();
                     update_post_meta($current_id, '_order_designer_extra_attachments', $order_extra_attachments);
                 }
             }
+
+            $order_count = $wpdb->get_var(
+                $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}postmeta 
+                WHERE meta_key = 'client_id' 
+                AND meta_value = %d",
+                $client_id
+                )
+            );
         }
         ?>
 
@@ -155,9 +168,18 @@ $clients = $createOrder->fetch_clients_data();
 
                             <?php if (is_current_user_admin() || is_current_user_editor() || is_current_user_contributor()): ?>
                             <div class="om__orderSummeryItem">
-                            <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?><span>
-                            <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
-                                class="allaround--client-orders"><?php echo esc_html__('View Orders', 'hello-elementor'); ?></a></span></h6>
+                                <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?>
+                                    <span>
+                                        <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
+                                            class="allaround--client-orders" 
+                                            <?php if ($order_count > 1): ?>style="color: #e1306c;"<?php endif; ?>>
+                                            <?php echo esc_html__('View Orders', 'hello-elementor'); ?>
+                                            <?php if ($order_count > 1): ?>
+                                                <span class="order-count-bubble"><?php echo $order_count; ?></span>
+                                            <?php endif; ?>
+                                        </a>
+                                    </span>
+                                </h6>
                             </div>
                             <?php endif; ?>
 
