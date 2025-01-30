@@ -171,8 +171,8 @@ $clients = $createOrder->fetch_clients_data();
                                 <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?>
                                     <span>
                                         <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
-                                            class="allaround--client-orders" 
-                                            <?php if ($order_count > 1): ?>style="color: #e1306c;"<?php endif; ?>>
+                                            class="allaround--client-orders"
+										   <?php if ($order_count > 1): ?>style="color: #e1306c;"<?php endif; ?>>
                                             <?php echo esc_html__('View Orders', 'hello-elementor'); ?>
                                             <?php if ($order_count > 1): ?>
                                                 <span class="order-count-bubble"><?php echo $order_count; ?></span>
@@ -693,6 +693,7 @@ $clients = $createOrder->fetch_clients_data();
                         <div id="productDetailsContainer"></div>
 
                         <input type="hidden" id="new_product_id" value="" placeholder="Enter Product ID" readonly />
+						<input type="hidden" id="new_product_sku" value="" readonly />
                     </div>
                 </div>
                 
@@ -801,6 +802,16 @@ $clients = $createOrder->fetch_clients_data();
                             <button type="button" class="allarnd--regular-button confmodalCancel"><?php echo esc_html__('NO', 'hello-elementor'); ?></button>
                         </div>
                     <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Reusable confirmation modal -->
+            <div id="actionConfirmModal" class="mfp-hide white-popup-block">
+                <h2 class="modal-heading">Confirm Action</h2>
+                <p class="modal-description">Are you sure you want to proceed?</p>
+                <div class="om_modalBtns">
+                    <button type="button" class="confirm-action allarnd--regular-button">Yes</button>
+                    <button type="button" class="cancel-action allarnd--regular-button confmodalCancel">Cancel</button>
                 </div>
             </div>
 

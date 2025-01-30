@@ -321,6 +321,30 @@ td.mockups-row {
   fill: #ffffff;
 }
 
+/* Confirmtion custom styling: */
+#actionConfirmModal.white-popup-block {
+  max-width: 400px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 20px;
+  position: relative;
+  text-align: center;
+  border-radius: 6px;
+}
+#actionConfirmModal .mfp-close {
+  top: -10px;
+}
+#actionConfirmModal .modal-heading {
+  margin-bottom: 10px;
+}
+#actionConfirmModal .modal-description {
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.om_modalBtns {
+  margin-top: 20px;
+}
+
 /* .item_product_column:hover .om__editItemMeta,
 td.item_product_column:hover .om_delete_item,
 td.item_product_column:hover .om_duplicate_item {

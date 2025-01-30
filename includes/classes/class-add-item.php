@@ -47,6 +47,8 @@ class AllAroundAddItem
                 'post_id' => $post_id,
                 'order_id' => $order_id,
                 'order_domain' => $order_domain,
+				'rest_nonce' => wp_create_nonce('wp_rest'), // stock_management_addition_limon - set rest_nonce
+                "rest_url" => rest_url('manage-order/v1'), // stock_management_addition_limon - set rest_url
             )
         );
     }

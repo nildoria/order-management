@@ -99,7 +99,7 @@
           // set timeout to reload the page after 1 seconds
           setTimeout(() => {
             location.reload();
-          }, 1000);
+          } , 1000);
         } else {
           $(".om_order_type_submit").removeClass("pulse");
           alert(response.data.message);
@@ -382,6 +382,7 @@
     }
   });
 
+
   // Update Client Profile data on Order page
   $("#update-order-client").on("click", function () {
     const $this = $(this);
@@ -511,6 +512,7 @@
           filename += ".csv";
 
           console.log("CSV data:", response.data.csv);
+          
 
           // Create a blob with CSV data and download it
           const csvData = new Blob([response.data.csv], { type: "text/csv" });

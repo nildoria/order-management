@@ -933,6 +933,7 @@ class AllAroundClientsDB
         wp_send_json_success('Client data updated.');
     }
 
+
     // Function to retrieve attachment ID from a URL
     private function get_attachment_id_from_url($url)
     {
