@@ -256,6 +256,9 @@ if (!function_exists('hello_elementor_scripts_styles')) {
                 'assets' => get_template_directory_uri() . '/assets/',
                 'fileupload_url' => get_template_directory_uri() . '/upload.php',
                 'redirecturl' => home_url(),
+                'rest_nonce' => wp_create_nonce('wp_rest'), // stock_management_addition_limon - set rest_nonce
+                'home_url' => esc_url( home_url( '/' ) ), // stock_management_addition_limon - set home_url
+				"rest_url" => rest_url('manage-order/v1'), // stock_management_addition_limon - set rest_url
                 'post_id' => $post_id,
                 'order_id' => $order_id,
                 'order_number' => $order_number,
@@ -1148,9 +1151,15 @@ function order_management_api()
             'callback' => 'create_order',
             'permission_callback' => function ($request) {
                 // Check if the request is coming from the same origin
-                if ($_SERVER['HTTP_ORIGIN'] === get_site_url()) {
-                    return true; // Allow requests from the same origin
-                }
+                // Check if the request is coming from the same site
+				$is_internal_request = isset($_SERVER['HTTP_HOST']) && 
+					isset($_SERVER['HTTP_REFERER']) && 
+					strpos($_SERVER['HTTP_REFERER'], $_SERVER['HTTP_HOST']) !== false;
+
+				if ($is_internal_request) {
+					error_log("Internal request detected, skipping authorization.");
+					return true; // Skip authorization for internal requests
+				}
 
                 // Otherwise, require Basic Authentication
                 $auth_header = $request->get_header('Authorization');
@@ -1547,6 +1556,9 @@ function create_order(WP_REST_Request $request)
             update_post_meta($post_id, 'flash_id', $flash_id);
         }
     }
+
+    // stock_management_addition_limon - create order trigger stock update
+    do_action( 'allaround_stock_create', $order_data );
 
     // Send data to webhook
     send_order_data_to_webhook($order_id, $order_number, $order_data, get_permalink($post_id));
@@ -2079,6 +2091,9 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         $product_id = esc_attr($item->product_id);
         $is_disabled = false;
 
+        // stock_management_addition_limon - set is_variable attribute
+        $is_variable = isset($item->variation_id) && $item->variation_id > 0 ? 'true' : 'false';
+
         // Retrieve printing_note for the current product_id
         $printing_note = '';
         if (!empty($items)) {
@@ -2098,7 +2113,8 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
         // Apply a disabled class if the item is marked as disabled
         $disabled_class = $is_disabled ? 'disabled-item' : '';
 
-        echo '<tr class="om__orderRow ' . esc_attr($disabled_class) . '" id="' . esc_attr($item_id) . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '">';
+        // stock_management_addition_limon - added data-item-sku, data-order_id & data-is_variable attribute
+        echo '<tr class="om__orderRow ' . esc_attr($disabled_class) . '" id="' . esc_attr($item_id) . '"  data-order_id="' . $order_id . '" data-product_id="' . esc_attr($item_id) . '" data-source_product_id="' . esc_attr($product_id) . '" data-item-sku="' . esc_attr($item->sku) . '" data-is_variable="' . esc_attr($is_variable) . '">';
         echo '<td class="item_product_column">';
         if (is_current_user_admin()):
             // Add a checkbox before each item row
@@ -2211,7 +2227,8 @@ function fetch_display_order_details($order_id, $domain, $post_id = null)
             echo '<span class="om__itemCostTotal">' . esc_attr(number_format($item->total, 2) . $currency_symbol) . '</span>';
             echo '</span>';
             echo '<span class="om_itemQuantPriceEdit">';
-            echo '<input type="number" class="item-quantity-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->quantity) . '" />';
+            // stock_management_addition_limon - added data-item-qty attribute
+            echo '<input type="number" class="item-quantity-input" data-item-qty="' . esc_attr($item->quantity) . '" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->quantity) . '" />';
             echo '<input type="number" class="item-cost-input" data-item-id="' . esc_attr($item->id) . '" value="' . esc_attr($item->price) . '" />';
             echo '</span>';
             echo '</span>';
@@ -2883,7 +2900,6 @@ function update_new_items($order_items, $items, $post_id)
                 'total' => $item_total,
                 'printing_note' => '',
                 'product_sku' => $item_sku,
-
             ];
             $items[] = $new_item;
             $updated = true; // Mark for update

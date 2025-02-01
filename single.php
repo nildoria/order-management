@@ -171,8 +171,8 @@ $clients = $createOrder->fetch_clients_data();
                                 <h6><?php echo esc_html__('Past Orders:', 'hello-elementor'); ?>
                                     <span>
                                         <a href="<?php echo esc_url(admin_url('admin-ajax.php') . '?action=get_client_orders&client_id=' . $client_id . '&_nonce=' . wp_create_nonce('get_client_nonce')); ?> "
-                                            class="allaround--client-orders" 
-                                            <?php if ($order_count > 1): ?>style="color: #e1306c;"<?php endif; ?>>
+                                            class="allaround--client-orders"
+										   <?php if ($order_count > 1): ?>style="color: #e1306c;"<?php endif; ?>>
                                             <?php echo esc_html__('View Orders', 'hello-elementor'); ?>
                                             <?php if ($order_count > 1): ?>
                                                 <span class="order-count-bubble"><?php echo $order_count; ?></span>
@@ -693,6 +693,7 @@ $clients = $createOrder->fetch_clients_data();
                         <div id="productDetailsContainer"></div>
 
                         <input type="hidden" id="new_product_id" value="" placeholder="Enter Product ID" readonly />
+						<input type="hidden" id="new_product_sku" value="" readonly />
                     </div>
                 </div>
                 
@@ -803,6 +804,49 @@ $clients = $createOrder->fetch_clients_data();
                     <?php endif; ?>
                 </div>
             </div>
+
+            <!-- Reusable confirmation modal -->
+            <div id="actionConfirmModal" class="mfp-hide white-popup-block">
+                <h2 class="modal-heading">Confirm Action</h2>
+                <p class="modal-description">Are you sure you want to proceed?</p>
+                <div class="om_modalBtns">
+                    <button type="button" class="confirm-action allarnd--regular-button">Yes</button>
+                    <button type="button" class="cancel-action allarnd--regular-button confmodalCancel">Cancel</button>
+                </div>
+            </div>
+
+            <?php if (is_current_user_author() && (!empty($order_manage_general_comment) || !empty($order_extra_attachments))): ?>
+                <!-- Hidden auto-open modal for the Employee role -->
+                <div id="autoOpenEmployeeNoteModal" class="mfp-hide white-popup-block">
+                    <h2>Order Note</h2>
+                    <div class="employee-note-content" style="max-height: 400px; overflow-y: auto;">
+            
+                        <?php if (!empty($order_manage_general_comment)): ?>
+                            <!-- Display the order note with line breaks -->
+                            <div class="auto-note-text" style="margin-bottom:15px;">
+                                <?php echo nl2br(esc_html($order_manage_general_comment)); ?>
+                            </div>
+                        <?php endif; ?>
+            
+                        <?php if (!empty($order_extra_attachments)): ?>
+                            <div class="om__orderNoteFiles_container">
+                                <h5 style="margin-bottom: 10px;">Attachments!</h5>
+                                <div class="om__orderNoteFiles">
+                                    <?php foreach ($order_extra_attachments as $attachment): ?>
+                                        <div class="attachment-item">
+                                            <a href="<?php echo esc_url($attachment['url']); ?>" target="_blank">
+                                                <?php echo esc_html($attachment['name']); ?>
+                                            </a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+            
+                    </div>
+                    <button type="button" class="mfp-close">X</button>
+                </div>
+            <?php endif; ?>
 
             <?php if (is_current_user_admin() || is_current_user_editor()): ?>
             <div class="mockup-revision-activity-container">

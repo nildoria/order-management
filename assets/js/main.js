@@ -270,113 +270,75 @@
     });
   }
 
-  // ********** Duplicate Order Item **********//
-  $(document).on("click", ".om_duplicate_item", function () {
+  /**
+   * deleteOrderItem
+   * Wraps your existing "delete" code in one function
+   */
+  function deleteOrderItem($button) {
     let order_id = allaround_vars.order_id;
-    let item_id = $(this).siblings('input[name="item_id"]').val();
+    let item_id = $button.siblings('input[name="item_id"]').val();
     let order_domain = allaround_vars.order_domain;
 
     const post_id = allaround_vars.post_id;
     const client_id = $("#client-select").val();
     const order_source = $("#om__order_source").data("order_source");
 
-    $(".sitewide_spinner").addClass("loading");
+    // Identify item details
+    const currentItem = $button.closest("tr.om__orderRow");
+    const sku = currentItem.data("item-sku");
+    const is_variable = currentItem.data("is_variable");
+    const variations = currentItem.find(".item_name_variations");
+    const colorItem = variations.find("[data-meta_key='Color']");
+    const sizeItem = variations.find("[data-meta_key='Size']");
+    const inputField = currentItem.find(".item-quantity-input");
+    let old_quantity = parseInt(inputField.data("item-qty")) || 0;
 
-    // Debugging
-    console.log("Order ID:", order_id);
-    console.log("Item ID:", item_id);
-    console.log("Order Domain:", order_domain);
+    let itemType = "quantity";
+    let colorValue = "";
+    let sizeValue = "";
 
-    let newItem = {
-      order_id: order_id,
-      item_id: item_id,
-      method: "duplicateItem",
-      nonce: allaround_vars.nonce,
-    };
-
-    let requestData = {
-      action: "update_order_transient",
-      order_id: order_id,
-    };
-
-    function handleResponse(response) {
-      $(".sitewide_spinner").removeClass("loading");
-      alert("Item duplicated successfully");
-      location.reload(); // Refresh the page to see the new item
+    // If group (color/size)
+    if (colorItem.length !== 0) {
+      itemType = "group";
+      colorValue = colorItem.find("strong").text();
+      sizeValue = sizeItem.find("strong").text();
     }
 
-    fetch(`${order_domain}/wp-json/update-order/v1/duplicate-delete-to-order`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newItem),
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json(); // Parse the JSON response
-        } else {
-          return response.json().then((data) => {
-            throw new Error(data.message || "Something went wrong");
-          });
-        }
-      })
-      .then((data) => {
-        // Use the message and newly_added_total from the response
-        console.log("Client ID:", client_id);
-        console.log("Order Source:", order_source);
+    // If variable product
+    if (is_variable == true) {
+      itemType = "variable";
+    }
 
-        console.log("Response message:", data.message);
-        console.log("Newly Added Total:", data.newly_added_total);
+    // We'll pass negative quantity back to stock
+    old_quantity = old_quantity * -1;
 
-        // Prepare data to send to the server to handle order source
-        const handleOrderSourceData = {
-          action: "handle_order_source_action",
-          post_id: post_id,
-          client_id: client_id,
-          order_source: order_source,
-          total_price: data.newly_added_total,
-        };
+    // Prepare stock update
+    const stockReqsData = {
+      source: allaround_vars.home_url,
+      action: "item_delete",
+      order_id: order_id,
+      data: {},
+    };
 
-        // Send data to the server via AJAX
-        $.post(
-          allaround_vars.ajax_url,
-          handleOrderSourceData,
-          function (response) {
-            console.log("Order source handled successfully:", response);
-          }
-        ).fail(function (error) {
-          console.error("Error handling order source:", error);
-          alert("Error handling order source: " + error.statusText);
-        });
-
-        ml_send_ajax(requestData, handleResponse);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("An error occurred: " + error.message);
-      })
-      .finally(() => {
-        $(".sitewide_spinner").removeClass("loading");
-      });
-  });
-
-  // ********** Delete Order Item **********//
-  $(document).on("click", ".om_delete_item", function () {
-    let order_id = allaround_vars.order_id;
-    let item_id = $(this).siblings('input[name="item_id"]').val();
-    let order_domain = allaround_vars.order_domain;
-
-    const post_id = allaround_vars.post_id;
-    const client_id = $("#client-select").val();
-    const order_source = $("#om__order_source").data("order_source");
+    if (itemType === "group") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          [colorValue]: {
+            [sizeValue.toLowerCase()]: old_quantity,
+          },
+        },
+      };
+    } else if (itemType === "quantity") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          qty: old_quantity,
+        },
+      };
+    }
 
     $(".sitewide_spinner").addClass("loading");
-
-    // Debugging
-    console.log("Order ID:", order_id);
-    console.log("Item ID:", item_id);
-    console.log("Order Domain:", order_domain);
 
     let newItem = {
       order_id: order_id,
@@ -390,22 +352,21 @@
       order_id: order_id,
     };
 
-    function handleResponse(response) {
+    function handleResponse() {
       $(".sitewide_spinner").removeClass("loading");
       alert("Item deleted successfully");
-      location.reload(); // Refresh the page to see the new item
+      location.reload();
     }
 
+    // Send fetch request to remote domain
     fetch(`${order_domain}/wp-json/update-order/v1/duplicate-delete-to-order`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem),
     })
       .then((response) => {
         if (response.ok) {
-          return response.json(); // Parse the JSON response
+          return response.json();
         } else {
           return response.json().then((data) => {
             throw new Error(data.message || "Something went wrong");
@@ -413,14 +374,10 @@
         }
       })
       .then((data) => {
-        // Use the message and deleted_item_total from the response
-        console.log("Client ID:", client_id);
-        console.log("Order Source:", order_source);
+        // Log the response
+        console.log("Deleting Item =>", data.message);
 
-        console.log("Response message:", data.message);
-        console.log("Newly Added Total:", data.deleted_item_total);
-
-        // Prepare data to send to the server to handle order source
+        // Handle order source update
         const handleOrderSourceData = {
           action: "handle_order_source_action",
           post_id: post_id,
@@ -428,28 +385,216 @@
           order_source: order_source,
           total_price: data.deleted_item_total,
         };
+        $.post(allaround_vars.ajax_url, handleOrderSourceData)
+          .done((res) => {
+            console.log("Order source handled:", res);
+          })
+          .fail((err) => {
+            console.error("Error handling order source:", err);
+            alert("Error handling order source: " + err.statusText);
+          });
 
-        // Send data to the server via AJAX
-        $.post(
-          allaround_vars.ajax_url,
-          handleOrderSourceData,
-          function (response) {
-            console.log("Order source handled successfully:", response);
-          }
-        ).fail(function (error) {
-          console.error("Error handling order source:", error);
-          alert("Error handling order source: " + error.statusText);
-        });
+        // If not variable, update stock
+        if (is_variable != "true") {
+          sendRequestToUpdateStock("stock-update", stockReqsData);
+        }
 
+        // Refresh local transient
         ml_send_ajax(requestData, handleResponse);
       })
       .catch((error) => {
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
-      })
-      .finally(() => {
         $(".sitewide_spinner").removeClass("loading");
       });
+  }
+
+  /**
+   * duplicateOrderItem
+   * Wraps your existing "duplicate" code in one function
+   */
+  function duplicateOrderItem($button) {
+    let order_id = allaround_vars.order_id;
+    let item_id = $button.siblings('input[name="item_id"]').val();
+    let order_domain = allaround_vars.order_domain;
+
+    const post_id = allaround_vars.post_id;
+    const client_id = $("#client-select").val();
+    const order_source = $("#om__order_source").data("order_source");
+
+    // Identify item details
+    const currentItem = $button.closest("tr.om__orderRow");
+    const sku = currentItem.data("item-sku");
+    const is_variable = currentItem.data("is_variable");
+    const variations = currentItem.find(".item_name_variations");
+    const colorItem = variations.find("[data-meta_key='Color']");
+    const sizeItem = variations.find("[data-meta_key='Size']");
+    const inputField = currentItem.find(".item-quantity-input");
+    let old_quantity = parseInt(inputField.data("item-qty")) || 0;
+
+    let itemType = "quantity";
+    let colorValue = "";
+    let sizeValue = "";
+
+    if (colorItem.length !== 0) {
+      itemType = "group";
+      colorValue = colorItem.find("strong").text();
+      sizeValue = sizeItem.find("strong").text();
+    }
+    if (is_variable == true) {
+      itemType = "variable";
+    }
+
+    // Prepare for updating stock
+    const stockReqsData = {
+      source: allaround_vars.home_url,
+      action: "item_duplicate",
+      order_id: order_id,
+      data: {},
+    };
+
+    if (itemType === "group") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          [colorValue]: {
+            [sizeValue.toLowerCase()]: old_quantity,
+          },
+        },
+      };
+    } else if (itemType === "quantity") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          qty: old_quantity,
+        },
+      };
+    }
+
+    $(".sitewide_spinner").addClass("loading");
+
+    let newItem = {
+      order_id: order_id,
+      item_id: item_id,
+      method: "duplicateItem",
+      nonce: allaround_vars.nonce,
+    };
+
+    let requestData = {
+      action: "update_order_transient",
+      order_id: order_id,
+    };
+
+    function handleResponse() {
+      $(".sitewide_spinner").removeClass("loading");
+      alert("Item duplicated successfully");
+      location.reload();
+    }
+
+    // Send fetch request to remote domain
+    fetch(`${order_domain}/wp-json/update-order/v1/duplicate-delete-to-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newItem),
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          return response.json().then((data) => {
+            throw new Error(data.message || "Something went wrong");
+          });
+        }
+      })
+      .then((data) => {
+        console.log("Duplicating Item =>", data.message);
+
+        // Handle order source update
+        const handleOrderSourceData = {
+          action: "handle_order_source_action",
+          post_id: post_id,
+          client_id: client_id,
+          order_source: order_source,
+          total_price: data.newly_added_total,
+        };
+        $.post(allaround_vars.ajax_url, handleOrderSourceData)
+          .done((res) => {
+            console.log("Order source handled:", res);
+          })
+          .fail((err) => {
+            console.error("Error handling order source:", err);
+            alert("Error handling order source: " + err.statusText);
+          });
+
+        // If not variable, update stock
+        if (is_variable != "true") {
+          sendRequestToUpdateStock("stock-update", stockReqsData);
+        }
+        ml_send_ajax(requestData, handleResponse);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
+        $(".sitewide_spinner").removeClass("loading");
+      });
+  }
+
+  // Single event for both buttons
+  $(document).on("click", ".om_delete_item, .om_duplicate_item", function (e) {
+    e.preventDefault();
+
+    // Identify which button was clicked
+    const $button = $(this);
+    const isDelete = $button.hasClass("om_delete_item");
+
+    // Choose texts for popup
+    const modalHeading = isDelete ? "Confirm Deletion" : "Confirm Duplication";
+    const modalDescription = isDelete
+      ? "Are you sure you want to delete this item?"
+      : "Are you sure you want to duplicate this item?";
+    const confirmBtnText = isDelete ? "Yes, Delete" : "Yes, Duplicate";
+
+    // Open Magnific Popup
+    $.magnificPopup.open({
+      items: {
+        src: "#actionConfirmModal",
+      },
+      type: "inline",
+      removalDelay: 300,
+      mainClass: "mfp-fade",
+      callbacks: {
+        open: function () {
+          // Update text in popup
+          $(".modal-heading").text(modalHeading);
+          $(".modal-description").text(modalDescription);
+          $(".confirm-action").text(confirmBtnText);
+
+          // Bind confirm
+          $(".confirm-action")
+            .off("click.confirmAction")
+            .on("click.confirmAction", function () {
+              if (isDelete) {
+                deleteOrderItem($button);
+              } else {
+                duplicateOrderItem($button);
+              }
+              $.magnificPopup.close();
+            });
+
+          // Bind cancel
+          $(".cancel-action")
+            .off("click.cancelAction")
+            .on("click.cancelAction", function () {
+              $.magnificPopup.close();
+            });
+        },
+        close: function () {
+          // Clean up events to avoid duplicates
+          $(".confirm-action").off("click.confirmAction");
+          $(".cancel-action").off("click.cancelAction");
+        },
+      },
+    });
   });
 
   // ********** Order Meta Update Script **********//
@@ -464,6 +609,62 @@
 
     $this.addClass("ml_loading");
 
+    // stock_management_addition_limon - set variables for update meta
+    const group_item = $(".om__orderRow[data-product_id=" + itemId + "]");
+    const sku = group_item.data("item-sku");
+    const is_variable = group_item.data("is_variable");
+    const variations = group_item.find(".item_name_variations");
+    const colorItem = variations.find("[data-meta_key='Color']");
+    const sizeItem = variations.find("[data-meta_key='Size']");
+    const inputField = group_item.find(".item-quantity-input");
+    let old_quantity = inputField.data("item-qty");
+
+    let itemType = "quantity";
+    let colorValue = "";
+    let sizeValue = "";
+
+    if (colorItem.length !== 0) {
+      itemType = "group";
+      colorValue = colorItem.find("strong").text();
+      sizeValue = sizeItem.find("strong").text();
+    }
+
+    console.log("is_variable", is_variable);
+    console.log("is_variable typeof", typeof is_variable);
+
+    if (is_variable == true) {
+      itemType = "variable";
+    }
+
+    // get different from old quantity to new quantity
+    old_quantity = parseInt(old_quantity);
+
+    const stockReqsData = {
+      source: allaround_vars.home_url,
+      action: "meta_update",
+      order_id: orderId,
+      data: {},
+    };
+
+    if (itemType === "group") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        value: old_quantity,
+        old_meta: {
+          color: colorValue,
+          size: sizeValue,
+        },
+        new_meta: {
+          color: newColor,
+          size: newSize,
+        },
+      };
+    }
+
+    console.log("stockReqsData", stockReqsData);
+
+    // end stock_management_addition_limon - set variables for update meta
+
     // Collect only the fields that have changed
     let newItemMeta = {
       order_id: orderId,
@@ -475,10 +676,16 @@
     if (newArtPosition) newItemMeta.art_position = newArtPosition;
     newItemMeta.instruction_note = newInstructionNote;
 
-    updateItemMeta(newItemMeta, $this);
+    // stock_management_addition_limon - added 3rd parameter to updateItemMeta `stockReqsData`
+    updateItemMeta(newItemMeta, $this, stockReqsData, is_variable);
   });
 
-  function updateItemMeta(newItemMeta, $this) {
+  function updateItemMeta(
+    newItemMeta,
+    $this,
+    stockReqsData,
+    is_variable = false
+  ) {
     let order_domain = allaround_vars.order_domain;
 
     let requestData = {
@@ -520,6 +727,10 @@
       })
       .then((data) => {
         if (data.success) {
+          // stock_management_addition_limon - trigger meta update `sendRequestToUpdateStock`
+          if (is_variable != "true") {
+            sendRequestToUpdateStock("meta-update", stockReqsData);
+          }
           handleResponse(data);
           ml_send_ajax(requestData);
           updateItemMetaInDOM(newItemMeta.item_id, data.data);
@@ -544,6 +755,105 @@
       .finally(() => {
         $this.removeClass("ml_loading");
       });
+  }
+
+  function isValidDataFormat(data) {
+    if (!data || typeof data !== "object") return false;
+
+    // Check the `data` property exists and is an object
+    if (!data.data || typeof data.data !== "object") return false;
+
+    // Iterate over the keys in the `data` property
+    for (const key in data.data) {
+      if (!key.trim() || key === "undefined") {
+        // If a key is empty, consists of whitespace, or explicitly "undefined", return false
+        return false;
+      }
+
+      const subData = data.data[key];
+      if (!subData || typeof subData !== "object") return false;
+
+      // Ensure the `data` property of the subData is present and valid
+      if (!subData.data || typeof subData.data !== "object") {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // stock_management_addition_limon - create function to send request to update stock
+  function sendRequestToUpdateStock(endpoint, requestData) {
+    try {
+      if (!isValidDataFormat(requestData)) {
+        console.log("no_sku_found", requestData);
+        return false;
+      }
+
+      const xhr = new XMLHttpRequest();
+      const rest_url = allaround_vars.rest_url + "/update-stock";
+      xhr.open("POST", rest_url, true);
+
+      // Add necessary headers (e.g., Content-Type for JSON and Authorization if needed)
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.setRequestHeader("X-WP-Nonce", allaround_vars.rest_nonce);
+
+      requestData = {
+        action: endpoint,
+        requestData: requestData,
+      };
+
+      // Handle response
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log("Request succeeded:", xhr.responseText);
+
+            // Parse response
+            const response = JSON.parse(xhr.responseText || "{}");
+
+            if (response.message) {
+              // Show success message using Toastify
+              Toastify({
+                text: `${response.message}`,
+                duration: 3000,
+                close: true,
+                gravity: "bottom", // `top` or `bottom`
+                position: "right", // `left`, `center` or `right`
+                stopOnFocus: true, // Prevents dismissing of toast on hover
+                style: {
+                  background: "linear-gradient(to right, #00b09b, #96c93d)",
+                },
+              }).showToast();
+            } else {
+              // Show alert if message is missing
+              alert(
+                "Stock update: Response received but no message was found."
+              );
+            }
+          } else {
+            alert(
+              `Stock update: Request failed with status ${xhr.status}: ${xhr.statusText}`
+            );
+          }
+        }
+      };
+
+      // Handle network errors
+      xhr.onerror = function () {
+        alert(
+          "Stock update: Unable to send data to the endpoint. Please check your connection or endpoint settings."
+        );
+      };
+
+      // Send the request
+      xhr.send(JSON.stringify(requestData));
+    } catch (error) {
+      alert(
+        "Stock update: An error occurred while trying to send the request: " +
+          error.message
+      );
+    }
   }
 
   function updateItemMetaInDOM(itemId, updatedData) {
@@ -937,6 +1247,65 @@
     let orderId = $('input[name="order_id"]').val();
     let order_domain = allaround_vars.order_domain;
 
+    // stock_management_addition_limon - set variables
+    const current = $(this);
+    const group_item = current.closest("tr.om__orderRow");
+    const sku = group_item.data("item-sku");
+    const is_variable = group_item.data("is_variable");
+    const variations = group_item.find(".item_name_variations");
+    const colorItem = variations.find("[data-meta_key='Color']");
+    const sizeItem = variations.find("[data-meta_key='Size']");
+    const old_quantity = current.data("item-qty");
+
+    console.log("is_variable", is_variable);
+    console.log("is_variable typeof", typeof is_variable);
+
+    let itemType = "quantity";
+    let colorValue = "";
+    let sizeValue = "";
+
+    if (colorItem.length !== 0) {
+      itemType = "group";
+      colorValue = colorItem.find("strong").text();
+      sizeValue = sizeItem.find("strong").text();
+    }
+
+    if (is_variable == true) {
+      itemType = "variable";
+    }
+
+    // get different from old quantity to new quantity
+    let last_qty = parseInt(newQuantity) - parseInt(old_quantity);
+
+    const stockReqsData = {
+      source: allaround_vars.home_url,
+      action: "quantity_update",
+      order_id: orderId,
+      data: {},
+    };
+
+    if (itemType === "group") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          [colorValue]: {
+            [sizeValue.toLowerCase()]: last_qty,
+          },
+        },
+      };
+    }
+
+    if (itemType === "quantity") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          qty: last_qty,
+        },
+      };
+    }
+    console.log("stockReqsData", stockReqsData);
+    // end stock_management_addition_limon - set variables
+
     let newItem = {
       order_id: orderId,
       item_id: itemId,
@@ -956,6 +1325,12 @@
         response.order_total
       );
       updateItemDetails(itemId, newQuantity, newCost, response.item_total);
+      // stock_management_addition_limon - update qty atts and send stock updat request
+      current.data("item-qty", newQuantity);
+      if (is_variable != true && current.hasClass("item-quantity-input")) {
+        sendRequestToUpdateStock("stock-update", stockReqsData);
+      }
+      // end stock_management_addition_limon - update qty atts and send stock updat request
       Toastify({
         text: `${response.message}`,
         duration: 3000,
@@ -1902,7 +2277,8 @@
         "https://hook.eu1.make.com/n4vh84cwbial6chqwmm2utvsua7u8ck3";
     } else {
       // Default to test webhook URL
-      webhook_url = "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
+      webhook_url =
+        "https://hook.us1.make.com/wxcd9nyap2xz434oevuike8sydbfx5qn";
     }
 
     // Data to send to the webhook
@@ -1969,7 +2345,9 @@
     if (!shipping_boxes) {
       shipping_boxes = 1;
     }
-    let shipping_method_text = $("#shipping-method-list option:selected").text();
+    let shipping_method_text = $(
+      "#shipping-method-list option:selected"
+    ).text();
 
     if (
       shipping_method_text ===
@@ -2046,6 +2424,11 @@
         },
         success: function (metaResponse) {
           console.log("Meta updated successfully:", metaResponse);
+
+          // If #orderCompleted button exists, trigger its click
+          if ($("#orderCompleted").length) {
+            $("#orderCompleted").trigger("click");
+          }
         },
         error: function (xhr, status, error) {
           console.error("Error updating meta:", error);
@@ -2065,6 +2448,10 @@
 
         $("#printLabelSendWebhook").removeClass("ml_loading");
         $.magnificPopup.close();
+
+        // Set flag for updating order status text on reload
+        localStorage.setItem("orderStatusCompleted", "true");
+
         // locatio reload after 1 sec
         setTimeout(() => {
           location.reload();
@@ -2077,6 +2464,13 @@
         alert("Failed to send webhook request. Please try again.");
       },
     });
+  });
+
+  $(document).ready(function () {
+    if (localStorage.getItem("orderStatusCompleted") === "true") {
+      $("#om__orderStatus").text("Completed");
+      localStorage.removeItem("orderStatusCompleted");
+    }
   });
 
   // Open Modal on click of #sendProofOpenModal
@@ -2562,6 +2956,47 @@
       });
     }
   }
+
+  // ********** Open Order Note for Employees **********//
+  $(document).ready(function () {
+    // 1. Check if #autoOpenEmployeeNoteModal is in the DOM
+    const $autoNoteModal = $("#autoOpenEmployeeNoteModal");
+    if ($autoNoteModal.length) {
+      // 2. We only got here if user is an Employee and the order note is not empty
+      //    Let's check localStorage for the last shown time.
+
+      // We'll store the last shown time keyed by the post/order ID
+      let postId = allaround_vars.post_id; // from your existing global
+      let storageKey = "employeeNoteModalLastShown_" + postId;
+      let lastShown = localStorage.getItem(storageKey);
+      let now = Date.now();
+      let thirtyMinutes = 30 * 60 * 1000;
+
+      // If never shown OR it's been more than 30 minutes, show the modal
+      if (!lastShown || now - parseInt(lastShown, 10) > thirtyMinutes) {
+        $.magnificPopup.open({
+          items: {
+            src: "#autoOpenEmployeeNoteModal",
+          },
+          type: "inline",
+          removalDelay: 300,
+          mainClass: "mfp-fade",
+          // You can add more Magnific config if desired
+          callbacks: {
+            open: function () {
+              console.log("Opened auto Employee Note modal.");
+            },
+            close: function () {
+              console.log("Closed auto Employee Note modal.");
+            },
+          },
+        });
+
+        // Update localStorage with the new timestamp
+        localStorage.setItem(storageKey, now.toString());
+      }
+    }
+  });
 
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/

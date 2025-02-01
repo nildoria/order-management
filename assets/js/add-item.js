@@ -71,8 +71,9 @@ jQuery(document).ready(function ($) {
     productDropdown.empty();
     products.forEach((product) => {
       const productThumbnail = product.thumbnail ? product.thumbnail : "";
+      // stock_management_addition_limon - add data-sku attr
       productDropdown.append(
-        `<li data-id="${product.id}" class="product-item">
+        `<li data-id="${product.id}" data-sku="${product.sku}" class="product-item">
             <img src="${productThumbnail}" alt="${product.name}" class="product-thumb">
             ${product.name}
         </li>`
@@ -87,17 +88,24 @@ jQuery(document).ready(function ($) {
 
     $(".product-item").on("click", function () {
       const productId = $(this).data("id");
+      const sku = $(this).data("sku"); // stock_management_addition_limon - add sku value
       fetchProductDetails(productId);
 
       const productThumbnail = $(this).find(".product-thumb").attr("src");
       const productName = $(this).text().trim();
 
       // Call the new function with the necessary parameters
-      updateSelectedProductDisplay(productId, productThumbnail, productName);
+      updateSelectedProductDisplay(
+        productId,
+        sku, // stock_management_addition_limon - add sku
+        productThumbnail,
+        productName
+      );
     });
 
     $(".product-item-freestyle").on("click", function () {
       const productId = $(this).data("id");
+      const sku = $(this).data("sku"); sku, // stock_management_addition_limon - add sku value
       freestyleProductDetails(productId);
       loadCreateOrderJS();
       $("#addNewItemButton")
@@ -114,12 +122,18 @@ jQuery(document).ready(function ($) {
       const productName = $(this).text().trim();
 
       // Call the new function with the necessary parameters
-      updateSelectedProductDisplay(productId, productThumbnail, productName);
+      updateSelectedProductDisplay(
+        productId, 
+        sku, // stock_management_addition_limon - add sku
+        productThumbnail, 
+        productName
+      );
     });
   }
 
   function updateSelectedProductDisplay(
     productId,
+    sku,
     productThumbnail,
     productName
   ) {
@@ -138,6 +152,7 @@ jQuery(document).ready(function ($) {
 
     // Update the hidden input value
     $("#new_product_id").val(productId);
+    $("#new_product_sku").val(sku); // stock_management_addition_limon - add sku value
   }
 
   function freestyleProductDetails(productId) {
@@ -203,6 +218,7 @@ jQuery(document).ready(function ($) {
     $("label[for='fetchingProductList']").show();
     $("#returnToSelectProduct").remove();
     $("#new_product_id").val("");
+    $("#new_product_sku").val(""); // stock_management_addition_limon - reset sku value
     $("#addNewItemButton")
       .removeClass("om_add_item_selected")
       .prop("disabled", true);
@@ -665,6 +681,161 @@ jQuery(document).ready(function ($) {
 
   dynamicVariationColor();
 
+  function isValidDataFormat(data) {
+    if (!data || typeof data !== "object") return false;
+  
+    // Check the `data` property exists and is an object
+    if (!data.data || typeof data.data !== "object") return false;
+  
+    // Iterate over the keys in the `data` property
+    for (const key in data.data) {
+      if (!key.trim() || key === "undefined") {
+        // If a key is empty, consists of whitespace, or explicitly "undefined", return false
+        return false;
+      }
+  
+      const subData = data.data[key];
+      if (!subData || typeof subData !== "object") return false;
+  
+      // Ensure the `data` property of the subData is present and valid
+      if (!subData.data || typeof subData.data !== "object") {
+        return false;
+      }
+    }
+  
+    return true;
+  }
+
+  // stock_management_addition_limon - create function to send request to update stock
+  function sendRequestToUpdateStock(endpoint, requestData, ajaxData) {
+    try {
+
+      if(!isValidDataFormat(requestData) ) {
+        console.log("no_sku_found", requestData);
+        ml_send_ajax(ajaxData, handleResponse);
+        return false;
+      }
+
+      const xhr = new XMLHttpRequest();
+      const rest_url = alarnd_add_item_vars.rest_url + "/update-stock";
+      xhr.open("POST", rest_url, true);
+
+      // Add necessary headers (e.g., Content-Type for JSON and Authorization if needed)
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.setRequestHeader("X-WP-Nonce", alarnd_add_item_vars.rest_nonce);
+
+      requestData = {
+        action: endpoint,
+        requestData: requestData,
+      };
+
+      // Handle response
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log("Request succeeded:", xhr.responseText);
+
+            // Parse response
+            const response = JSON.parse(xhr.responseText || "{}");
+
+            if (response.message) {
+              // Show success message using Toastify
+              Toastify({
+                text: `${response.message}`,
+                duration: 3000,
+                close: true,
+                gravity: "bottom", // `top` or `bottom`
+                position: "right", // `left`, `center` or `right`
+                stopOnFocus: true, // Prevents dismissing of toast on hover
+                style: {
+                  background: "linear-gradient(to right, #00b09b, #96c93d)",
+                },
+              }).showToast();
+
+              ml_send_ajax(ajaxData, handleResponse);
+            } else {
+              // Show alert if message is missing
+              alert(
+                "Stock update: Response received but no message was found."
+              );
+            }
+          } else {
+            alert(
+              `Stock update: Request failed with status ${xhr.status}: ${xhr.statusText}`
+            );
+          }
+        }
+      };
+
+      // Handle network errors
+      xhr.onerror = function () {
+        alert(
+          "Stock update: Unable to send data to the endpoint. Please check your connection or endpoint settings."
+        );
+      };
+
+      // Send the request
+      xhr.send(JSON.stringify(requestData));
+    } catch (error) {
+      alert(
+        "Stock update: An error occurred while trying to send the request: " +
+          error.message
+      );
+    }
+  }
+
+  // stock_management_addition_limon - move handleResponse outside the addNewItemButton click handler
+  function handleResponse(response) {
+    $("#addNewItemButton").removeClass("ml_loading");
+    alert("Item(s) added successfully");
+    location.reload(); // Refresh the page to see the new item
+  }
+
+  // stock_management_addition_limon - create processItemsByType to format the items
+  function processItemsByType(newItem) {
+    return newItem.reduce((result, item) => {
+      const sku = item.sku;
+      const color = item.alarnd_color;
+      const size = item.alarnd_size;
+      const quantity = parseInt(item.quantity, 10);
+
+      if (!result[sku]) {
+        result[sku] = {
+          type: null,
+          data: {},
+        };
+      }
+
+      // Determine type
+      if (color && size) {
+        result[sku].type = "group";
+        if (!result[sku].data[color]) {
+          result[sku].data[color] = {};
+        }
+        if (!result[sku].data[color][size]) {
+          result[sku].data[color][size] = 0;
+        }
+        result[sku].data[color][size] += quantity;
+      } else if (
+        item.hasOwnProperty('variation_id')
+      ) {
+        result[sku].type = "variation";
+        if (!result[sku].data.qty) {
+          result[sku].data.qty = 0;
+        }
+        result[sku].data.qty += quantity;
+      } else {
+        result[sku].type = "quantity";
+        if (!result[sku].data.qty) {
+          result[sku].data.qty = 0;
+        }
+        result[sku].data.qty += quantity;
+      }
+
+      return result;
+    }, {});
+  }
+
   // Event listener for adding new item button
   $(document).on("click", "#addNewItemButton", function (event) {
     event.preventDefault();
@@ -686,6 +857,7 @@ jQuery(document).ready(function ($) {
       // Loop through all grouped product inputs and collect data
       $(".group-product-input").each(function () {
         const productId = modal.find("#new_product_id").val();
+        const sku = modal.find("#new_product_sku").val(); // stock_management_addition_limon - add sku value
         const quantity = $(this).val();
         const color = $(this).data("color");
         const size = $(this).data("size");
@@ -696,6 +868,7 @@ jQuery(document).ready(function ($) {
         if (quantity > 0) {
           newItem.push({
             product_id: productId,
+            sku: sku, // stock_management_addition_limon - add sku
             quantity: quantity,
             alarnd_color: color,
             alarnd_size: size,
@@ -709,6 +882,7 @@ jQuery(document).ready(function ($) {
       });
     } else if (isVariableProduct) {
       const productId = modal.find("#new_product_id").val();
+      const sku = modal.find("#new_product_sku").val(); // stock_management_addition_limon - add sku value
       const selectedVariation = modal.find(
         ".variable-quantity option:selected"
       );
@@ -721,6 +895,7 @@ jQuery(document).ready(function ($) {
 
       newItem.push({
         product_id: productId,
+        sku: sku, // stock_management_addition_limon - add sku
         variation_id: variationId,
         quantity: selectedQuantity,
         alarnd_size: size,
@@ -732,6 +907,7 @@ jQuery(document).ready(function ($) {
       });
     } else {
       const productId = modal.find("#new_product_id").val();
+      const sku = modal.find("#new_product_sku").val(); // stock_management_addition_limon - add sku value
       const quantity =
         modal.find(".custom-quantity").length > 0
           ? modal.find(".custom-quantity").val()
@@ -745,6 +921,7 @@ jQuery(document).ready(function ($) {
 
       newItem.push({
         product_id: productId,
+        sku: sku, // stock_management_addition_limon - add sku
         quantity: quantity,
         alarnd_color: selectedColor,
         subtotal: subTotalPrice,
@@ -755,6 +932,17 @@ jQuery(document).ready(function ($) {
       });
     }
 
+     // stock_management_addition_limon - send request to update stock
+     const processedItems = processItemsByType(newItem);
+     const stockReqsData = {
+       source: allaround_vars.home_url,
+       action: "item_added",
+       data: processedItems,
+     };
+     console.log("newItem", newItem);
+     console.log("stockReqsData", stockReqsData);
+     // end stock_management_addition_limon - send request to update stock
+
     let order_domain = alarnd_add_item_vars.order_domain;
 
     let requestData = {
@@ -762,11 +950,12 @@ jQuery(document).ready(function ($) {
       order_id: alarnd_add_item_vars.order_id,
     };
 
-    function handleResponse(response) {
-      $("#addNewItemButton").removeClass("ml_loading");
-      alert("Item(s) added successfully");
-      location.reload(); // Refresh the page to see the new item
-    }
+    // stock_management_addition_limon - this function already moved and this portion no need
+    // function handleResponse(response) {
+    //   $("#addNewItemButton").removeClass("ml_loading");
+    //   alert("Item(s) added successfully");
+    //   location.reload(); // Refresh the page to see the new item
+    // }
 
     console.log(newItem);
 
@@ -806,7 +995,8 @@ jQuery(document).ready(function ($) {
           alert("Error handling order source: " + error.statusText);
         });
 
-        ml_send_ajax(requestData, handleResponse);
+        // stock_management_addition_limon - add sendRequestToUpdateStock and remove ml_send_ajax here then place inside sendRequestToUpdateStock
+        sendRequestToUpdateStock("stock-update", stockReqsData, requestData);
       })
       .catch((error) => {
         console.error("Error:", error);

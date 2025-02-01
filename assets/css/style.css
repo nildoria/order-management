@@ -321,6 +321,30 @@ td.mockups-row {
   fill: #ffffff;
 }
 
+/* Confirmtion custom styling: */
+#actionConfirmModal.white-popup-block {
+  max-width: 400px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 20px;
+  position: relative;
+  text-align: center;
+  border-radius: 6px;
+}
+#actionConfirmModal .mfp-close {
+  top: -10px;
+}
+#actionConfirmModal .modal-heading {
+  margin-bottom: 10px;
+}
+#actionConfirmModal .modal-description {
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.om_modalBtns {
+  margin-top: 20px;
+}
+
 /* .item_product_column:hover .om__editItemMeta,
 td.item_product_column:hover .om_delete_item,
 td.item_product_column:hover .om_duplicate_item {
@@ -2061,6 +2085,32 @@ button#orderCompletedOpenModal:hover {
     color: #fff;
 }
 /* MLimon CSS END */
+#autoOpenEmployeeNoteModal.white-popup-block {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px 20px;
+    text-align: left;
+    background: #f8f2dd;
+    border: 1px dashed #e7d289;
+    -webkit-border-radius: 7px;
+    -moz-border-radius: 7px;
+    border-radius: 7px;
+    color: #1a1a1a;
+    position: relative;
+}
+.om__orderNoteFiles_container {
+    border-top: 1px solid #efe2b3;
+}
+#autoOpenEmployeeNoteModal h2 {
+  margin-bottom: 15px;
+  font-size: 1.2em;
+}
+#autoOpenEmployeeNoteModal .employee-note-content {
+  margin-bottom: 20px;
+}
+#autoOpenEmployeeNoteModal .mfp-close {
+  top: -10px;
+}
 
 /* Combine Items CSS */
 .om__combine_input {
