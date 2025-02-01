@@ -2424,6 +2424,11 @@
         },
         success: function (metaResponse) {
           console.log("Meta updated successfully:", metaResponse);
+
+          // If #orderCompleted button exists, trigger its click
+          if ($("#orderCompleted").length) {
+            $("#orderCompleted").trigger("click");
+          }
         },
         error: function (xhr, status, error) {
           console.error("Error updating meta:", error);
@@ -2443,6 +2448,10 @@
 
         $("#printLabelSendWebhook").removeClass("ml_loading");
         $.magnificPopup.close();
+
+        // Set flag for updating order status text on reload
+        localStorage.setItem("orderStatusCompleted", "true");
+
         // locatio reload after 1 sec
         setTimeout(() => {
           location.reload();
@@ -2455,6 +2464,13 @@
         alert("Failed to send webhook request. Please try again.");
       },
     });
+  });
+
+  $(document).ready(function () {
+    if (localStorage.getItem("orderStatusCompleted") === "true") {
+      $("#om__orderStatus").text("Completed");
+      localStorage.removeItem("orderStatusCompleted");
+    }
   });
 
   // Open Modal on click of #sendProofOpenModal
@@ -2940,6 +2956,47 @@
       });
     }
   }
+
+  // ********** Open Order Note for Employees **********//
+  $(document).ready(function () {
+    // 1. Check if #autoOpenEmployeeNoteModal is in the DOM
+    const $autoNoteModal = $("#autoOpenEmployeeNoteModal");
+    if ($autoNoteModal.length) {
+      // 2. We only got here if user is an Employee and the order note is not empty
+      //    Let's check localStorage for the last shown time.
+
+      // We'll store the last shown time keyed by the post/order ID
+      let postId = allaround_vars.post_id; // from your existing global
+      let storageKey = "employeeNoteModalLastShown_" + postId;
+      let lastShown = localStorage.getItem(storageKey);
+      let now = Date.now();
+      let thirtyMinutes = 30 * 60 * 1000;
+
+      // If never shown OR it's been more than 30 minutes, show the modal
+      if (!lastShown || now - parseInt(lastShown, 10) > thirtyMinutes) {
+        $.magnificPopup.open({
+          items: {
+            src: "#autoOpenEmployeeNoteModal",
+          },
+          type: "inline",
+          removalDelay: 300,
+          mainClass: "mfp-fade",
+          // You can add more Magnific config if desired
+          callbacks: {
+            open: function () {
+              console.log("Opened auto Employee Note modal.");
+            },
+            close: function () {
+              console.log("Closed auto Employee Note modal.");
+            },
+          },
+        });
+
+        // Update localStorage with the new timestamp
+        localStorage.setItem(storageKey, now.toString());
+      }
+    }
+  });
 
   $(window).on("load", function () {});
 })(jQuery); /*End document ready*/

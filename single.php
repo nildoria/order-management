@@ -815,6 +815,39 @@ $clients = $createOrder->fetch_clients_data();
                 </div>
             </div>
 
+            <?php if (is_current_user_author() && (!empty($order_manage_general_comment) || !empty($order_extra_attachments))): ?>
+                <!-- Hidden auto-open modal for the Employee role -->
+                <div id="autoOpenEmployeeNoteModal" class="mfp-hide white-popup-block">
+                    <h2>Order Note</h2>
+                    <div class="employee-note-content" style="max-height: 400px; overflow-y: auto;">
+            
+                        <?php if (!empty($order_manage_general_comment)): ?>
+                            <!-- Display the order note with line breaks -->
+                            <div class="auto-note-text" style="margin-bottom:15px;">
+                                <?php echo nl2br(esc_html($order_manage_general_comment)); ?>
+                            </div>
+                        <?php endif; ?>
+            
+                        <?php if (!empty($order_extra_attachments)): ?>
+                            <div class="om__orderNoteFiles_container">
+                                <h5 style="margin-bottom: 10px;">Attachments!</h5>
+                                <div class="om__orderNoteFiles">
+                                    <?php foreach ($order_extra_attachments as $attachment): ?>
+                                        <div class="attachment-item">
+                                            <a href="<?php echo esc_url($attachment['url']); ?>" target="_blank">
+                                                <?php echo esc_html($attachment['name']); ?>
+                                            </a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+            
+                    </div>
+                    <button type="button" class="mfp-close">X</button>
+                </div>
+            <?php endif; ?>
+
             <?php if (is_current_user_admin() || is_current_user_editor()): ?>
             <div class="mockup-revision-activity-container">
 
