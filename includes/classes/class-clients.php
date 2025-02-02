@@ -76,6 +76,17 @@ class AllAroundClientsDB
                 },
             )
         );
+        // Register the new endpoint for updating initial_minisite_message
+        register_rest_route(
+            'manage-client/v1',
+            '/update-initial-minisite-message',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_update_initial_minisite_message'],
+                'permission_callback' => [$this, 'check_basic_auth'],
+            )
+        );
+
         // Register the new endpoint for managing order_type
         register_rest_route(
             'manage-order/v1',
@@ -151,6 +162,7 @@ class AllAroundClientsDB
             'status',
             'token',
             'subscribed',
+            'initial_minisite_message',
             'invoice'
         ];
 
@@ -310,6 +322,24 @@ class AllAroundClientsDB
             200
         );
     }
+
+    public function handle_update_initial_minisite_message(WP_REST_Request $request)
+    {
+        // Retrieve and sanitize parameters
+        $client_id = absint($request->get_param('client_id'));
+        $message_value = sanitize_text_field($request->get_param('initial_minisite_message'));
+
+        // Validate: make sure we have a client ID and value is either yes or no
+        if (empty($client_id) || !in_array($message_value, ['yes', 'no'])) {
+            return new WP_Error('invalid_data', 'Invalid client ID or initial minisite message value.', array('status' => 400));
+        }
+
+        // Update the client meta with the new value
+        update_post_meta($client_id, 'initial_minisite_message', $message_value);
+
+        return new WP_REST_Response(array('message' => 'Initial Minisite Message updated successfully.'), 200);
+    }
+
 
     public function handle_set_order_type(WP_REST_Request $request)
     {
@@ -543,6 +573,7 @@ class AllAroundClientsDB
             'token',
             'email',
             'subscribed',
+            'initial_minisite_message',
             'invoice'
         ];
 
@@ -1009,6 +1040,7 @@ class AllAroundClientsDB
             'token',
             'email',
             'subscribed',
+            'initial_minisite_message',
             'invoice'
         ];
 
@@ -1341,6 +1373,7 @@ class AllAroundClientsDB
             'logo' => get_post_meta($post->ID, 'logo', true),
             'minisite_id' => get_post_meta($post->ID, 'minisite_id', true),
             'minisite_created' => !empty($minisite_created) ? $minisite_created : 'no',
+            'initial_minisite_message' => get_post_meta($post->ID, 'initial_minisite_message', true),
             'mainSite_orders' => get_post_meta($post->ID, 'mainSite_orders', true),
             'mainSite_order_value' => get_post_meta($post->ID, 'mainSite_order_value', true),
             'miniSite_orders' => get_post_meta($post->ID, 'miniSite_orders', true),
@@ -1402,6 +1435,13 @@ class AllAroundClientsDB
             <label><input type="radio" name="subscribed" value="yes" <?php checked($fields['subscribed'], 'yes', true); ?> />
                 Yes</label>
             <label><input type="radio" name="subscribed" value="no" <?php checked($fields['subscribed'], 'no'); ?> /> No</label>
+        </p>
+        <p>
+            <label for="initial_minisite_message">Initial Minisite Message:</label><br>
+            <select name="initial_minisite_message" id="initial_minisite_message">
+                <option value="yes" <?php selected($fields['initial_minisite_message'], 'yes'); ?>>Yes</option>
+                <option value="no" <?php selected($fields['initial_minisite_message'], 'no'); ?>>No</option>
+            </select>
         </p>
         <p>
             <label for="token">Token:</label><br>
@@ -1592,6 +1632,7 @@ class AllAroundClientsDB
             'phone',
             'status',
             'subscribed',
+            'initial_minisite_message',
             'token',
             'address_1',
             'address_2',

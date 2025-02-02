@@ -241,6 +241,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             <th>Mini Header</th>
                             <th>Mini URL</th>
                             <th>MiniCreated</th>
+                            <th>Initial Mini Message</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -255,6 +256,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             $mini_header = get_post_meta($client_id, 'mini_header', true);
                             $mini_url = get_post_meta($client_id, 'mini_url', true);
                             $minisite_created = get_post_meta($client_id, 'minisite_created', true);
+                            $initial_msg = get_post_meta($client_id, 'initial_minisite_message', true);
 
                             // Get preloaded order count for this client
                             $order_count = isset($order_counts[get_the_ID()]) ? $order_counts[get_the_ID()] : 0;
@@ -303,6 +305,10 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                                 <!-- MiniCreated -->
                                 <td class="client-mini-created">
                                     <span class="cell-text"><?php echo ($minisite_created === 'yes') ? 'Yes' : 'No'; ?></span>
+                                </td>
+                                <!-- Initial Minisite Message -->
+                                <td class="client-initial-minisite-message">
+                                    <span class="cell-text"><?php echo ($initial_msg === 'yes') ? 'Yes' : 'No'; ?></span>
                                 </td>
                                 <!-- Actions -->
                                 <td class="client-actions">
