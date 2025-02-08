@@ -76,6 +76,28 @@ class AllAroundClientsDB
                 },
             )
         );
+        // New route for minisite_created update clients by email and/or phone
+        register_rest_route(
+            'manage-client/v1',
+            '/minisite-created-meta',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_minisite_created_meta'],
+                'permission_callback' => [$this, 'check_basic_auth'],
+                // 'permission_callback' => '__return_true',
+            )
+        );
+        // Register the new endpoint for updating initial_minisite_message
+        register_rest_route(
+            'manage-client/v1',
+            '/update-initial-minisite-message',
+            array(
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_update_initial_minisite_message'],
+                'permission_callback' => [$this, 'check_basic_auth'],
+            )
+        );
+
         // Register the new endpoint for managing order_type
         register_rest_route(
             'manage-order/v1',
@@ -151,6 +173,7 @@ class AllAroundClientsDB
             'status',
             'token',
             'subscribed',
+            'initial_minisite_message',
             'invoice'
         ];
 
@@ -165,16 +188,24 @@ class AllAroundClientsDB
                 'mini_header',
                 'logo'
             ];
-
             $allowedFields = array_merge($allowedFields, $addition_fields);
         }
 
+        // Get only allowed fields from the request parameters
         $filteredPostData = array_intersect_key($request->get_params(), array_flip($allowedFields));
+
+        // Remove any empty values from filteredPostData so they won't update meta
+        foreach ($filteredPostData as $key => $value) {
+            if (empty($value)) {
+                unset($filteredPostData[$key]);
+            }
+        }
 
         if ($client_id = $this->clientExistsByEmail($email)) {
             $old_client_type = get_post_meta($client_id, 'client_type', true);
 
             foreach ($filteredPostData as $key => $value) {
+                // Skip updating client_type if the existing type is 'company'
                 if ("client_type" === $key && "company" === $old_client_type) {
                     continue;
                 }
@@ -185,9 +216,8 @@ class AllAroundClientsDB
                 $this->update_post_title($client_id, $name);
             }
 
-            // Set om_status
+            // Set om_status and send webhook data for an updated client
             $om_status = 'client_profile_updated';
-
             $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status, $old_client_type, $client_type);
 
             return new WP_REST_Response(
@@ -198,6 +228,7 @@ class AllAroundClientsDB
             );
         }
 
+        // Create new client post
         $client_id = wp_insert_post(
             array(
                 'post_title' => $name,
@@ -207,15 +238,15 @@ class AllAroundClientsDB
             )
         );
 
+        // Save only non-empty meta fields for new client
         foreach ($filteredPostData as $key => $value) {
             update_post_meta($client_id, $key, $value);
         }
 
         update_post_meta($client_id, 'full_name', $name);
 
-        // Set om_status
+        // Set om_status and send webhook data for a newly created client
         $om_status = 'client_profile_created';
-
         $this->send_client_data_to_webhook($client_id, $filteredPostData, $om_status);
 
         return new WP_REST_Response(
@@ -280,6 +311,7 @@ class AllAroundClientsDB
         }
     }
 
+    //** This one is to Update minisite_created_meta automatically after minisite creation by taking minisite ID and updating minisite ID in client*/
     public function handle_set_minisite_data(WP_REST_Request $request)
     {
         // Get the parameters from the request
@@ -310,6 +342,149 @@ class AllAroundClientsDB
             200
         );
     }
+
+    //** This one is to Update minisite_created_meta from make.com*/
+    public function handle_minisite_created_meta(WP_REST_Request $request)
+    {
+        // Get the parameters
+        $email = sanitize_email($request->get_param('email'));
+        $phone = sanitize_text_field($request->get_param('phone'));
+        $minisite_created = sanitize_text_field($request->get_param('minisite_created'));
+
+        // Check if email is provided and valid
+        if ((empty($email) || !is_email($email)) && empty($phone)) {
+            return new WP_Error('invalid_email', 'Email address or Phone is not valid.', array('status' => 400));
+        }
+
+        // Check if minisite_created is provided and valid
+        if (empty($minisite_created) || !in_array($minisite_created, ['yes', 'no'])) {
+            return new WP_Error('invalid_minisite_created', 'Minisite created value is not valid.', array('status' => 400));
+        }
+
+        // Create the meta query array
+        $meta_query = array('relation' => 'AND');
+
+        // Add email to the query if it's provided
+        if (!empty($email)) {
+            $meta_query[] = array(
+                'key' => 'email',
+                'value' => $email,
+                'compare' => '='
+            );
+        }
+
+        // Add phone to the query if it's provided
+        if (!empty($phone)) {
+            $meta_query[] = array(
+                'key' => 'phone',
+                'value' => $phone,
+                'compare' => '='
+            );
+        }
+
+        // Query arguments
+        $args = array(
+            'post_type' => 'client',
+            'post_status' => 'publish',
+            'posts_per_page' => 100, // Limit to 10 at a time for batch processing
+            'meta_query' => $meta_query
+        );
+
+        // Run the query
+        $query = new WP_Query($args);
+
+        // If no clients found, return an error
+        if (!$query->have_posts()) {
+            return new WP_Error('client_not_found', 'No client found with the provided email and/or phone number.', array('status' => 404));
+        }
+
+        // Process each client found
+        $updated_clients = array();
+        while ($query->have_posts()) {
+            $query->the_post();
+            $client_id = get_the_ID();
+
+            // Update 'subscribed' meta to 'no'
+            update_post_meta($client_id, 'minisite_created', $minisite_created);
+
+            // Log the updated client
+            $updated_clients[] = array(
+                'client_id' => $client_id,
+                'email' => get_post_meta($client_id, 'email', true),
+                'phone' => get_post_meta($client_id, 'phone', true),
+                'mini_url' => get_post_meta($client_id, 'mini_url', true),
+                'minisite_created' => get_post_meta($client_id, 'minisite_created', true)
+            );
+        }
+
+        // Reset the post data
+        wp_reset_postdata();
+
+        // Return the list of updated clients
+        return new WP_REST_Response(array(
+            'message' => 'Clients data updated successfully.',
+            'clients' => $updated_clients
+        ), 200);
+    }
+
+    public function handle_update_initial_minisite_message(WP_REST_Request $request)
+    {
+        // Retrieve and sanitize parameters
+        $email = sanitize_email($request->get_param('email'));
+        $phone = sanitize_text_field($request->get_param('phone'));
+        $message_value = sanitize_text_field($request->get_param('initial_minisite_message'));
+
+        // Validate: make sure we have a value for initial_minisite_message and it is either yes or no
+        if (empty($message_value) || !in_array($message_value, ['yes', 'no'])) {
+            return new WP_Error('invalid_data', 'Invalid initial minisite message value.', array('status' => 400));
+        }
+
+        // Create the meta query array
+        $meta_query = array('relation' => 'OR');
+
+        // Add email to the query if it's provided
+        if (!empty($email)) {
+            $meta_query[] = array(
+                'key' => 'email',
+                'value' => $email,
+                'compare' => '='
+            );
+        }
+
+        // Add phone to the query if it's provided
+        if (!empty($phone)) {
+            $meta_query[] = array(
+                'key' => 'phone',
+                'value' => $phone,
+                'compare' => '='
+            );
+        }
+
+        // Query for the client
+        $args = array(
+            'post_type' => 'client',
+            'meta_query' => $meta_query,
+            'posts_per_page' => 1
+        );
+
+        $query = new WP_Query($args);
+
+        if ($query->have_posts()) {
+            $query->the_post();
+            $client_id = get_the_ID();
+
+            // Update the client meta with the new value
+            update_post_meta($client_id, 'initial_minisite_message', $message_value);
+
+            // Reset the post data
+            wp_reset_postdata();
+
+            return new WP_REST_Response(array('message' => 'Initial Minisite Message updated successfully.'), 200);
+        } else {
+            return new WP_Error('client_not_found', 'No client found with the provided email or phone number.', array('status' => 404));
+        }
+    }
+
 
     public function handle_set_order_type(WP_REST_Request $request)
     {
@@ -543,6 +718,7 @@ class AllAroundClientsDB
             'token',
             'email',
             'subscribed',
+            'initial_minisite_message',
             'invoice'
         ];
 
@@ -1009,6 +1185,7 @@ class AllAroundClientsDB
             'token',
             'email',
             'subscribed',
+            'initial_minisite_message',
             'invoice'
         ];
 
@@ -1341,6 +1518,7 @@ class AllAroundClientsDB
             'logo' => get_post_meta($post->ID, 'logo', true),
             'minisite_id' => get_post_meta($post->ID, 'minisite_id', true),
             'minisite_created' => !empty($minisite_created) ? $minisite_created : 'no',
+            'initial_minisite_message' => get_post_meta($post->ID, 'initial_minisite_message', true),
             'mainSite_orders' => get_post_meta($post->ID, 'mainSite_orders', true),
             'mainSite_order_value' => get_post_meta($post->ID, 'mainSite_order_value', true),
             'miniSite_orders' => get_post_meta($post->ID, 'miniSite_orders', true),
@@ -1402,6 +1580,13 @@ class AllAroundClientsDB
             <label><input type="radio" name="subscribed" value="yes" <?php checked($fields['subscribed'], 'yes', true); ?> />
                 Yes</label>
             <label><input type="radio" name="subscribed" value="no" <?php checked($fields['subscribed'], 'no'); ?> /> No</label>
+        </p>
+        <p>
+            <label for="initial_minisite_message">Initial Minisite Message:</label><br>
+            <select name="initial_minisite_message" id="initial_minisite_message">
+                <option value="yes" <?php selected($fields['initial_minisite_message'], 'yes'); ?>>Yes</option>
+                <option value="no" <?php selected($fields['initial_minisite_message'], 'no'); ?>>No</option>
+            </select>
         </p>
         <p>
             <label for="token">Token:</label><br>
@@ -1592,6 +1777,7 @@ class AllAroundClientsDB
             'phone',
             'status',
             'subscribed',
+            'initial_minisite_message',
             'token',
             'address_1',
             'address_2',

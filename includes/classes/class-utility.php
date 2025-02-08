@@ -26,7 +26,7 @@ class Alarnd_Utility
         add_action('wp_enqueue_scripts', array($this, 'enqueue_translation_script'));
 
         // Register the REST API route
-        add_action('rest_api_init', [$this, 'utility_rest_api_endpoints']);
+        // add_action('rest_api_init', [$this, 'utility_rest_api_endpoints']);
         
         add_action('init', array($this, 'register_order_group_post_type'));
         add_action('add_meta_boxes', array($this, 'add_order_group_meta_boxes'));
@@ -43,127 +43,33 @@ class Alarnd_Utility
         add_action('wp_ajax_filter_author_sales', array($this, 'handle_filter_author_sales'));
     }
 
-    public function utility_rest_api_endpoints()
-    {
-        // New route for minisite_created update clients by email and/or phone
-        register_rest_route(
-            'manage-client/v1',
-            '/minisite-created-meta',
-            array(
-                'methods' => 'POST',
-                'callback' => [$this, 'handle_minisite_created_meta'],
-                'permission_callback' => [$this, 'check_basic_auth'],
-                // 'permission_callback' => '__return_true',
-            )
-        );
-    }
+    // public function utility_rest_api_endpoints()
+    // {
+    // }
 
-    public function check_basic_auth($request)
-    {
-        $authorization = $request->get_header('Authorization');
+    // public function check_basic_auth($request)
+    // {
+    //     $authorization = $request->get_header('Authorization');
 
-        if (strpos($authorization, 'Basic ') === 0) {
-            // Get the username and password from the Authorization header
-            $credentials = base64_decode(substr($authorization, 6));
-            list($username, $password) = explode(':', $credentials);
+    //     if (strpos($authorization, 'Basic ') === 0) {
+    //         // Get the username and password from the Authorization header
+    //         $credentials = base64_decode(substr($authorization, 6));
+    //         list($username, $password) = explode(':', $credentials);
 
-            // Authenticate the user
-            $user = wp_authenticate($username, $password);
-            if (is_wp_error($user)) {
-                return new WP_Error('unauthorized', 'Invalid credentials', array('status' => 401));
-            }
+    //         // Authenticate the user
+    //         $user = wp_authenticate($username, $password);
+    //         if (is_wp_error($user)) {
+    //             return new WP_Error('unauthorized', 'Invalid credentials', array('status' => 401));
+    //         }
 
-            // Set the current user
-            wp_set_current_user($user->ID);
+    //         // Set the current user
+    //         wp_set_current_user($user->ID);
 
-            return true;
-        }
+    //         return true;
+    //     }
 
-        return new WP_Error('unauthorized', 'Authorization header not found', array('status' => 401));
-    }
-
-    public function handle_minisite_created_meta(WP_REST_Request $request)
-    {
-        // Get the parameters
-        $email = sanitize_email($request->get_param('email'));
-        $phone = sanitize_text_field($request->get_param('phone'));
-        $minisite_created = sanitize_text_field($request->get_param('minisite_created'));
-
-        // Check if email is provided and valid
-        if ((empty($email) || !is_email($email)) && empty($phone)) {
-            return new WP_Error('invalid_email', 'Email address or Phone is not valid.', array('status' => 400));
-        }
-
-        // Check if minisite_created is provided and valid
-        if (empty($minisite_created) || !in_array($minisite_created, ['yes', 'no'])) {
-            return new WP_Error('invalid_minisite_created', 'Minisite created value is not valid.', array('status' => 400));
-        }
-
-        // Create the meta query array
-        $meta_query = array('relation' => 'AND');
-
-        // Add email to the query if it's provided
-        if (!empty($email)) {
-            $meta_query[] = array(
-                'key' => 'email',
-                'value' => $email,
-                'compare' => '='
-            );
-        }
-
-        // Add phone to the query if it's provided
-        if (!empty($phone)) {
-            $meta_query[] = array(
-                'key' => 'phone',
-                'value' => $phone,
-                'compare' => '='
-            );
-        }
-
-        // Query arguments
-        $args = array(
-            'post_type' => 'client',
-            'post_status' => 'publish',
-            'posts_per_page' => 100, // Limit to 10 at a time for batch processing
-            'meta_query' => $meta_query
-        );
-
-        // Run the query
-        $query = new WP_Query($args);
-
-        // If no clients found, return an error
-        if (!$query->have_posts()) {
-            return new WP_Error('client_not_found', 'No client found with the provided email and/or phone number.', array('status' => 404));
-        }
-
-        // Process each client found
-        $updated_clients = array();
-        while ($query->have_posts()) {
-            $query->the_post();
-            $client_id = get_the_ID();
-
-            // Update 'subscribed' meta to 'no'
-            update_post_meta($client_id, 'minisite_created', $minisite_created);
-
-            // Log the updated client
-            $updated_clients[] = array(
-                'client_id' => $client_id,
-                'email' => get_post_meta($client_id, 'email', true),
-                'phone' => get_post_meta($client_id, 'phone', true),
-                'mini_url' => get_post_meta($client_id, 'mini_url', true),
-                'minisite_created' => get_post_meta($client_id, 'minisite_created', true)
-            );
-        }
-
-        // Reset the post data
-        wp_reset_postdata();
-
-        // Return the list of updated clients
-        return new WP_REST_Response(array(
-            'message' => 'Clients data updated successfully.',
-            'clients' => $updated_clients
-        ), 200);
-    }
+    //     return new WP_Error('unauthorized', 'Authorization header not found', array('status' => 401));
+    // }
 
 
     public function add_translation_options_page()

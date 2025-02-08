@@ -44,6 +44,19 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             </select>
                         </div>
 
+                        <!-- NEW: Minisite Created Filter -->
+                        <div class="filter-group minisite_created_group">
+                            <label>Minisite Created:</label>
+                            <label>
+                                <input type="radio" name="minisite_created_filter" value="yes" <?php checked(isset($_GET['minisite_created_filter']) && $_GET['minisite_created_filter'] === 'yes'); ?>>
+                                Yes
+                            </label>
+                            <label>
+                                <input type="radio" name="minisite_created_filter" value="no" <?php checked(isset($_GET['minisite_created_filter']) && $_GET['minisite_created_filter'] === 'no'); ?>>
+                                No
+                            </label>
+                        </div>
+
                         <!-- Checkbox for Lighter & Darker Logos -->
                         <div id="logo-filter" style="display:none;">
                             <label>
@@ -106,6 +119,31 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                         'compare' => 'LIKE'
                     ),
                 );
+            }
+
+            // Check Minisite Created filter from GET parameters
+            if (isset($_GET['minisite_created_filter']) && $_GET['minisite_created_filter'] !== '') {
+                $minisite_created_filter = sanitize_text_field($_GET['minisite_created_filter']);
+                if ($minisite_created_filter === 'yes') {
+                    $args['meta_query'][] = array(
+                        'key' => 'minisite_created',
+                        'value' => 'yes',
+                        'compare' => '='
+                    );
+                } else if ($minisite_created_filter === 'no') {
+                    $args['meta_query'][] = array(
+                        'relation' => 'OR',
+                        array(
+                            'key' => 'minisite_created',
+                            'value' => 'no',
+                            'compare' => '='
+                        ),
+                        array(
+                            'key' => 'minisite_created',
+                            'compare' => 'NOT EXISTS'
+                        )
+                    );
+                }
             }
 
             // Handle client type filtering
@@ -230,8 +268,14 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                     $order_counts[$result->client_id] = $result->order_count;
                 }
             }
+            ?>
 
-            if ($clients_query->have_posts()): ?>
+            <!-- Show total number of clients found -->
+            <div class="client-total-count">
+                <p>Total Clients Found: <b><?php echo $clients_query->found_posts; ?></b></p>
+            </div>
+
+            <?php if ($clients_query->have_posts()): ?>
                 <table id="client-table">
                     <thead>
                         <tr>
@@ -241,6 +285,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             <th>Mini Header</th>
                             <th>Mini URL</th>
                             <th>MiniCreated</th>
+                            <th>Initial Mini Message</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -255,6 +300,7 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             $mini_header = get_post_meta($client_id, 'mini_header', true);
                             $mini_url = get_post_meta($client_id, 'mini_url', true);
                             $minisite_created = get_post_meta($client_id, 'minisite_created', true);
+                            $initial_msg = get_post_meta($client_id, 'initial_minisite_message', true);
 
                             // Get preloaded order count for this client
                             $order_count = isset($order_counts[get_the_ID()]) ? $order_counts[get_the_ID()] : 0;
@@ -303,6 +349,10 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                                 <!-- MiniCreated -->
                                 <td class="client-mini-created">
                                     <span class="cell-text"><?php echo ($minisite_created === 'yes') ? 'Yes' : 'No'; ?></span>
+                                </td>
+                                <!-- Initial Minisite Message -->
+                                <td class="client-initial-minisite-message">
+                                    <span class="cell-text"><?php echo ($initial_msg === 'yes') ? 'Yes' : 'No'; ?></span>
                                 </td>
                                 <!-- Actions -->
                                 <td class="client-actions">

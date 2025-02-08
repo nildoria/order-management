@@ -37,6 +37,7 @@ restrict_access_to_logged_in_users();
             'invoice' => get_post_meta($client_id, 'invoice', true),
             'logo' => get_post_meta($client_id, 'logo', true),
             'minisite_created' => !empty($minisite_created) ? $minisite_created : 'no',
+            'initial_minisite_message' => get_post_meta($client_id, 'initial_minisite_message', true),
         ];
 
         $token = esc_attr($fields['token']);
@@ -153,6 +154,20 @@ restrict_access_to_logged_in_users();
                                     <input class="form-check-input" type="radio" name="subscribed" id="no" value="no" <?php checked($fields['subscribed'], 'no'); ?>>
                                     <label class="form-check-label" for="no">No</label>
                                 </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="form-group form-group-row">
+                            <label>Initial Minisite Message:</label>
+                            <div class="form-group-flex">
+                            <div class="form-check">
+                                <input type="radio" name="initial_minisite_message" value="yes" <?php checked($fields['initial_minisite_message'], 'yes'); ?>>
+                                <label class="form-check-label" for="yes">Yes</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" name="initial_minisite_message" value="no" <?php checked($fields['initial_minisite_message'], 'no'); ?>>
+                                <label class="form-check-label" for="no">No</label>
+                            </div>
                             </div>
                         </div>
 
