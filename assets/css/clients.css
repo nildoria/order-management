@@ -363,3 +363,10 @@ select#order_type {
 td.client-last-name, td.client-first-name, td.client-mini-header, td.client-mini-url {
     width: 150px;
 }
+.minisite_created_group {
+    gap: 20px;
+    padding: 20px 0 10px;
+}
+.minisite_created_group label {
+    width: auto !important;
+}

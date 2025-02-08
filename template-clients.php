@@ -44,6 +44,19 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                             </select>
                         </div>
 
+                        <!-- NEW: Minisite Created Filter -->
+                        <div class="filter-group minisite_created_group">
+                            <label>Minisite Created:</label>
+                            <label>
+                                <input type="radio" name="minisite_created_filter" value="yes" <?php checked(isset($_GET['minisite_created_filter']) && $_GET['minisite_created_filter'] === 'yes'); ?>>
+                                Yes
+                            </label>
+                            <label>
+                                <input type="radio" name="minisite_created_filter" value="no" <?php checked(isset($_GET['minisite_created_filter']) && $_GET['minisite_created_filter'] === 'no'); ?>>
+                                No
+                            </label>
+                        </div>
+
                         <!-- Checkbox for Lighter & Darker Logos -->
                         <div id="logo-filter" style="display:none;">
                             <label>
@@ -106,6 +119,31 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                         'compare' => 'LIKE'
                     ),
                 );
+            }
+
+            // Check Minisite Created filter from GET parameters
+            if (isset($_GET['minisite_created_filter']) && $_GET['minisite_created_filter'] !== '') {
+                $minisite_created_filter = sanitize_text_field($_GET['minisite_created_filter']);
+                if ($minisite_created_filter === 'yes') {
+                    $args['meta_query'][] = array(
+                        'key' => 'minisite_created',
+                        'value' => 'yes',
+                        'compare' => '='
+                    );
+                } else if ($minisite_created_filter === 'no') {
+                    $args['meta_query'][] = array(
+                        'relation' => 'OR',
+                        array(
+                            'key' => 'minisite_created',
+                            'value' => 'no',
+                            'compare' => '='
+                        ),
+                        array(
+                            'key' => 'minisite_created',
+                            'compare' => 'NOT EXISTS'
+                        )
+                    );
+                }
             }
 
             // Handle client type filtering
@@ -230,8 +268,14 @@ $paged = get_query_var('paged') ? get_query_var('paged') : 1;
                     $order_counts[$result->client_id] = $result->order_count;
                 }
             }
+            ?>
 
-            if ($clients_query->have_posts()): ?>
+            <!-- Show total number of clients found -->
+            <div class="client-total-count">
+                <p>Total Clients Found: <b><?php echo $clients_query->found_posts; ?></b></p>
+            </div>
+
+            <?php if ($clients_query->have_posts()): ?>
                 <table id="client-table">
                     <thead>
                         <tr>

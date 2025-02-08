@@ -270,167 +270,25 @@
     });
   }
 
-  /**
-   * deleteOrderItem
-   * Wraps your existing "delete" code in one function
-   */
-  function deleteOrderItem($button) {
+  // ********** Duplicate Order Item **********//
+  $(document).on("click", ".om_duplicate_item", function () {
     let order_id = allaround_vars.order_id;
-    let item_id = $button.siblings('input[name="item_id"]').val();
+    let item_id = $(this).siblings('input[name="item_id"]').val();
     let order_domain = allaround_vars.order_domain;
 
     const post_id = allaround_vars.post_id;
     const client_id = $("#client-select").val();
     const order_source = $("#om__order_source").data("order_source");
 
-    // Identify item details
-    const currentItem = $button.closest("tr.om__orderRow");
+    // stock_management_addition_limon - set variables for delete item
+    const currentItem = $(this).closest("tr.om__orderRow");
     const sku = currentItem.data("item-sku");
     const is_variable = currentItem.data("is_variable");
     const variations = currentItem.find(".item_name_variations");
     const colorItem = variations.find("[data-meta_key='Color']");
     const sizeItem = variations.find("[data-meta_key='Size']");
     const inputField = currentItem.find(".item-quantity-input");
-    let old_quantity = parseInt(inputField.data("item-qty")) || 0;
-
-    let itemType = "quantity";
-    let colorValue = "";
-    let sizeValue = "";
-
-    // If group (color/size)
-    if (colorItem.length !== 0) {
-      itemType = "group";
-      colorValue = colorItem.find("strong").text();
-      sizeValue = sizeItem.find("strong").text();
-    }
-
-    // If variable product
-    if (is_variable == true) {
-      itemType = "variable";
-    }
-
-    // We'll pass negative quantity back to stock
-    old_quantity = old_quantity * -1;
-
-    // Prepare stock update
-    const stockReqsData = {
-      source: allaround_vars.home_url,
-      action: "item_delete",
-      order_id: order_id,
-      data: {},
-    };
-
-    if (itemType === "group") {
-      stockReqsData.data[sku] = {
-        type: itemType,
-        data: {
-          [colorValue]: {
-            [sizeValue.toLowerCase()]: old_quantity,
-          },
-        },
-      };
-    } else if (itemType === "quantity") {
-      stockReqsData.data[sku] = {
-        type: itemType,
-        data: {
-          qty: old_quantity,
-        },
-      };
-    }
-
-    $(".sitewide_spinner").addClass("loading");
-
-    let newItem = {
-      order_id: order_id,
-      item_id: item_id,
-      method: "deleteItem",
-      nonce: allaround_vars.nonce,
-    };
-
-    let requestData = {
-      action: "update_order_transient",
-      order_id: order_id,
-    };
-
-    function handleResponse() {
-      $(".sitewide_spinner").removeClass("loading");
-      alert("Item deleted successfully");
-      location.reload();
-    }
-
-    // Send fetch request to remote domain
-    fetch(`${order_domain}/wp-json/update-order/v1/duplicate-delete-to-order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newItem),
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          return response.json().then((data) => {
-            throw new Error(data.message || "Something went wrong");
-          });
-        }
-      })
-      .then((data) => {
-        // Log the response
-        console.log("Deleting Item =>", data.message);
-
-        // Handle order source update
-        const handleOrderSourceData = {
-          action: "handle_order_source_action",
-          post_id: post_id,
-          client_id: client_id,
-          order_source: order_source,
-          total_price: data.deleted_item_total,
-        };
-        $.post(allaround_vars.ajax_url, handleOrderSourceData)
-          .done((res) => {
-            console.log("Order source handled:", res);
-          })
-          .fail((err) => {
-            console.error("Error handling order source:", err);
-            alert("Error handling order source: " + err.statusText);
-          });
-
-        // If not variable, update stock
-        if (is_variable != "true") {
-          sendRequestToUpdateStock("stock-update", stockReqsData);
-        }
-
-        // Refresh local transient
-        ml_send_ajax(requestData, handleResponse);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("An error occurred: " + error.message);
-        $(".sitewide_spinner").removeClass("loading");
-      });
-  }
-
-  /**
-   * duplicateOrderItem
-   * Wraps your existing "duplicate" code in one function
-   */
-  function duplicateOrderItem($button) {
-    let order_id = allaround_vars.order_id;
-    let item_id = $button.siblings('input[name="item_id"]').val();
-    let order_domain = allaround_vars.order_domain;
-
-    const post_id = allaround_vars.post_id;
-    const client_id = $("#client-select").val();
-    const order_source = $("#om__order_source").data("order_source");
-
-    // Identify item details
-    const currentItem = $button.closest("tr.om__orderRow");
-    const sku = currentItem.data("item-sku");
-    const is_variable = currentItem.data("is_variable");
-    const variations = currentItem.find(".item_name_variations");
-    const colorItem = variations.find("[data-meta_key='Color']");
-    const sizeItem = variations.find("[data-meta_key='Size']");
-    const inputField = currentItem.find(".item-quantity-input");
-    let old_quantity = parseInt(inputField.data("item-qty")) || 0;
+    let old_quantity = inputField.data("item-qty");
 
     let itemType = "quantity";
     let colorValue = "";
@@ -441,11 +299,17 @@
       colorValue = colorItem.find("strong").text();
       sizeValue = sizeItem.find("strong").text();
     }
+
+    console.log("is_variable", is_variable);
+    console.log("is_variable typeof", typeof is_variable);
+
     if (is_variable == true) {
       itemType = "variable";
     }
 
-    // Prepare for updating stock
+    // get different from old quantity to new quantity
+    old_quantity = parseInt(old_quantity);
+
     const stockReqsData = {
       source: allaround_vars.home_url,
       action: "item_duplicate",
@@ -462,7 +326,9 @@
           },
         },
       };
-    } else if (itemType === "quantity") {
+    }
+
+    if (itemType === "quantity") {
       stockReqsData.data[sku] = {
         type: itemType,
         data: {
@@ -471,7 +337,15 @@
       };
     }
 
+    console.log("stockReqsData", stockReqsData);
+    // end stock_management_addition_limon - set variables for delete item
+
     $(".sitewide_spinner").addClass("loading");
+
+    // Debugging
+    console.log("Order ID:", order_id);
+    console.log("Item ID:", item_id);
+    console.log("Order Domain:", order_domain);
 
     let newItem = {
       order_id: order_id,
@@ -485,21 +359,22 @@
       order_id: order_id,
     };
 
-    function handleResponse() {
+    function handleResponse(response) {
       $(".sitewide_spinner").removeClass("loading");
       alert("Item duplicated successfully");
-      location.reload();
+      location.reload(); // Refresh the page to see the new item
     }
 
-    // Send fetch request to remote domain
     fetch(`${order_domain}/wp-json/update-order/v1/duplicate-delete-to-order`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(newItem),
     })
       .then((response) => {
         if (response.ok) {
-          return response.json();
+          return response.json(); // Parse the JSON response
         } else {
           return response.json().then((data) => {
             throw new Error(data.message || "Something went wrong");
@@ -507,9 +382,14 @@
         }
       })
       .then((data) => {
-        console.log("Duplicating Item =>", data.message);
+        // Use the message and newly_added_total from the response
+        console.log("Client ID:", client_id);
+        console.log("Order Source:", order_source);
 
-        // Handle order source update
+        console.log("Response message:", data.message);
+        console.log("Newly Added Total:", data.newly_added_total);
+
+        // Prepare data to send to the server to handle order source
         const handleOrderSourceData = {
           action: "handle_order_source_action",
           post_id: post_id,
@@ -517,16 +397,20 @@
           order_source: order_source,
           total_price: data.newly_added_total,
         };
-        $.post(allaround_vars.ajax_url, handleOrderSourceData)
-          .done((res) => {
-            console.log("Order source handled:", res);
-          })
-          .fail((err) => {
-            console.error("Error handling order source:", err);
-            alert("Error handling order source: " + err.statusText);
-          });
 
-        // If not variable, update stock
+        // Send data to the server via AJAX
+        $.post(
+          allaround_vars.ajax_url,
+          handleOrderSourceData,
+          function (response) {
+            console.log("Order source handled successfully:", response);
+          }
+        ).fail(function (error) {
+          console.error("Error handling order source:", error);
+          alert("Error handling order source: " + error.statusText);
+        });
+
+        // stock_management_addition_limon - trigger item duplicate `sendRequestToUpdateStock`
         if (is_variable != "true") {
           sendRequestToUpdateStock("stock-update", stockReqsData);
         }
@@ -535,66 +419,168 @@
       .catch((error) => {
         console.error("Error:", error);
         alert("An error occurred: " + error.message);
+      })
+      .finally(() => {
         $(".sitewide_spinner").removeClass("loading");
       });
-  }
+  });
 
-  // Single event for both buttons
-  $(document).on("click", ".om_delete_item, .om_duplicate_item", function (e) {
-    e.preventDefault();
+  // ********** Delete Order Item **********//
+  $(document).on("click", ".om_delete_item", function () {
+    let order_id = allaround_vars.order_id;
+    let item_id = $(this).siblings('input[name="item_id"]').val();
+    let order_domain = allaround_vars.order_domain;
 
-    // Identify which button was clicked
-    const $button = $(this);
-    const isDelete = $button.hasClass("om_delete_item");
+    const post_id = allaround_vars.post_id;
+    const client_id = $("#client-select").val();
+    const order_source = $("#om__order_source").data("order_source");
 
-    // Choose texts for popup
-    const modalHeading = isDelete ? "Confirm Deletion" : "Confirm Duplication";
-    const modalDescription = isDelete
-      ? "Are you sure you want to delete this item?"
-      : "Are you sure you want to duplicate this item?";
-    const confirmBtnText = isDelete ? "Yes, Delete" : "Yes, Duplicate";
+    // stock_management_addition_limon - set variables for delete item
+    const currentItem = $(this).closest("tr.om__orderRow");
+    const sku = currentItem.data("item-sku");
+    const is_variable = currentItem.data("is_variable");
+    const variations = currentItem.find(".item_name_variations");
+    const colorItem = variations.find("[data-meta_key='Color']");
+    const sizeItem = variations.find("[data-meta_key='Size']");
+    const inputField = currentItem.find(".item-quantity-input");
+    let old_quantity = inputField.data("item-qty");
 
-    // Open Magnific Popup
-    $.magnificPopup.open({
-      items: {
-        src: "#actionConfirmModal",
-      },
-      type: "inline",
-      removalDelay: 300,
-      mainClass: "mfp-fade",
-      callbacks: {
-        open: function () {
-          // Update text in popup
-          $(".modal-heading").text(modalHeading);
-          $(".modal-description").text(modalDescription);
-          $(".confirm-action").text(confirmBtnText);
+    let itemType = "quantity";
+    let colorValue = "";
+    let sizeValue = "";
 
-          // Bind confirm
-          $(".confirm-action")
-            .off("click.confirmAction")
-            .on("click.confirmAction", function () {
-              if (isDelete) {
-                deleteOrderItem($button);
-              } else {
-                duplicateOrderItem($button);
-              }
-              $.magnificPopup.close();
-            });
+    if (colorItem.length !== 0) {
+      itemType = "group";
+      colorValue = colorItem.find("strong").text();
+      sizeValue = sizeItem.find("strong").text();
+    }
 
-          // Bind cancel
-          $(".cancel-action")
-            .off("click.cancelAction")
-            .on("click.cancelAction", function () {
-              $.magnificPopup.close();
-            });
+    // get different from old quantity to new quantity
+    old_quantity = parseInt(old_quantity);
+
+    // add minus so it can be added to the stock
+    old_quantity = old_quantity * -1;
+
+    console.log("is_variable", is_variable);
+    console.log("is_variable typeof", typeof is_variable);
+
+    if (is_variable == true) {
+      itemType = "variable";
+    }
+
+    const stockReqsData = {
+      source: allaround_vars.home_url,
+      action: "item_delete",
+      order_id: order_id,
+      data: {},
+    };
+
+    if (itemType === "group") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          [colorValue]: {
+            [sizeValue.toLowerCase()]: old_quantity,
+          },
         },
-        close: function () {
-          // Clean up events to avoid duplicates
-          $(".confirm-action").off("click.confirmAction");
-          $(".cancel-action").off("click.cancelAction");
+      };
+    }
+
+    if (itemType === "quantity") {
+      stockReqsData.data[sku] = {
+        type: itemType,
+        data: {
+          qty: old_quantity,
         },
+      };
+    }
+
+    console.log("stockReqsData", stockReqsData);
+    // end stock_management_addition_limon - set variables for delete item
+
+    $(".sitewide_spinner").addClass("loading");
+
+    // Debugging
+    console.log("Order ID:", order_id);
+    console.log("Item ID:", item_id);
+    console.log("Order Domain:", order_domain);
+
+    let newItem = {
+      order_id: order_id,
+      item_id: item_id,
+      method: "deleteItem",
+      nonce: allaround_vars.nonce,
+    };
+
+    let requestData = {
+      action: "update_order_transient",
+      order_id: order_id,
+    };
+
+    function handleResponse(response) {
+      $(".sitewide_spinner").removeClass("loading");
+      alert("Item deleted successfully");
+      location.reload(); // Refresh the page to see the new item
+    }
+
+    fetch(`${order_domain}/wp-json/update-order/v1/duplicate-delete-to-order`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    });
+      body: JSON.stringify(newItem),
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json(); // Parse the JSON response
+        } else {
+          return response.json().then((data) => {
+            throw new Error(data.message || "Something went wrong");
+          });
+        }
+      })
+      .then((data) => {
+        // Use the message and deleted_item_total from the response
+        console.log("Client ID:", client_id);
+        console.log("Order Source:", order_source);
+
+        console.log("Response message:", data.message);
+        console.log("Newly Added Total:", data.deleted_item_total);
+
+        // Prepare data to send to the server to handle order source
+        const handleOrderSourceData = {
+          action: "handle_order_source_action",
+          post_id: post_id,
+          client_id: client_id,
+          order_source: order_source,
+          total_price: data.deleted_item_total,
+        };
+
+        // Send data to the server via AJAX
+        $.post(
+          allaround_vars.ajax_url,
+          handleOrderSourceData,
+          function (response) {
+            console.log("Order source handled successfully:", response);
+          }
+        ).fail(function (error) {
+          console.error("Error handling order source:", error);
+          alert("Error handling order source: " + error.statusText);
+        });
+
+        // stock_management_addition_limon - trigger item delete `sendRequestToUpdateStock`
+        if (is_variable != "true") {
+          sendRequestToUpdateStock("stock-update", stockReqsData);
+        }
+        ml_send_ajax(requestData, handleResponse);
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
+      })
+      .finally(() => {
+        $(".sitewide_spinner").removeClass("loading");
+      });
   });
 
   // ********** Order Meta Update Script **********//
@@ -2449,8 +2435,10 @@
         $("#printLabelSendWebhook").removeClass("ml_loading");
         $.magnificPopup.close();
 
-        // Set flag for updating order status text on reload
-        localStorage.setItem("orderStatusCompleted", "true");
+        if (isAdmin()) {
+          // Set flag for updating order status text on reload
+          localStorage.setItem("orderStatusCompleted", "true");
+        }
 
         // locatio reload after 1 sec
         setTimeout(() => {
@@ -2466,12 +2454,14 @@
     });
   });
 
-  $(document).ready(function () {
-    if (localStorage.getItem("orderStatusCompleted") === "true") {
-      $("#om__orderStatus").text("Completed");
-      localStorage.removeItem("orderStatusCompleted");
-    }
-  });
+  if (isAdmin()) {
+    $(document).ready(function () {
+      if (localStorage.getItem("orderStatusCompleted") === "true") {
+        $("#om__orderStatus").text("Completed");
+        localStorage.removeItem("orderStatusCompleted");
+      }
+    });
+  }
 
   // Open Modal on click of #sendProofOpenModal
   $("#sendProofOpenModal").on("click", function (e) {
